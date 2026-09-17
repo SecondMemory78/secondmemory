@@ -1,0 +1,12 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlmodel==0.0.22
+python-multipart==0.0.9
+alembic==1.13.2
+psycopg2-binary==2.9.9
+pytest
+cryptography==43.0.1
+requests==2.32.3
+reportlab==4.4.10
+apscheduler==3.10.4
+pywebpush==2.0.0
