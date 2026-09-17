@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вторая память — админ-панель</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+:root{--s2:#fff;--s1:#f3f6fa;--tp:#16202c;--ts:#5a6675;--tm:#8b95a3;--bd:#e5e9ef;--ac:#2563eb;--acbg:#eaf1fd;--act:#1d4ed8;--dn:#c4322b;--sc:#1e7a52;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Golos Text',sans-serif;background:var(--s1);color:var(--tp);padding:24px}
+.wrap{max-width:1080px;margin:0 auto}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.top h1{font-size:20px;font-weight:600;flex:1}
+.top h1 i{color:var(--ac)}
+input,button{font-family:inherit;font-size:13px}
+.field{background:var(--s2);border:.5px solid var(--bd);border-radius:10px;padding:9px 12px;outline:none;color:var(--tp)}
+.btn{background:var(--ac);color:#fff;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:500}
+.btn.ghost{background:var(--s2);color:var(--tp);border:.5px solid var(--bd)}
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tab{padding:9px 16px;border-radius:10px;background:var(--s2);border:.5px solid var(--bd);cursor:pointer;font-size:13px}
+.tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--s2);border:.5px solid var(--bd);border-radius:14px;padding:16px}
+.stat .n{font-size:28px;font-weight:600;color:var(--ac)}
+.stat .l{font-size:12px;color:var(--ts);margin-top:2px}
+.sec{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--tm);margin:18px 0 8px}
+.row{display:flex;justify-content:space-between;padding:9px 0;border-top:.5px solid var(--bd);font-size:13px}
+.bar{height:8px;border-radius:4px;background:var(--ac)}
+.split{display:grid;grid-template-columns:340px 1fr;gap:16px}
+.thread{padding:11px 12px;border:.5px solid var(--bd);border-radius:10px;margin-bottom:8px;cursor:pointer;background:var(--s2)}
+.thread.on{border-color:var(--ac);background:var(--acbg)}
+.thread .subj{font-size:13px;font-weight:500}
+.thread .meta{font-size:11px;color:var(--tm);margin-top:3px;display:flex;justify-content:space-between}
+.pill{font-size:10px;padding:2px 7px;border-radius:999px}
+.pill.open{background:var(--acbg);color:var(--act)}
+.pill.closed{background:var(--s1);color:var(--tm)}
+.badge{background:var(--dn);color:#fff;border-radius:999px;font-size:10px;padding:1px 6px}
+.msgs{background:var(--s2);border:.5px solid var(--bd);border-radius:14px;padding:16px;min-height:340px;display:flex;flex-direction:column}
+.mlist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.msg{max-width:78%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg.staff{align-self:flex-end;background:var(--ac);color:#fff}
+.msg.client{align-self:flex-start;background:var(--s1)}
+.msg .t{font-size:10px;opacity:.7;margin-top:4px}
+.composer{display:flex;gap:8px}
+.composer input{flex:1}
+.muted{color:var(--tm)}.empty{color:var(--tm);font-size:13px;padding:20px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1><i class="ti ti-shield-lock"></i> Админ-панель</h1>
+    <input id="base" class="field" style="width:200px" value="http://localhost:8000">
+    <input id="token" class="field" style="width:200px" placeholder="admin-токен" value="dev-admin-token">
+    <button class="btn" onclick="connect()">Подключить</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" id="tab-an" onclick="show('an')">Аналитика</div>
+    <div class="tab" id="tab-use" onclick="show('use')">Расход ИИ</div>
+    <div class="tab" id="tab-sup" onclick="show('sup')">Поддержка</div>
+    <div class="tab" id="tab-aud" onclick="show('aud')">Журнал</div>
+    <div class="tab" id="tab-push" onclick="show('push')">Push</div>
+  </div>
+
+  <div id="view-an"></div>
+  <div id="view-use" style="display:none"></div>
+  <div id="view-sup" style="display:none"></div>
+  <div id="view-aud" style="display:none"></div>
+  <div id="view-push" style="display:none"></div>
+</div>
+
+<script>
+let BASE = "http://localhost:8000", TOKEN = "dev-admin-token", curTab = "an";
+let curThread = null;
+
+function H(){ return { "X-Admin-Token": TOKEN, "Content-Type": "application/json" }; }
+async function get(p){ const r = await fetch(BASE+p, {headers:H()}); if(!r.ok) throw new Error(r.status); return r.json(); }
+async function post(p,b){ const r = await fetch(BASE+p, {method:"POST",headers:H(),body:JSON.stringify(b||{})}); return r.json(); }
+
+function connect(){ BASE=document.getElementById("base").value.replace(/\/$/,""); TOKEN=document.getElementById("token").value; show(curTab); }
+function show(t){ curTab=t;
+  document.getElementById("tab-an").className="tab"+(t==="an"?" on":"");
+  document.getElementById("tab-use").className="tab"+(t==="use"?" on":"");
+  document.getElementById("tab-sup").className="tab"+(t==="sup"?" on":"");
+  document.getElementById("tab-aud").className="tab"+(t==="aud"?" on":"");
+  document.getElementById("tab-push").className="tab"+(t==="push"?" on":"");
+  document.getElementById("view-an").style.display=t==="an"?"":"none";
+  document.getElementById("view-use").style.display=t==="use"?"":"none";
+  document.getElementById("view-sup").style.display=t==="sup"?"":"none";
+  document.getElementById("view-aud").style.display=t==="aud"?"":"none";
+  document.getElementById("view-push").style.display=t==="push"?"":"none";
+  t==="an"?loadAnalytics():t==="use"?loadUsage():t==="aud"?loadAudit():t==="push"?loadPush():loadSupport();
+}
+
+let usePeriod="day";
+async function loadUsage(){
+  const v=document.getElementById("view-use");
+  try{
+    const sum=await get("/api/admin/usage/summary?period="+usePeriod);
+    const bd=await get("/api/admin/usage/by-doctor?period="+usePeriod);
+    const daily=await get("/api/admin/usage/daily?days=30");
+    const L=sum.labels;
+    const pick=(p)=>`<span class="tab ${usePeriod===p?'on':''}" style="padding:6px 12px" onclick="usePeriod='${p}';loadUsage()">${p==='day'?'День':p==='week'?'Неделя':'Месяц'}</span>`;
+    v.innerHTML=`
+      <div style="display:flex;gap:8px;margin-bottom:14px">${pick('day')}${pick('week')}${pick('month')}</div>
+      <div class="grid">
+        <div class="card stat"><div class="n">${sum.by_kind.ocr}</div><div class="l">${L.ocr}</div></div>
+        <div class="card stat"><div class="n">${sum.by_kind.stt}</div><div class="l">${L.stt}</div></div>
+        <div class="card stat"><div class="n">${sum.by_kind.llm}</div><div class="l">${L.llm}</div></div>
+        <div class="card stat"><div class="n">${sum.active_doctors}</div><div class="l">активных врачей</div></div>
+      </div>
+      <div class="sec">Расход по дням (30 дней)</div>
+      <div class="card">${chart(daily)}</div>
+      <div class="sec">По врачам · суточные лимиты: OCR ${sum.limits.ocr} · STT ${sum.limits.stt} · LLM ${sum.limits.llm}</div>
+      <div class="card">
+        <div class="row" style="font-weight:600;border:0"><span style="flex:1">Врач</span><span style="width:70px;text-align:right">OCR</span><span style="width:70px;text-align:right">STT</span><span style="width:70px;text-align:right">LLM</span><span style="width:90px;text-align:right">Сегодня OCR</span></div>
+        ${bd.map(d=>{
+          const over=d.today.ocr.used>=d.today.ocr.limit;
+          return `<div class="row"><span style="flex:1">${d.name}<div class="muted" style="font-size:11px">${d.email||''}</div></span>
+            <span class="mono" style="width:70px;text-align:right">${d.ocr}</span>
+            <span class="mono" style="width:70px;text-align:right">${d.stt}</span>
+            <span class="mono" style="width:70px;text-align:right">${d.llm}</span>
+            <span class="mono" style="width:90px;text-align:right;color:${over?'var(--dn)':'var(--ts)'}">${d.today.ocr.used}/${d.today.ocr.limit}${over?' ⛔':''}</span></div>`;
+        }).join("")||'<div class="empty">Нет данных за период</div>'}
+      </div>
+      <div class="sec">Прогноз стоимости ИИ за месяц (по прогнозным ценам)</div>
+      <div class="card">${await costBlock()}</div>`;
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; }
+}
+
+async function costBlock(){
+  try{
+    const r=await get("/api/admin/usage/cost");
+    const rows=r.doctors||[];
+    return `<div class="muted" style="font-size:12px;margin-bottom:8px">Порог тревоги: ${r.threshold_rub} ₽/врач · цены за операцию: OCR ${r.prices.ocr} · STT ${r.prices.stt} · LLM ${r.prices.llm} ₽ (прогноз, уточнится с боевыми ключами)</div>`
+      + (rows.map(d=>`<div class="row"><span>${d.name}</span><span class="mono" style="color:${d.over?'var(--dn)':'var(--ts)'}">${d.cost_rub.toFixed(0)} ₽${d.over?' ⚠️':''}</span></div>`).join("")||'<div class="empty">Нет данных</div>');
+  }catch(e){ return '<div class="empty">Не удалось загрузить стоимость</div>'; }
+}
+
+async function loadAudit(){
+  const v=document.getElementById("view-aud");
+  try{
+    const rows=await get("/api/admin/audit?limit=200");
+    v.innerHTML=`<div class="sec">Действия администрации (последние ${rows.length})</div>
+      <div class="muted" style="font-size:12px;margin-bottom:8px">Один общий админ-токен: конкретный сотрудник пока не различается.</div>
+      <div class="card">${rows.map(r=>`<div class="row"><span class="mono" style="font-size:12px">${r.action}${r.detail?' · '+r.detail:''}</span><span class="muted mono" style="font-size:11px">${r.at.slice(0,16).replace("T"," ")}</span></div>`).join("")||'<div class="empty">Пока пусто</div>'}</div>`;
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; }
+}
+
+async function loadPush(){
+  const v=document.getElementById("view-push");
+  let health={};
+  try{ health=await get("/api/admin/push/health"); }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; return; }
+  const bp=health.by_platform||{};
+  v.innerHTML=`
+    <div class="sec">Канал поддержки на этом устройстве</div>
+    <div class="card">
+      <div class="muted" style="font-size:12px;margin-bottom:8px">Подпишите это устройство, чтобы получать пуш о новых обращениях врачей.</div>
+      <button class="tab" style="cursor:pointer;display:inline-block" onclick="subscribeAdminPush()">Подписать это устройство</button>
+      <button class="tab" style="cursor:pointer;display:inline-block;margin-left:8px" onclick="testAdminPush()">Тест</button>
+      <div id="push-sub-msg" class="muted" style="font-size:12px;margin-top:8px"></div>
+    </div>
+    <div class="sec">Здоровье доставки</div>
+    <div class="grid">
+      <div class="card stat"><div class="n">${health.subscriptions||0}</div><div class="l">подписок всего</div></div>
+      <div class="card stat"><div class="n">${health.success_rate==null?"—":health.success_rate+"%"}</div><div class="l">успешно за 7 дней</div></div>
+      <div class="card stat"><div class="n">${health.delivered_7d||0}/${(health.delivered_7d||0)+(health.failed_7d||0)}</div><div class="l">доставлено/всего</div></div>
+      <div class="card stat"><div class="n">${health.admin_channel||0}</div><div class="l">устройств поддержки</div></div>
+    </div>
+    <div class="sec">По платформам</div>
+    <div class="card"><div class="row"><span>iPhone</span><span class="mono">${bp.ios||0}</span></div>
+      <div class="row"><span>Android</span><span class="mono">${bp.android||0}</span></div>
+      <div class="row"><span>Компьютер</span><span class="mono">${bp.desktop||0}</span></div>
+      <div class="row"><span>Не определено</span><span class="mono">${bp.unknown||0}</span></div></div>
+    <div class="sec">Последние ошибки доставки</div>
+    <div class="card">${(health.recent_errors||[]).map(e=>`<div class="row"><span class="mono" style="font-size:12px">${e.kind} · ${e.platform} · код ${e.code||"—"}</span><span class="muted mono" style="font-size:11px">${(e.at||"").slice(0,16).replace("T"," ")}</span></div>`).join("")||'<div class="empty">Ошибок нет</div>'}</div>`;
+}
+
+function b64ToU8(s){ const pad="=".repeat((4-s.length%4)%4); const b=(s+pad).replace(/-/g,"+").replace(/_/g,"/"); const raw=atob(b); const a=new Uint8Array(raw.length); for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i); return a; }
+async function subscribeAdminPush(){
+  const m=document.getElementById("push-sub-msg");
+  try{
+    const vk=await get("/api/push/vapid-key");
+    if(!vk.configured||!vk.key){ m.textContent="Push не настроен на сервере (нет VAPID-ключей)."; return; }
+    if(!("serviceWorker" in navigator)||!("PushManager" in window)){ m.textContent="Браузер не поддерживает push."; return; }
+    const reg=await navigator.serviceWorker.register("/sw.js");
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){ m.textContent="Разрешение не выдано."; return; }
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(vk.key)});
+    const j=sub.toJSON();
+    await post("/api/admin/push/subscribe",{endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth});
+    m.textContent="Устройство подписано на уведомления поддержки.";
+  }catch(e){ m.textContent="Не удалось подписать: "+e.message; }
+}
+async function testAdminPush(){
+  const m=document.getElementById("push-sub-msg");
+  try{ await post("/api/admin/push/test"); m.textContent="Тест отправлен."; }catch(e){ m.textContent="Ошибка теста: "+e.message; }
+}
+
+function chart(daily){
+  if(!daily.length) return '<div class="empty">Пока пусто</div>';
+  const max=Math.max(1,...daily.map(d=>d.ocr+d.stt+d.llm));
+  const W=Math.max(daily.length*22,300), H=140;
+  let bars="";
+  daily.forEach((d,i)=>{
+    const x=i*22+8; let y=H;
+    [["ocr","#2563eb"],["stt","#1e7a52"],["llm","#c98a1b"]].forEach(([k,col])=>{
+      const h=Math.round((d[k]/max)*(H-20));
+      if(h>0){ y-=h; bars+=`<rect x="${x}" y="${y}" width="14" height="${h}" fill="${col}" rx="2"><title>${d.date} ${k}: ${d[k]}</title></rect>`; }
+    });
+  });
+  return `<svg viewBox="0 0 ${W} ${H+16}" style="width:100%;max-width:${W}px">${bars}
+    <text x="8" y="${H+13}" font-size="9" fill="#8b95a3">${daily[0].date}</text>
+    <text x="${W-70}" y="${H+13}" font-size="9" fill="#8b95a3">${daily[daily.length-1].date}</text></svg>
+    <div style="font-size:11px;color:#8b95a3;margin-top:6px"><span style="color:#2563eb">■</span> OCR <span style="color:#1e7a52">■</span> STT <span style="color:#c98a1b">■</span> LLM</div>`;
+}
+
+async function loadAnalytics(){
+  const v=document.getElementById("view-an");
+  try{
+    const ov=await get("/api/admin/analytics/overview");
+    const ts=await get("/api/admin/analytics/timeseries?days=30");
+    const d=await get("/api/admin/analytics/summary");
+    const ev=await get("/api/admin/analytics/events?limit=20");
+    const max=Math.max(1,...Object.values(d.by_event));
+    v.innerHTML=`
+      <div class="grid">
+        <div class="card stat"><div class="n">${ov.doctors}</div><div class="l">врачей</div></div>
+        <div class="card stat"><div class="n">${ov.patients}</div><div class="l">пациентов</div></div>
+        <div class="card stat"><div class="n">${ov.appointments}</div><div class="l">приёмов всего</div></div>
+        <div class="card stat"><div class="n">${ov.appointments_today}</div><div class="l">приёмов сегодня</div></div>
+        <div class="card stat"><div class="n">${ov.notes}</div><div class="l">заметок</div></div>
+        <div class="card stat"><div class="n">${ov.ai_ops}</div><div class="l">ИИ-операций</div></div>
+      </div>
+      <div class="sec">Динамика по дням (30 дней)</div>
+      <div class="card">${lineChart(ts,[["appointments","#2563eb","Приёмы"],["patients","#1e7a52","Пациенты"],["ai","#c98a1b","ИИ-операции"],["events","#8b5cf6","События"]])}</div>
+      <div class="sec">Использование функций</div>
+      <div class="card">${Object.entries(d.by_event).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k,n])=>`
+        <div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${k}</span><span class="mono">${n}</span></div>
+        <div class="bar" style="width:${Math.round(n/max*100)}%"></div></div>`).join("")||'<div class="empty">Пока пусто</div>'}</div>
+      <div class="sec">Последние события</div>
+      <div class="card">${ev.map(e=>`<div class="row"><span>${e.event} <span class="muted">${JSON.stringify(e.props)}</span></span><span class="muted mono">${e.at.slice(0,16).replace("T"," ")}</span></div>`).join("")||'<div class="empty">Пока пусто</div>'}</div>`;
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}). Проверьте токен и адрес.</div>`; }
+}
+
+function lineChart(rows, series){
+  if(!rows||!rows.length) return '<div class="empty">Пока пусто</div>';
+  const W=Math.max(rows.length*20,320), H=150, P=8;
+  const max=Math.max(1,...rows.flatMap(r=>series.map(([k])=>r[k]||0)));
+  const x=i=>P+i*((W-2*P)/Math.max(1,rows.length-1));
+  const y=val=>H-P-(val/max)*(H-2*P-14);
+  let svg="";
+  series.forEach(([k,col])=>{
+    const pts=rows.map((r,i)=>`${x(i).toFixed(1)},${y(r[k]||0).toFixed(1)}`).join(" ");
+    svg+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>`;
+  });
+  const legend=series.map(([k,col,l])=>`<span style="color:${col};margin-right:12px">■ <span style="color:#8b95a3">${l}</span></span>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H+14}" style="width:100%;max-width:${W}px">${svg}
+    <text x="${P}" y="${H+11}" font-size="9" fill="#8b95a3">${rows[0].date}</text>
+    <text x="${W-60}" y="${H+11}" font-size="9" fill="#8b95a3">${rows[rows.length-1].date}</text></svg>
+    <div style="font-size:11px;margin-top:6px">${legend}</div>`;
+}
+
+async function loadSupport(){
+  const v=document.getElementById("view-sup");
+  v.innerHTML=`<div class="split"><div id="threads"></div><div id="chat" class="msgs"><div class="empty">Выберите обращение слева</div></div></div>`;
+  try{
+    const th=await get("/api/admin/support/threads");
+    document.getElementById("threads").innerHTML = th.length? th.map(t=>`
+      <div class="thread ${curThread===t.id?'on':''}" onclick="openThread(${t.id})">
+        <div class="subj">${t.subject||"(без темы)"} ${t.unread?`<span class="badge">${t.unread}</span>`:""}</div>
+        <div class="meta"><span>${t.last||""}</span><span class="pill ${t.status}">${t.status==="open"?"открыто":"закрыто"}</span></div>
+      </div>`).join("") : '<div class="empty">Обращений нет</div>';
+    if(curThread) openThread(curThread);
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; }
+}
+
+async function openThread(id){
+  curThread=id;
+  document.querySelectorAll(".thread").forEach(el=>el.classList.remove("on"));
+  const t=await get("/api/admin/support/threads/"+id);
+  const chat=document.getElementById("chat");
+  chat.innerHTML=`
+    <div class="mlist">${t.messages.map(m=>`
+      <div class="msg ${m.from_staff?'staff':'client'}">${m.body}<div class="t">${m.author_name} · ${m.created_at.slice(11,16)}</div></div>`).join("")}</div>
+    ${t.status==="open"?`
+    <div class="composer"><input id="reply" class="field" placeholder="Ответ поддержки…" onkeydown="if(event.key==='Enter')sendReply()">
+      <button class="btn" onclick="sendReply()">Отправить</button>
+      <button class="btn ghost" onclick="closeThread()">Закрыть</button></div>`
+    :`<div class="muted" style="font-size:12px">Обращение закрыто.</div>`}`;
+  loadSupportListSilently();
+}
+async function sendReply(){
+  const inp=document.getElementById("reply"); const body=inp.value.trim(); if(!body)return;
+  await post(`/api/admin/support/threads/${curThread}/reply`,{body}); openThread(curThread);
+}
+async function closeThread(){ await post(`/api/admin/support/threads/${curThread}/close`); openThread(curThread); }
+async function loadSupportListSilently(){
+  try{ const th=await get("/api/admin/support/threads");
+    document.getElementById("threads").innerHTML=th.map(t=>`
+      <div class="thread ${curThread===t.id?'on':''}" onclick="openThread(${t.id})">
+        <div class="subj">${t.subject||"(без темы)"} ${t.unread?`<span class="badge">${t.unread}</span>`:""}</div>
+        <div class="meta"><span>${t.last||""}</span><span class="pill ${t.status}">${t.status==="open"?"открыто":"закрыто"}</span></div>
+      </div>`).join("");
+  }catch(e){}
+}
+
+loadAnalytics();
+</script>
+</body>
+</html>
