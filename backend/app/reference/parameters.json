@@ -1,0 +1,4263 @@
+{
+ "version": {
+  "source": "Словарь параметров «Вторая память» v4 (сборка врача)",
+  "imported": "2026-07-28",
+  "note": "Официальные источники РФ: НСИ Минздрава (МКБ-10 M001), ЕСКЛП, ГРЛС, EAU. Пороги — ориентировочные, проверяются врачом."
+ },
+ "items": [
+  {
+   "code": "psa_total",
+   "category": "ПСА и онкомаркеры",
+   "name": "PSA общий",
+   "unit": "нг/мл",
+   "synonyms": [
+    "PSA total",
+    "ПСА общий",
+    "Prostate Specific Antigen",
+    "общий ПСА"
+   ],
+   "value_type": "число",
+   "threshold": "> 4,0 нг/мл — повод для дообследования (возрастная норма варьирует)",
+   "source": "Клинреком МЗ РФ «Доброкачественная гиперплазия предстательной железы», проверить год",
+   "mvp_priority": "Высокий",
+   "note": "Возрастные пороги отличаются — уточнить таблицу по возрасту"
+  },
+  {
+   "code": "psa_free",
+   "category": "ПСА и онкомаркеры",
+   "name": "PSA свободный",
+   "unit": "нг/мл",
+   "synonyms": [
+    "PSA free",
+    "свободный ПСА",
+    "f-PSA"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Используется для расчёта соотношения"
+  },
+  {
+   "code": "psa_free_ratio",
+   "category": "ПСА и онкомаркеры",
+   "name": "Соотношение PSA своб./общ.",
+   "unit": "%",
+   "synonyms": [
+    "PSA f/t ratio",
+    "% свободного ПСА"
+   ],
+   "value_type": "число",
+   "threshold": "< 15% — повышает подозрение при погран. общем PSA",
+   "source": "Клинреком МЗ РФ, проверить год",
+   "mvp_priority": "Средний",
+   "note": "Расчётный, если оба значения есть"
+  },
+  {
+   "code": "psa_density",
+   "category": "ПСА и онкомаркеры",
+   "name": "Плотность ПСА",
+   "unit": "нг/мл/см³",
+   "synonyms": [
+    "PSA density",
+    "PSAD"
+   ],
+   "value_type": "число",
+   "threshold": "> 0,15 — повод для дообследования",
+   "source": "Клинреком МЗ РФ, проверить год",
+   "mvp_priority": "Средний",
+   "note": "Расчётный: PSA / объём простаты"
+  },
+  {
+   "code": "psa_velocity",
+   "category": "ПСА и онкомаркеры",
+   "name": "Скорость прироста PSA",
+   "unit": "нг/мл/год",
+   "synonyms": [
+    "PSA velocity",
+    "PSAV"
+   ],
+   "value_type": "число",
+   "threshold": "> 0,75 нг/мл/год",
+   "source": "Клинреком МЗ РФ, проверить год",
+   "mvp_priority": "Низкий",
+   "note": "Расчётный по временному ряду, не вводится вручную"
+  },
+  {
+   "code": "prostate_volume",
+   "category": "Инструментальные",
+   "name": "Объём предстательной железы",
+   "unit": "см³",
+   "synonyms": [
+    "V простаты",
+    "объём простаты",
+    "TRUS volume",
+    "УЗ-объём"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Из УЗИ/ТРУЗИ протокола"
+  },
+  {
+   "code": "residual_urine",
+   "category": "Инструментальные",
+   "name": "Объём остаточной мочи",
+   "unit": "мл",
+   "synonyms": [
+    "V ост. мочи",
+    "ООМ",
+    "PVR",
+    "post-void residual"
+   ],
+   "value_type": "число",
+   "threshold": "> 50 мл — клинически значимо (уточнить контекст)",
+   "source": "Клинреком МЗ РФ, проверить год",
+   "mvp_priority": "Высокий",
+   "note": "Из УЗИ после микции"
+  },
+  {
+   "code": "bladder_wall",
+   "category": "Инструментальные",
+   "name": "Толщина стенки мочевого пузыря",
+   "unit": "мм",
+   "synonyms": [
+    "толщина стенки МП"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "testicular_volume",
+   "category": "Инструментальные",
+   "name": "Объём яичка (справа/слева)",
+   "unit": "см³",
+   "synonyms": [
+    "V яичка",
+    "объём яичка"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": "Парный показатель — два значения"
+  },
+  {
+   "code": "kidney_us_findings",
+   "category": "Инструментальные",
+   "name": "Заключение УЗИ почек",
+   "unit": "",
+   "synonyms": [
+    "УЗИ почек",
+    "заключение"
+   ],
+   "value_type": "текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Свободный текст, не числовой ряд"
+  },
+  {
+   "code": "qmax",
+   "category": "Функциональные",
+   "name": "Максимальная скорость потока мочи",
+   "unit": "мл/с",
+   "synonyms": [
+    "Qmax",
+    "Q max",
+    "макс. скорость потока"
+   ],
+   "value_type": "число",
+   "threshold": "< 10 мл/с — признак обструкции (возраст/объём влияют)",
+   "source": "Клинреком МЗ РФ, проверить год",
+   "mvp_priority": "Высокий",
+   "note": "Из урофлоуметрии"
+  },
+  {
+   "code": "qavg",
+   "category": "Функциональные",
+   "name": "Средняя скорость потока мочи",
+   "unit": "мл/с",
+   "synonyms": [
+    "Qaver",
+    "Q ср.",
+    "средняя скорость"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Из урофлоуметрии"
+  },
+  {
+   "code": "voided_volume",
+   "category": "Функциональные",
+   "name": "Объём мочеиспускания при УФМ",
+   "unit": "мл",
+   "synonyms": [
+    "V мочеисп.",
+    "объём микции"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": "Контекст для интерпретации Qmax"
+  },
+  {
+   "code": "ipss_score",
+   "category": "Опросники",
+   "name": "Сумма баллов IPSS",
+   "unit": "баллы (0–35)",
+   "synonyms": [
+    "IPSS",
+    "I-PSS",
+    "шкала IPSS"
+   ],
+   "value_type": "балл",
+   "threshold": "≥ 8 — умеренная симптоматика, ≥ 20 — выраженная",
+   "source": "Клинреком МЗ РФ, проверить год",
+   "mvp_priority": "Высокий",
+   "note": "Опросник, сумма 7 вопросов"
+  },
+  {
+   "code": "qol_index",
+   "category": "Опросники",
+   "name": "Индекс качества жизни (QoL)",
+   "unit": "баллы (0–6)",
+   "synonyms": [
+    "QoL",
+    "Quality of Life",
+    "индекс QoL"
+   ],
+   "value_type": "балл",
+   "threshold": "≥ 4 — значимо влияет на качество жизни",
+   "source": "Клинреком МЗ РФ, проверить год",
+   "mvp_priority": "Средний",
+   "note": "Обычно идёт вместе с IPSS"
+  },
+  {
+   "code": "iief5_score",
+   "category": "Опросники",
+   "name": "Индекс эректильной функции (IIEF-5)",
+   "unit": "баллы (5–25)",
+   "synonyms": [
+    "IIEF-5",
+    "МИЭФ-5"
+   ],
+   "value_type": "балл",
+   "threshold": "≤ 21 — признаки ЭД разной степени",
+   "source": "Клинреком МЗ РФ по ЭД, проверить год",
+   "mvp_priority": "Низкий",
+   "note": "Андрологический блок"
+  },
+  {
+   "code": "nih_cpsi_score",
+   "category": "Опросники",
+   "name": "Индекс симптомов простатита (NIH-CPSI)",
+   "unit": "баллы (0–43)",
+   "synonyms": [
+    "NIH-CPSI",
+    "индекс простатита"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "creatinine",
+   "category": "Лаб. общие",
+   "name": "Креатинин",
+   "unit": "мкмоль/л",
+   "synonyms": [
+    "Creatinine",
+    "креатинин крови"
+   ],
+   "value_type": "число",
+   "threshold": "> 110 мкмоль/л — уточнить референс лаборатории",
+   "source": "Референс лаборатории + клинреком по ХБП",
+   "mvp_priority": "Высокий",
+   "note": "Референсы отличаются между лабораториями"
+  },
+  {
+   "code": "egfr",
+   "category": "Лаб. общие",
+   "name": "СКФ (расчётная, CKD-EPI)",
+   "unit": "мл/мин/1,73м²",
+   "synonyms": [
+    "eGFR",
+    "СКФ",
+    "GFR CKD-EPI"
+   ],
+   "value_type": "число",
+   "threshold": "< 60 — снижение функции почек (стадии ХБП)",
+   "source": "Клинреком МЗ РФ по ХБП, проверить год",
+   "mvp_priority": "Высокий",
+   "note": "Расчётный по формуле CKD-EPI, если не указан в бланке"
+  },
+  {
+   "code": "urea",
+   "category": "Лаб. общие",
+   "name": "Мочевина",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Urea",
+    "мочевина крови"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "hemoglobin",
+   "category": "Лаб. общие",
+   "name": "Гемоглобин",
+   "unit": "г/л",
+   "synonyms": [
+    "Hb",
+    "гемоглобин"
+   ],
+   "value_type": "число",
+   "threshold": "< 130 (м) / < 120 (ж) — анемия (ориентир)",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": "Пол-зависимый порог"
+  },
+  {
+   "code": "glucose",
+   "category": "Лаб. общие",
+   "name": "Глюкоза крови",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Glucose",
+    "глюкоза натощак"
+   ],
+   "value_type": "число",
+   "threshold": "≥ 7,0 натощак — повод дообследовать",
+   "source": "Клинреком по СД, проверить год",
+   "mvp_priority": "Низкий",
+   "note": "Важно из-за влияния на ЭД/уросепсис"
+  },
+  {
+   "code": "hba1c",
+   "category": "Лаб. общие",
+   "name": "Гликированный гемоглобин",
+   "unit": "%",
+   "synonyms": [
+    "HbA1c",
+    "гликированный Hb"
+   ],
+   "value_type": "число",
+   "threshold": "≥ 6,5% — диагностический порог СД",
+   "source": "Клинреком по СД, проверить год",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "urine_leukocytes",
+   "category": "Лаб. общие (моча)",
+   "name": "Лейкоциты в моче",
+   "unit": "в п/зр или /мкл",
+   "synonyms": [
+    "Le в моче",
+    "лейкоциты мочи",
+    "WBC в моче"
+   ],
+   "value_type": "число",
+   "threshold": "> 5 в п/зр — лейкоцитурия (метод-зависимо)",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Метод подсчёта различается по лабораториям"
+  },
+  {
+   "code": "urine_erythrocytes",
+   "category": "Лаб. общие (моча)",
+   "name": "Эритроциты в моче",
+   "unit": "в п/зр или /мкл",
+   "synonyms": [
+    "Эр. в моче",
+    "эритроциты мочи",
+    "RBC в моче"
+   ],
+   "value_type": "число",
+   "threshold": "> 3 в п/зр — микрогематурия (ориентир)",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Клинически значимый признак — требует внимания"
+  },
+  {
+   "code": "urine_protein",
+   "category": "Лаб. общие (моча)",
+   "name": "Белок в моче",
+   "unit": "г/л",
+   "synonyms": [
+    "Protein в моче",
+    "белок мочи",
+    "проteinuria"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_nitrites",
+   "category": "Лаб. общие (моча)",
+   "name": "Нитриты в моче",
+   "unit": "качественно",
+   "synonyms": [
+    "нитриты",
+    "nitrites"
+   ],
+   "value_type": "категория",
+   "threshold": "положительно → маркер бактериурии",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Да/нет/не определялось"
+  },
+  {
+   "code": "urine_culture_cfu",
+   "category": "Лаб. общие (моча)",
+   "name": "Бактериурия (посев)",
+   "unit": "КОЕ/мл",
+   "synonyms": [
+    "бакпосев мочи",
+    "посев на флору",
+    "титр"
+   ],
+   "value_type": "число+текст",
+   "threshold": "≥ 10^5 КОЕ/мл — диагностически значимо",
+   "source": "Клинреком по ИМП, проверить год",
+   "mvp_priority": "Высокий",
+   "note": "Указывать также выявленный возбудитель"
+  },
+  {
+   "code": "testosterone_total",
+   "category": "Гормоны",
+   "name": "Тестостерон общий",
+   "unit": "нмоль/л",
+   "synonyms": [
+    "Testosterone total",
+    "тестостерон общий"
+   ],
+   "value_type": "число",
+   "threshold": "< 12 нмоль/л — гипогонадизм (ориентир)",
+   "source": "Клинреком по гипогонадизму, проверить год",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "testosterone_free",
+   "category": "Гормоны",
+   "name": "Тестостерон свободный",
+   "unit": "пмоль/л",
+   "synonyms": [
+    "Testosterone free",
+    "своб. тестостерон"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "lh",
+   "category": "Гормоны",
+   "name": "ЛГ",
+   "unit": "МЕ/л",
+   "synonyms": [
+    "LH",
+    "лютеинизирующий гормон"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "fsh",
+   "category": "Гормоны",
+   "name": "ФСГ",
+   "unit": "МЕ/л",
+   "synonyms": [
+    "FSH",
+    "фолликулостимулирующий гормон"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "estradiol",
+   "category": "Гормоны",
+   "name": "Эстрадиол",
+   "unit": "пмоль/л",
+   "synonyms": [
+    "E2",
+    "эстрадиол"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "sperm_concentration",
+   "category": "Спермограмма",
+   "name": "Концентрация сперматозоидов",
+   "unit": "млн/мл",
+   "synonyms": [
+    "концентрация",
+    "sperm count"
+   ],
+   "value_type": "число",
+   "threshold": "< 15 млн/мл — олигозооспермия (ВОЗ ориентир)",
+   "source": "Критерии ВОЗ, проверить издание",
+   "mvp_priority": "Низкий",
+   "note": "Андрологический блок"
+  },
+  {
+   "code": "sperm_motility",
+   "category": "Спермограмма",
+   "name": "Подвижность (прогрессивная)",
+   "unit": "%",
+   "synonyms": [
+    "подвижность",
+    "progressive motility"
+   ],
+   "value_type": "число",
+   "threshold": "< 32% — астенозооспермия (ВОЗ ориентир)",
+   "source": "Критерии ВОЗ, проверить издание",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "sperm_morphology",
+   "category": "Спермограмма",
+   "name": "Морфология (норм. формы)",
+   "unit": "%",
+   "synonyms": [
+    "морфология",
+    "normal forms"
+   ],
+   "value_type": "число",
+   "threshold": "< 4% — тератозооспермия (ВОЗ ориентир)",
+   "source": "Критерии ВОЗ, проверить издание",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "gleason_score",
+   "category": "Онкология",
+   "name": "Балл по Глисону",
+   "unit": "сумма (напр. 3+4)",
+   "synonyms": [
+    "Gleason",
+    "шкала Глисона"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Из гистологии биопсии, текстово-числовой формат"
+  },
+  {
+   "code": "tnm_stage",
+   "category": "Онкология",
+   "name": "Стадия по TNM",
+   "unit": "категория",
+   "synonyms": [
+    "TNM",
+    "стадирование"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Категориальный, не временной ряд в чистом виде"
+  },
+  {
+   "code": "blood_pressure",
+   "category": "Общее",
+   "name": "Артериальное давление",
+   "unit": "мм рт. ст.",
+   "synonyms": [
+    "АД",
+    "давление",
+    "BP"
+   ],
+   "value_type": "диапазон",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Систолическое/диастолическое — два числа"
+  },
+  {
+   "code": "bmi",
+   "category": "Общее",
+   "name": "Индекс массы тела",
+   "unit": "кг/м²",
+   "synonyms": [
+    "BMI",
+    "ИМТ"
+   ],
+   "value_type": "число",
+   "threshold": "≥ 30 — ожирение (влияет на ряд показателей)",
+   "source": "Общепринятая классификация ВОЗ",
+   "mvp_priority": "Низкий",
+   "note": "Расчётный: вес/рост²"
+  },
+  {
+   "code": "allergy",
+   "category": "Общее",
+   "name": "Аллергия на препарат",
+   "unit": "",
+   "synonyms": [
+    "аллергия",
+    "непереносимость"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Не временной ряд — статус пациента, блок безопасности"
+  },
+  {
+   "code": "current_medications",
+   "category": "Общее",
+   "name": "Принимаемые препараты (текущие)",
+   "unit": "",
+   "synonyms": [
+    "принимает",
+    "текущая терапия"
+   ],
+   "value_type": "список",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Для проверки лекарственных конфликтов"
+  },
+  {
+   "code": "surgical_history",
+   "category": "Общее",
+   "name": "Перенесённые операции",
+   "unit": "",
+   "synonyms": [
+    "операции",
+    "хирургический анамнез"
+   ],
+   "value_type": "список",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Блок безопасности первичного приёма"
+  },
+  {
+   "code": "chronic_conditions",
+   "category": "Общее",
+   "name": "Хронические заболевания",
+   "unit": "",
+   "synonyms": [
+    "хронические заболевания",
+    "анамнез"
+   ],
+   "value_type": "список",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Блок безопасности первичного приёма"
+  },
+  {
+   "code": "height",
+   "category": "Демография",
+   "name": "Рост",
+   "unit": "см",
+   "synonyms": [
+    "рост",
+    "height"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Исходный показатель для ИМТ и расчётов"
+  },
+  {
+   "code": "weight",
+   "category": "Демография",
+   "name": "Масса тела",
+   "unit": "кг",
+   "synonyms": [
+    "масса",
+    "вес",
+    "weight"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить как временной ряд"
+  },
+  {
+   "code": "body_temperature",
+   "category": "Общее состояние",
+   "name": "Температура тела",
+   "unit": "°C",
+   "synonyms": [
+    "t",
+    "температура",
+    "temperature"
+   ],
+   "value_type": "число",
+   "threshold": "≥38,0 — лихорадка; интерпретировать клинически",
+   "source": "Референс учреждения",
+   "mvp_priority": "Высокий",
+   "note": "Не является самостоятельным диагнозом"
+  },
+  {
+   "code": "heart_rate",
+   "category": "Общее состояние",
+   "name": "Частота пульса",
+   "unit": "уд/мин",
+   "synonyms": [
+    "ЧСС",
+    "пульс",
+    "HR"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "spo2",
+   "category": "Общее состояние",
+   "name": "SpO₂",
+   "unit": "%",
+   "synonyms": [
+    "сатурация",
+    "SpO2",
+    "saturation"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "pain_nrs",
+   "category": "Общее состояние",
+   "name": "Интенсивность боли NRS",
+   "unit": "баллы 0–10",
+   "synonyms": [
+    "NRS",
+    "ВАШ",
+    "боль по шкале"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Указывать локализацию и время"
+  },
+  {
+   "code": "urine_output_24h",
+   "category": "Диурез",
+   "name": "Суточный диурез",
+   "unit": "мл/24 ч",
+   "synonyms": [
+    "диурез",
+    "суточная моча",
+    "urine output"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Контекст массы тела и инфузии хранить отдельно"
+  },
+  {
+   "code": "urine_output_hourly",
+   "category": "Диурез",
+   "name": "Почасовой диурез",
+   "unit": "мл/ч",
+   "synonyms": [
+    "почасовой диурез",
+    "hourly urine output"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "crp",
+   "category": "Воспаление",
+   "name": "С-реактивный белок",
+   "unit": "мг/л",
+   "synonyms": [
+    "СРБ",
+    "CRP",
+    "C-reactive protein"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "procalcitonin",
+   "category": "Воспаление",
+   "name": "Прокальцитонин",
+   "unit": "нг/мл",
+   "synonyms": [
+    "ПКТ",
+    "PCT",
+    "procalcitonin"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "wbc",
+   "category": "ОАК",
+   "name": "Лейкоциты крови",
+   "unit": "10^9/л",
+   "synonyms": [
+    "WBC",
+    "лейкоциты"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "platelets",
+   "category": "ОАК",
+   "name": "Тромбоциты",
+   "unit": "10^9/л",
+   "synonyms": [
+    "PLT",
+    "тромбоциты"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "potassium",
+   "category": "Биохимия",
+   "name": "Калий",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "K",
+    "калий",
+    "potassium"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "sodium",
+   "category": "Биохимия",
+   "name": "Натрий",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Na",
+    "натрий",
+    "sodium"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "albumin",
+   "category": "Биохимия",
+   "name": "Альбумин",
+   "unit": "г/л",
+   "synonyms": [
+    "albumin",
+    "альбумин"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "alt",
+   "category": "Биохимия",
+   "name": "АЛТ",
+   "unit": "Ед/л",
+   "synonyms": [
+    "ALT",
+    "АлАТ",
+    "АЛТ"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ast",
+   "category": "Биохимия",
+   "name": "АСТ",
+   "unit": "Ед/л",
+   "synonyms": [
+    "AST",
+    "АсАТ",
+    "АСТ"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "inr",
+   "category": "Коагулограмма",
+   "name": "МНО",
+   "unit": "отношение",
+   "synonyms": [
+    "INR",
+    "МНО"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "aptt",
+   "category": "Коагулограмма",
+   "name": "АЧТВ",
+   "unit": "с",
+   "synonyms": [
+    "APTT",
+    "АЧТВ"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "fibrinogen",
+   "category": "Коагулограмма",
+   "name": "Фибриноген",
+   "unit": "г/л",
+   "synonyms": [
+    "fibrinogen",
+    "фибриноген"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_ph",
+   "category": "Моча",
+   "name": "pH мочи",
+   "unit": "pH",
+   "synonyms": [
+    "pH urine",
+    "реакция мочи"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Ключевой параметр метафилактики МКБ"
+  },
+  {
+   "code": "urine_specific_gravity",
+   "category": "Моча",
+   "name": "Удельный вес мочи",
+   "unit": "отн. ед.",
+   "synonyms": [
+    "SG",
+    "относительная плотность",
+    "удельный вес"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_acr",
+   "category": "Моча",
+   "name": "Альбумин/креатинин мочи",
+   "unit": "мг/г или мг/ммоль",
+   "synonyms": [
+    "ACR",
+    "АКМ",
+    "альбумин-креатининовое соотношение"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "KDIGO / клинреком РФ по ХБП",
+   "mvp_priority": "Высокий",
+   "note": "Единицу хранить отдельным полем"
+  },
+  {
+   "code": "urine_pcr",
+   "category": "Моча",
+   "name": "Белок/креатинин мочи",
+   "unit": "мг/г или мг/ммоль",
+   "synonyms": [
+    "PCR",
+    "БКС",
+    "protein creatinine ratio"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "KDIGO / клинреком РФ по ХБП",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "culture_organism",
+   "category": "Микробиология",
+   "name": "Выделенный микроорганизм",
+   "unit": "",
+   "synonyms": [
+    "возбудитель",
+    "organism",
+    "isolate"
+   ],
+   "value_type": "справочник",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Связь со справочником микроорганизмов"
+  },
+  {
+   "code": "antibiotic_susceptibility",
+   "category": "Микробиология",
+   "name": "Чувствительность к препарату",
+   "unit": "",
+   "synonyms": [
+    "S",
+    "чувствителен",
+    "susceptible"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "S/I/R и метод определения"
+  },
+  {
+   "code": "antibiotic_resistance",
+   "category": "Микробиология",
+   "name": "Резистентность к препарату",
+   "unit": "",
+   "synonyms": [
+    "R",
+    "устойчив",
+    "resistant"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Связывать с МНН антибактериального препарата"
+  },
+  {
+   "code": "stone_size",
+   "category": "МКБ",
+   "name": "Размер конкремента",
+   "unit": "мм",
+   "synonyms": [
+    "размер камня",
+    "stone size",
+    "calculus size"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Для нескольких камней — отдельная сущность Stone"
+  },
+  {
+   "code": "stone_density",
+   "category": "МКБ",
+   "name": "Плотность конкремента",
+   "unit": "HU",
+   "synonyms": [
+    "плотность",
+    "HU",
+    "Hounsfield units"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "stone_location",
+   "category": "МКБ",
+   "name": "Локализация конкремента",
+   "unit": "",
+   "synonyms": [
+    "чашка",
+    "лоханка",
+    "мочеточник",
+    "bladder stone"
+   ],
+   "value_type": "справочник",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Использовать анатомический справочник"
+  },
+  {
+   "code": "stone_count",
+   "category": "МКБ",
+   "name": "Количество конкрементов",
+   "unit": "шт.",
+   "synonyms": [
+    "число камней",
+    "stone count"
+   ],
+   "value_type": "целое",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "renal_pelvis_ap",
+   "category": "Верхние мочевые пути",
+   "name": "Переднезадний размер лоханки",
+   "unit": "мм",
+   "synonyms": [
+    "АП размер лоханки",
+    "AP diameter"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Не использовать как единственный триггер дренирования"
+  },
+  {
+   "code": "hydronephrosis_grade",
+   "category": "Верхние мочевые пути",
+   "name": "Степень гидронефроза",
+   "unit": "",
+   "synonyms": [
+    "SFU",
+    "UTD",
+    "степень гидронефроза"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Связь с листом «Классификации»"
+  },
+  {
+   "code": "bosniak_class",
+   "category": "Почки",
+   "name": "Категория Bosniak",
+   "unit": "",
+   "synonyms": [
+    "Bosniak",
+    "категория кисты"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Версия классификации обязательна"
+  },
+  {
+   "code": "renal_mass_size",
+   "category": "Почки",
+   "name": "Размер образования почки",
+   "unit": "мм",
+   "synonyms": [
+    "renal mass",
+    "опухоль почки",
+    "размер образования"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "renal_score",
+   "category": "Почки",
+   "name": "RENAL nephrometry score",
+   "unit": "баллы",
+   "synonyms": [
+    "R.E.N.A.L.",
+    "RENAL score"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Версия и компоненты хранятся отдельно"
+  },
+  {
+   "code": "pirads_category",
+   "category": "Предстательная железа",
+   "name": "Категория PI-RADS",
+   "unit": "1–5",
+   "synonyms": [
+    "PI-RADS",
+    "PIRADS"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Обязательно PI-RADS v2.1"
+  },
+  {
+   "code": "prostate_lesion_size",
+   "category": "Предстательная железа",
+   "name": "Размер очага МРТ",
+   "unit": "мм",
+   "synonyms": [
+    "размер очага",
+    "lesion size"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "prostate_lesion_location",
+   "category": "Предстательная железа",
+   "name": "Локализация очага МРТ",
+   "unit": "",
+   "synonyms": [
+    "PZ",
+    "TZ",
+    "сектор простаты"
+   ],
+   "value_type": "справочник",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить сторону, зону, уровень и сектор"
+  },
+  {
+   "code": "dre_findings",
+   "category": "Предстательная железа",
+   "name": "Данные пальцевого ректального исследования",
+   "unit": "",
+   "synonyms": [
+    "ПРИ",
+    "DRE",
+    "пальпация простаты"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Размер, консистенция, узел, болезненность"
+  },
+  {
+   "code": "biopsy_cores_total",
+   "category": "Биопсия",
+   "name": "Всего биоптатов",
+   "unit": "шт.",
+   "synonyms": [
+    "число столбиков",
+    "total cores"
+   ],
+   "value_type": "целое",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "biopsy_cores_positive",
+   "category": "Биопсия",
+   "name": "Положительных биоптатов",
+   "unit": "шт.",
+   "synonyms": [
+    "positive cores",
+    "поражённых столбиков"
+   ],
+   "value_type": "целое",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "isup_grade_group",
+   "category": "Онкология",
+   "name": "ISUP Grade Group",
+   "unit": "1–5",
+   "synonyms": [
+    "ISUP",
+    "Grade Group",
+    "группа градации"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Не заменяет первичную формулировку патоморфолога"
+  },
+  {
+   "code": "clinical_t",
+   "category": "Онкология",
+   "name": "Клиническая категория T",
+   "unit": "",
+   "synonyms": [
+    "cT",
+    "clinical T"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить вместе с версией TNM"
+  },
+  {
+   "code": "pathological_t",
+   "category": "Онкология",
+   "name": "Патоморфологическая категория T",
+   "unit": "",
+   "synonyms": [
+    "pT",
+    "pathological T"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "tnm_n",
+   "category": "Онкология",
+   "name": "Категория N",
+   "unit": "",
+   "synonyms": [
+    "cN",
+    "pN",
+    "N stage"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "tnm_m",
+   "category": "Онкология",
+   "name": "Категория M",
+   "unit": "",
+   "synonyms": [
+    "cM",
+    "pM",
+    "M stage"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "ecog_score",
+   "category": "Функциональный статус",
+   "name": "ECOG",
+   "unit": "0–5",
+   "synonyms": [
+    "ECOG",
+    "performance status"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "asa_class",
+   "category": "Анестезиология",
+   "name": "Класс ASA",
+   "unit": "I–VI",
+   "synonyms": [
+    "ASA",
+    "класс анестезиологического риска"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "charlson_index",
+   "category": "Коморбидность",
+   "name": "Индекс Charlson",
+   "unit": "баллы",
+   "synonyms": [
+    "CCI",
+    "Charlson"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urethral_catheter_status",
+   "category": "Устройства",
+   "name": "Уретральный катетер",
+   "unit": "",
+   "synonyms": [
+    "катетер Foley",
+    "уретральный катетер"
+   ],
+   "value_type": "структура",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Размер Fr, материал, дата установки, показание"
+  },
+  {
+   "code": "nephrostomy_status",
+   "category": "Устройства",
+   "name": "Нефростома",
+   "unit": "",
+   "synonyms": [
+    "нефростома",
+    "PCN"
+   ],
+   "value_type": "структура",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Сторона, размер, дата установки/замены"
+  },
+  {
+   "code": "ureteral_stent_status",
+   "category": "Устройства",
+   "name": "Мочеточниковый стент",
+   "unit": "",
+   "synonyms": [
+    "JJ",
+    "double-J",
+    "стент мочеточника"
+   ],
+   "value_type": "структура",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Сторона, размер, длина, срок удаления/замены"
+  },
+  {
+   "code": "medication_inn",
+   "category": "Лекарства",
+   "name": "МНН назначенного препарата",
+   "unit": "",
+   "synonyms": [
+    "МНН",
+    "INN",
+    "active ingredient"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "FK на «Препараты_МНН»"
+  },
+  {
+   "code": "medication_brand",
+   "category": "Лекарства",
+   "name": "Торговое наименование",
+   "unit": "",
+   "synonyms": [
+    "бренд",
+    "trade name"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "FK на «Синонимы_бренды»"
+  },
+  {
+   "code": "medication_dose",
+   "category": "Лекарства",
+   "name": "Разовая доза",
+   "unit": "",
+   "synonyms": [
+    "доза",
+    "dose"
+   ],
+   "value_type": "структура",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Число и единица — отдельные поля"
+  },
+  {
+   "code": "medication_route",
+   "category": "Лекарства",
+   "name": "Путь введения",
+   "unit": "",
+   "synonyms": [
+    "per os",
+    "в/в",
+    "в/м",
+    "intravesical"
+   ],
+   "value_type": "справочник",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "medication_frequency",
+   "category": "Лекарства",
+   "name": "Кратность",
+   "unit": "",
+   "synonyms": [
+    "кратность",
+    "frequency"
+   ],
+   "value_type": "структура",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "medication_indication",
+   "category": "Лекарства",
+   "name": "Показание к назначению",
+   "unit": "",
+   "synonyms": [
+    "indication",
+    "по поводу"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Связь с диагнозом/проблемой"
+  },
+  {
+   "code": "allergy_agent",
+   "category": "Аллергии",
+   "name": "Подозреваемый препарат или класс",
+   "unit": "",
+   "synonyms": [
+    "аллерген",
+    "culprit drug"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Связь с МНН, брендом или группой"
+  },
+  {
+   "code": "allergy_reaction_type",
+   "category": "Аллергии",
+   "name": "Тип реакции",
+   "unit": "",
+   "synonyms": [
+    "крапивница",
+    "анафилаксия",
+    "ангиоотёк",
+    "сыпь"
+   ],
+   "value_type": "справочник",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Не смешивать с побочным эффектом"
+  },
+  {
+   "code": "allergy_severity",
+   "category": "Аллергии",
+   "name": "Тяжесть реакции",
+   "unit": "",
+   "synonyms": [
+    "лёгкая",
+    "средняя",
+    "тяжёлая",
+    "жизнеугрожающая"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "allergy_verification",
+   "category": "Аллергии",
+   "name": "Достоверность аллергии",
+   "unit": "",
+   "synonyms": [
+    "подтверждена",
+    "вероятна",
+    "со слов",
+    "исключена"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "История изменений обязательна"
+  },
+  {
+   "code": "systolic_bp",
+   "category": "Общее состояние",
+   "name": "Систолическое артериальное давление",
+   "unit": "мм рт. ст.",
+   "synonyms": [
+    "САД",
+    "SBP",
+    "systolic blood pressure"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить положение тела, конечность и метод измерения"
+  },
+  {
+   "code": "diastolic_bp",
+   "category": "Общее состояние",
+   "name": "Диастолическое артериальное давление",
+   "unit": "мм рт. ст.",
+   "synonyms": [
+    "ДАД",
+    "DBP",
+    "diastolic blood pressure"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить положение тела, конечность и метод измерения"
+  },
+  {
+   "code": "mean_arterial_pressure",
+   "category": "Общее состояние",
+   "name": "Среднее артериальное давление",
+   "unit": "мм рт. ст.",
+   "synonyms": [
+    "СрАД",
+    "MAP",
+    "mean arterial pressure"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Предпочтительно вычисляемое поле с сохранением исходных САД и ДАД"
+  },
+  {
+   "code": "respiratory_rate",
+   "category": "Общее состояние",
+   "name": "Частота дыхательных движений",
+   "unit": "/мин",
+   "synonyms": [
+    "ЧДД",
+    "RR",
+    "respiratory rate"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "body_surface_area",
+   "category": "Общее состояние",
+   "name": "Площадь поверхности тела",
+   "unit": "м²",
+   "synonyms": [
+    "ППТ",
+    "BSA",
+    "body surface area"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Хранить формулу расчёта"
+  },
+  {
+   "code": "waist_circumference",
+   "category": "Общее состояние",
+   "name": "Окружность талии",
+   "unit": "см",
+   "synonyms": [
+    "талия",
+    "waist circumference"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "smoking_status",
+   "category": "Общее состояние",
+   "name": "Статус курения",
+   "unit": "",
+   "synonyms": [
+    "курение",
+    "smoking",
+    "tobacco use"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Никогда; ранее; сейчас; интенсивность и пачко-лет"
+  },
+  {
+   "code": "smoking_pack_years",
+   "category": "Общее состояние",
+   "name": "Пачко-лет",
+   "unit": "пачко-лет",
+   "synonyms": [
+    "pack-years",
+    "индекс курения"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "alcohol_use",
+   "category": "Общее состояние",
+   "name": "Употребление алкоголя",
+   "unit": "",
+   "synonyms": [
+    "алкоголь",
+    "alcohol use"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Количество, частота, AUDIT-C"
+  },
+  {
+   "code": "fluid_balance_24h",
+   "category": "Общее состояние",
+   "name": "Баланс жидкости за 24 часа",
+   "unit": "мл/24 ч",
+   "synonyms": [
+    "водный баланс",
+    "fluid balance"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Поступление минус потери"
+  },
+  {
+   "code": "fluid_intake_24h",
+   "category": "Общее состояние",
+   "name": "Объём потреблённой жидкости за 24 часа",
+   "unit": "мл/24 ч",
+   "synonyms": [
+    "выпито",
+    "intake"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "weight_loss_6m",
+   "category": "Общее состояние",
+   "name": "Потеря массы за 6 месяцев",
+   "unit": "%",
+   "synonyms": [
+    "снижение веса",
+    "weight loss"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ecog_performance_status",
+   "category": "Общее состояние",
+   "name": "Функциональный статус ECOG",
+   "unit": "0–5",
+   "synonyms": [
+    "ECOG",
+    "WHO performance status"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Версию и дату оценки хранить отдельно"
+  },
+  {
+   "code": "rbc",
+   "category": "ОАК",
+   "name": "Эритроциты",
+   "unit": "10^12/л",
+   "synonyms": [
+    "RBC",
+    "эритроциты"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "hematocrit",
+   "category": "ОАК",
+   "name": "Гематокрит",
+   "unit": "%",
+   "synonyms": [
+    "Hct",
+    "HCT",
+    "гематокрит"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "mcv",
+   "category": "ОАК",
+   "name": "Средний объём эритроцита",
+   "unit": "фл",
+   "synonyms": [
+    "MCV",
+    "средний объём эритроцита"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "mch",
+   "category": "ОАК",
+   "name": "Среднее содержание гемоглобина в эритроците",
+   "unit": "пг",
+   "synonyms": [
+    "MCH"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "mchc",
+   "category": "ОАК",
+   "name": "Средняя концентрация гемоглобина в эритроците",
+   "unit": "г/л",
+   "synonyms": [
+    "MCHC"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "rdw",
+   "category": "ОАК",
+   "name": "Ширина распределения эритроцитов",
+   "unit": "%",
+   "synonyms": [
+    "RDW",
+    "анизоцитоз"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "reticulocytes_abs",
+   "category": "ОАК",
+   "name": "Ретикулоциты абсолютные",
+   "unit": "10^9/л",
+   "synonyms": [
+    "RET abs",
+    "ретикулоциты абсолютные"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "reticulocytes_pct",
+   "category": "ОАК",
+   "name": "Ретикулоциты относительные",
+   "unit": "%",
+   "synonyms": [
+    "RET%",
+    "ретикулоциты"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "neutrophils_abs",
+   "category": "ОАК",
+   "name": "Нейтрофилы абсолютные",
+   "unit": "10^9/л",
+   "synonyms": [
+    "ANC",
+    "NEUT#",
+    "нейтрофилы абсолютные"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "neutrophils_pct",
+   "category": "ОАК",
+   "name": "Нейтрофилы относительные",
+   "unit": "%",
+   "synonyms": [
+    "NEUT%",
+    "нейтрофилы"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "lymphocytes_abs",
+   "category": "ОАК",
+   "name": "Лимфоциты абсолютные",
+   "unit": "10^9/л",
+   "synonyms": [
+    "LYM#",
+    "лимфоциты абсолютные"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "lymphocytes_pct",
+   "category": "ОАК",
+   "name": "Лимфоциты относительные",
+   "unit": "%",
+   "synonyms": [
+    "LYM%",
+    "лимфоциты"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "monocytes_abs",
+   "category": "ОАК",
+   "name": "Моноциты абсолютные",
+   "unit": "10^9/л",
+   "synonyms": [
+    "MONO#",
+    "моноциты абсолютные"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "eosinophils_abs",
+   "category": "ОАК",
+   "name": "Эозинофилы абсолютные",
+   "unit": "10^9/л",
+   "synonyms": [
+    "EOS#",
+    "эозинофилы абсолютные"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "basophils_abs",
+   "category": "ОАК",
+   "name": "Базофилы абсолютные",
+   "unit": "10^9/л",
+   "synonyms": [
+    "BASO#",
+    "базофилы абсолютные"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "mpv",
+   "category": "ОАК",
+   "name": "Средний объём тромбоцитов",
+   "unit": "фл",
+   "synonyms": [
+    "MPV",
+    "средний объём тромбоцита"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Низкий",
+   "note": ""
+  },
+  {
+   "code": "esr",
+   "category": "ОАК",
+   "name": "СОЭ",
+   "unit": "мм/ч",
+   "synonyms": [
+    "СОЭ",
+    "ESR"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "total_protein",
+   "category": "Биохимия",
+   "name": "Общий белок",
+   "unit": "г/л",
+   "synonyms": [
+    "общий белок",
+    "total protein"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "bilirubin_total",
+   "category": "Биохимия",
+   "name": "Общий билирубин",
+   "unit": "мкмоль/л",
+   "synonyms": [
+    "билирубин общий",
+    "total bilirubin"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "bilirubin_direct",
+   "category": "Биохимия",
+   "name": "Прямой билирубин",
+   "unit": "мкмоль/л",
+   "synonyms": [
+    "билирубин прямой",
+    "direct bilirubin"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "alkaline_phosphatase",
+   "category": "Биохимия",
+   "name": "Щелочная фосфатаза",
+   "unit": "Ед/л",
+   "synonyms": [
+    "ЩФ",
+    "ALP",
+    "alkaline phosphatase"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ggt",
+   "category": "Биохимия",
+   "name": "Гамма-глутамилтрансфераза",
+   "unit": "Ед/л",
+   "synonyms": [
+    "ГГТ",
+    "GGT",
+    "gamma GT"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ldh",
+   "category": "Биохимия",
+   "name": "Лактатдегидрогеназа",
+   "unit": "Ед/л",
+   "synonyms": [
+    "ЛДГ",
+    "LDH"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "creatine_kinase",
+   "category": "Биохимия",
+   "name": "Креатинкиназа общая",
+   "unit": "Ед/л",
+   "synonyms": [
+    "КФК",
+    "CK",
+    "CPK"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ck_mb",
+   "category": "Биохимия",
+   "name": "КФК-МВ",
+   "unit": "нг/мл или Ед/л",
+   "synonyms": [
+    "КФК-МВ",
+    "CK-MB"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": "Единицу и метод хранить отдельно"
+  },
+  {
+   "code": "cystatin_c",
+   "category": "Биохимия",
+   "name": "Цистатин C",
+   "unit": "мг/л",
+   "synonyms": [
+    "цистатин C",
+    "cystatin C"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "uric_acid",
+   "category": "Биохимия",
+   "name": "Мочевая кислота",
+   "unit": "мкмоль/л",
+   "synonyms": [
+    "мочевая кислота",
+    "urate",
+    "uric acid"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "calcium_total",
+   "category": "Биохимия",
+   "name": "Кальций общий",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Ca общий",
+    "total calcium"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "calcium_ionized",
+   "category": "Биохимия",
+   "name": "Кальций ионизированный",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Ca++",
+    "ионизированный кальций"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "phosphate",
+   "category": "Биохимия",
+   "name": "Фосфор",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "P",
+    "фосфор",
+    "phosphate"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "magnesium",
+   "category": "Биохимия",
+   "name": "Магний",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Mg",
+    "магний"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "chloride",
+   "category": "Биохимия",
+   "name": "Хлор",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Cl",
+    "хлориды",
+    "chloride"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "bicarbonate",
+   "category": "Биохимия",
+   "name": "Бикарбонат",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "HCO3",
+    "бикарбонат",
+    "total CO2"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "serum_osmolality",
+   "category": "Биохимия",
+   "name": "Осмоляльность сыворотки",
+   "unit": "мОсм/кг",
+   "synonyms": [
+    "осмоляльность",
+    "serum osmolality"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "lactate",
+   "category": "Биохимия",
+   "name": "Лактат",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "лактат",
+    "lactate"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "ferritin",
+   "category": "Обмен железа",
+   "name": "Ферритин",
+   "unit": "мкг/л",
+   "synonyms": [
+    "ферритин",
+    "ferritin"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "serum_iron",
+   "category": "Обмен железа",
+   "name": "Железо сыворотки",
+   "unit": "мкмоль/л",
+   "synonyms": [
+    "Fe",
+    "железо",
+    "serum iron"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "transferrin",
+   "category": "Обмен железа",
+   "name": "Трансферрин",
+   "unit": "г/л",
+   "synonyms": [
+    "трансферрин",
+    "transferrin"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "transferrin_saturation",
+   "category": "Обмен железа",
+   "name": "Насыщение трансферрина",
+   "unit": "%",
+   "synonyms": [
+    "TSAT",
+    "НТЖ",
+    "saturation transferrin"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "vitamin_b12",
+   "category": "Витамины",
+   "name": "Витамин B12",
+   "unit": "пг/мл",
+   "synonyms": [
+    "B12",
+    "кобаламин"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "folate",
+   "category": "Витамины",
+   "name": "Фолат",
+   "unit": "нг/мл",
+   "synonyms": [
+    "фолиевая кислота",
+    "folate"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "vitamin_d_25oh",
+   "category": "Витамины",
+   "name": "25-OH витамин D",
+   "unit": "нг/мл",
+   "synonyms": [
+    "25(OH)D",
+    "витамин D"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "cholesterol_total",
+   "category": "Липидограмма",
+   "name": "Общий холестерин",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "ОХС",
+    "total cholesterol"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "ldl_cholesterol",
+   "category": "Липидограмма",
+   "name": "Холестерин ЛПНП",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "ЛПНП",
+    "LDL-C"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "hdl_cholesterol",
+   "category": "Липидограмма",
+   "name": "Холестерин ЛПВП",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "ЛПВП",
+    "HDL-C"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "triglycerides",
+   "category": "Липидограмма",
+   "name": "Триглицериды",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "ТГ",
+    "TG",
+    "triglycerides"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "apolipoprotein_b",
+   "category": "Липидограмма",
+   "name": "Аполипопротеин B",
+   "unit": "г/л",
+   "synonyms": [
+    "ApoB",
+    "апо-B"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "lipoprotein_a",
+   "category": "Липидограмма",
+   "name": "Липопротеин(а)",
+   "unit": "мг/дл или нмоль/л",
+   "synonyms": [
+    "Lp(a)",
+    "липопротеин а"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": "Единицу хранить отдельно"
+  },
+  {
+   "code": "amylase",
+   "category": "Поджелудочная железа",
+   "name": "Амилаза",
+   "unit": "Ед/л",
+   "synonyms": [
+    "амилаза",
+    "amylase"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "lipase",
+   "category": "Поджелудочная железа",
+   "name": "Липаза",
+   "unit": "Ед/л",
+   "synonyms": [
+    "липаза",
+    "lipase"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "ammonia",
+   "category": "Печень",
+   "name": "Аммиак",
+   "unit": "мкмоль/л",
+   "synonyms": [
+    "аммиак",
+    "ammonia"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": "Преаналитика критична"
+  },
+  {
+   "code": "prothrombin_time",
+   "category": "Коагулограмма",
+   "name": "Протромбиновое время",
+   "unit": "с",
+   "synonyms": [
+    "ПВ",
+    "PT",
+    "prothrombin time"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "thrombin_time",
+   "category": "Коагулограмма",
+   "name": "Тромбиновое время",
+   "unit": "с",
+   "synonyms": [
+    "ТВ",
+    "TT",
+    "thrombin time"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "d_dimer",
+   "category": "Коагулограмма",
+   "name": "D-димер",
+   "unit": "нг/мл FEU",
+   "synonyms": [
+    "D-dimer",
+    "Д-димер"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Единицу и возрастной контекст хранить отдельно"
+  },
+  {
+   "code": "antithrombin_iii",
+   "category": "Коагулограмма",
+   "name": "Антитромбин III",
+   "unit": "%",
+   "synonyms": [
+    "AT III",
+    "антитромбин"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "anti_xa",
+   "category": "Коагулограмма",
+   "name": "Анти-Xa активность",
+   "unit": "МЕ/мл",
+   "synonyms": [
+    "anti-Xa",
+    "анти Ха"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Связывать с препаратом и временем после дозы"
+  },
+  {
+   "code": "blood_ph",
+   "category": "Газовый состав крови",
+   "name": "pH крови",
+   "unit": "pH",
+   "synonyms": [
+    "pH артериальной крови",
+    "blood pH"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Хранить тип образца"
+  },
+  {
+   "code": "pco2",
+   "category": "Газовый состав крови",
+   "name": "pCO2",
+   "unit": "мм рт. ст.",
+   "synonyms": [
+    "PaCO2",
+    "pCO2"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Хранить тип образца"
+  },
+  {
+   "code": "po2",
+   "category": "Газовый состав крови",
+   "name": "pO2",
+   "unit": "мм рт. ст.",
+   "synonyms": [
+    "PaO2",
+    "pO2"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Хранить FiO2 и тип образца"
+  },
+  {
+   "code": "blood_hco3",
+   "category": "Газовый состав крови",
+   "name": "Стандартный бикарбонат",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "HCO3-",
+    "bicarbonate"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "base_excess",
+   "category": "Газовый состав крови",
+   "name": "Избыток оснований",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "BE",
+    "base excess"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "troponin_i",
+   "category": "Кардиомаркеры",
+   "name": "Тропонин I",
+   "unit": "нг/л",
+   "synonyms": [
+    "hs-cTnI",
+    "тропонин I"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Метод и 99-й перцентиль обязательны"
+  },
+  {
+   "code": "troponin_t",
+   "category": "Кардиомаркеры",
+   "name": "Тропонин T",
+   "unit": "нг/л",
+   "synonyms": [
+    "hs-cTnT",
+    "тропонин T"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Метод и 99-й перцентиль обязательны"
+  },
+  {
+   "code": "bnp",
+   "category": "Кардиомаркеры",
+   "name": "BNP",
+   "unit": "пг/мл",
+   "synonyms": [
+    "BNP",
+    "мозговой натрийуретический пептид"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "nt_probnp",
+   "category": "Кардиомаркеры",
+   "name": "NT-proBNP",
+   "unit": "пг/мл",
+   "synonyms": [
+    "NT-proBNP",
+    "N-концевой про-BNP"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "tsh",
+   "category": "Эндокринология",
+   "name": "ТТГ",
+   "unit": "мМЕ/л",
+   "synonyms": [
+    "TSH",
+    "ТТГ"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "free_t4",
+   "category": "Эндокринология",
+   "name": "Свободный T4",
+   "unit": "пмоль/л",
+   "synonyms": [
+    "FT4",
+    "св.Т4",
+    "free thyroxine"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "free_t3",
+   "category": "Эндокринология",
+   "name": "Свободный T3",
+   "unit": "пмоль/л",
+   "synonyms": [
+    "FT3",
+    "св.Т3"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "cortisol",
+   "category": "Эндокринология",
+   "name": "Кортизол",
+   "unit": "нмоль/л",
+   "synonyms": [
+    "кортизол",
+    "cortisol"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": "Время забора обязательно"
+  },
+  {
+   "code": "acth",
+   "category": "Эндокринология",
+   "name": "АКТГ",
+   "unit": "пг/мл",
+   "synonyms": [
+    "ACTH",
+    "АКТГ"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": "Преаналитика и время забора обязательны"
+  },
+  {
+   "code": "prolactin",
+   "category": "Эндокринология",
+   "name": "Пролактин",
+   "unit": "мМЕ/л",
+   "synonyms": [
+    "PRL",
+    "пролактин"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "progesterone",
+   "category": "Эндокринология",
+   "name": "Прогестерон",
+   "unit": "нмоль/л",
+   "synonyms": [
+    "прогестерон",
+    "progesterone"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "pth",
+   "category": "Эндокринология",
+   "name": "Паратгормон",
+   "unit": "пг/мл",
+   "synonyms": [
+    "ПТГ",
+    "PTH"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "insulin",
+   "category": "Эндокринология",
+   "name": "Инсулин",
+   "unit": "мкЕд/мл",
+   "synonyms": [
+    "инсулин",
+    "insulin"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "c_peptide",
+   "category": "Эндокринология",
+   "name": "C-пептид",
+   "unit": "нг/мл",
+   "synonyms": [
+    "С-пептид",
+    "C peptide"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_glucose",
+   "category": "Моча",
+   "name": "Глюкоза мочи",
+   "unit": "",
+   "synonyms": [
+    "глюкоза мочи",
+    "urine glucose"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_ketones",
+   "category": "Моча",
+   "name": "Кетоны мочи",
+   "unit": "",
+   "synonyms": [
+    "кетоновые тела",
+    "urine ketones"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_nitrite",
+   "category": "Моча",
+   "name": "Нитриты мочи",
+   "unit": "",
+   "synonyms": [
+    "нитриты",
+    "nitrite"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_leukocyte_esterase",
+   "category": "Моча",
+   "name": "Лейкоцитарная эстераза",
+   "unit": "",
+   "synonyms": [
+    "LE",
+    "лейкоцитарная эстераза"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_rbc",
+   "category": "Моча",
+   "name": "Эритроциты в осадке мочи",
+   "unit": "в п/зр или кл/мкл",
+   "synonyms": [
+    "RBC urine",
+    "эритроциты мочи"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Метод и единицу хранить отдельно"
+  },
+  {
+   "code": "urine_wbc",
+   "category": "Моча",
+   "name": "Лейкоциты в осадке мочи",
+   "unit": "в п/зр или кл/мкл",
+   "synonyms": [
+    "WBC urine",
+    "лейкоциты мочи"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Метод и единицу хранить отдельно"
+  },
+  {
+   "code": "urine_casts",
+   "category": "Моча",
+   "name": "Цилиндры мочи",
+   "unit": "",
+   "synonyms": [
+    "цилиндры",
+    "urinary casts"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": "Тип и количество отдельными полями"
+  },
+  {
+   "code": "urine_crystals",
+   "category": "Моча",
+   "name": "Кристаллы мочи",
+   "unit": "",
+   "synonyms": [
+    "кристаллы",
+    "crystals"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Тип, количество и pH"
+  },
+  {
+   "code": "urine_sodium",
+   "category": "Моча",
+   "name": "Натрий мочи",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Na мочи",
+    "urine sodium"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_potassium",
+   "category": "Моча",
+   "name": "Калий мочи",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "K мочи",
+    "urine potassium"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_creatinine",
+   "category": "Моча",
+   "name": "Креатинин мочи",
+   "unit": "ммоль/л",
+   "synonyms": [
+    "Cr мочи",
+    "urine creatinine"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "urine_protein_24h",
+   "category": "Моча",
+   "name": "Белок суточной мочи",
+   "unit": "г/24 ч",
+   "synonyms": [
+    "суточная протеинурия",
+    "24h urine protein"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "urine_albumin_24h",
+   "category": "Моча",
+   "name": "Альбумин суточной мочи",
+   "unit": "мг/24 ч",
+   "synonyms": [
+    "суточная альбуминурия",
+    "24h albumin"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ana",
+   "category": "Иммунология",
+   "name": "Антинуклеарные антитела",
+   "unit": "",
+   "synonyms": [
+    "ANA",
+    "АНФ",
+    "антинуклеарный фактор"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": "Титр и паттерн отдельными полями"
+  },
+  {
+   "code": "anti_dsdna",
+   "category": "Иммунология",
+   "name": "Антитела к двуспиральной ДНК",
+   "unit": "МЕ/мл",
+   "synonyms": [
+    "anti-dsDNA",
+    "антитела к дсДНК"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "anca",
+   "category": "Иммунология",
+   "name": "Антинейтрофильные цитоплазматические антитела",
+   "unit": "",
+   "synonyms": [
+    "ANCA",
+    "c-ANCA",
+    "p-ANCA"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "rheumatoid_factor",
+   "category": "Иммунология",
+   "name": "Ревматоидный фактор",
+   "unit": "МЕ/мл",
+   "synonyms": [
+    "РФ",
+    "RF"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "anti_ccp",
+   "category": "Иммунология",
+   "name": "Антитела к циклическому цитруллинированному пептиду",
+   "unit": "Ед/мл",
+   "synonyms": [
+    "АЦЦП",
+    "anti-CCP"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "complement_c3",
+   "category": "Иммунология",
+   "name": "Комплемент C3",
+   "unit": "г/л",
+   "synonyms": [
+    "C3",
+    "комплемент С3"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "complement_c4",
+   "category": "Иммунология",
+   "name": "Комплемент C4",
+   "unit": "г/л",
+   "synonyms": [
+    "C4",
+    "комплемент С4"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ige_total",
+   "category": "Иммунология",
+   "name": "Иммуноглобулин E общий",
+   "unit": "МЕ/мл",
+   "synonyms": [
+    "IgE",
+    "общий иммуноглобулин E"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "hbsag",
+   "category": "Инфекции",
+   "name": "HBsAg",
+   "unit": "",
+   "synonyms": [
+    "HBsAg",
+    "поверхностный антиген HBV"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "anti_hcv",
+   "category": "Инфекции",
+   "name": "Антитела к HCV",
+   "unit": "",
+   "synonyms": [
+    "anti-HCV",
+    "антитела к вирусу гепатита C"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "hiv_ag_ab",
+   "category": "Инфекции",
+   "name": "HIV Ag/Ab",
+   "unit": "",
+   "synonyms": [
+    "ВИЧ 1/2 Ag/Ab",
+    "HIV combo"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "Референс лаборатории",
+   "mvp_priority": "Высокий",
+   "note": "Разделять скрининг и подтверждающий тест"
+  },
+  {
+   "code": "ecg_rhythm",
+   "category": "Кардиология",
+   "name": "Ритм ЭКГ",
+   "unit": "",
+   "synonyms": [
+    "ритм ЭКГ",
+    "ECG rhythm"
+   ],
+   "value_type": "категория",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "ecg_pr",
+   "category": "Кардиология",
+   "name": "Интервал PR",
+   "unit": "мс",
+   "synonyms": [
+    "PR",
+    "PQ"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ecg_qrs",
+   "category": "Кардиология",
+   "name": "Длительность QRS",
+   "unit": "мс",
+   "synonyms": [
+    "QRS duration"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "ecg_qtc",
+   "category": "Кардиология",
+   "name": "QTc",
+   "unit": "мс",
+   "synonyms": [
+    "QTc",
+    "корригированный QT"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить формулу коррекции"
+  },
+  {
+   "code": "lvef",
+   "category": "Кардиология",
+   "name": "Фракция выброса левого желудочка",
+   "unit": "%",
+   "synonyms": [
+    "ФВ ЛЖ",
+    "LVEF"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить метод визуализации"
+  },
+  {
+   "code": "lavi",
+   "category": "Кардиология",
+   "name": "Индекс объёма левого предсердия",
+   "unit": "мл/м²",
+   "synonyms": [
+    "LAVI",
+    "индекс объёма ЛП"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "tapse",
+   "category": "Кардиология",
+   "name": "TAPSE",
+   "unit": "мм",
+   "synonyms": [
+    "TAPSE",
+    "экскурсия кольца трикуспидального клапана"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "pasp",
+   "category": "Кардиология",
+   "name": "Систолическое давление в лёгочной артерии",
+   "unit": "мм рт. ст.",
+   "synonyms": [
+    "СДЛА",
+    "PASP",
+    "RVSP"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Оценочное значение по ЭхоКГ"
+  },
+  {
+   "code": "fev1",
+   "category": "Пульмонология",
+   "name": "ОФВ1",
+   "unit": "л и % должного",
+   "synonyms": [
+    "FEV1",
+    "ОФВ1"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Абсолютное и процент должного хранить раздельно"
+  },
+  {
+   "code": "fvc",
+   "category": "Пульмонология",
+   "name": "ФЖЕЛ",
+   "unit": "л и % должного",
+   "synonyms": [
+    "FVC",
+    "ФЖЕЛ"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "fev1_fvc",
+   "category": "Пульмонология",
+   "name": "ОФВ1/ФЖЕЛ",
+   "unit": "отношение или %",
+   "synonyms": [
+    "FEV1/FVC",
+    "индекс Тиффно"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "До и после бронходилататора"
+  },
+  {
+   "code": "pef",
+   "category": "Пульмонология",
+   "name": "Пиковая скорость выдоха",
+   "unit": "л/мин",
+   "synonyms": [
+    "ПСВ",
+    "PEF"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "dlco",
+   "category": "Пульмонология",
+   "name": "Диффузионная способность лёгких",
+   "unit": "% должного",
+   "synonyms": [
+    "DLCO"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "six_minute_walk_distance",
+   "category": "Пульмонология",
+   "name": "Дистанция шестиминутной ходьбы",
+   "unit": "м",
+   "synonyms": [
+    "6MWD",
+    "тест 6-минутной ходьбы"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "nihss_score",
+   "category": "Неврология",
+   "name": "Шкала NIHSS",
+   "unit": "баллы",
+   "synonyms": [
+    "NIHSS",
+    "шкала инсульта NIH"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить компоненты и время оценки"
+  },
+  {
+   "code": "modified_rankin_scale",
+   "category": "Неврология",
+   "name": "Модифицированная шкала Рэнкина",
+   "unit": "0–6",
+   "synonyms": [
+    "mRS",
+    "Рэнкин"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "glasgow_coma_scale",
+   "category": "Неврология",
+   "name": "Шкала комы Глазго",
+   "unit": "3–15",
+   "synonyms": [
+    "GCS",
+    "ШКГ"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить E, V и M отдельно"
+  },
+  {
+   "code": "phq9_score",
+   "category": "Психиатрия",
+   "name": "PHQ-9",
+   "unit": "0–27",
+   "synonyms": [
+    "PHQ9",
+    "шкала депрессии PHQ"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Не хранить как диагноз без клинической оценки"
+  },
+  {
+   "code": "gad7_score",
+   "category": "Психиатрия",
+   "name": "GAD-7",
+   "unit": "0–21",
+   "synonyms": [
+    "GAD7",
+    "шкала тревоги"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Не хранить как диагноз без клинической оценки"
+  },
+  {
+   "code": "moca_score",
+   "category": "Психиатрия",
+   "name": "MoCA",
+   "unit": "0–30",
+   "synonyms": [
+    "MoCA",
+    "Montreal Cognitive Assessment"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Язык и версия теста обязательны"
+  },
+  {
+   "code": "mmse_score",
+   "category": "Психиатрия",
+   "name": "MMSE",
+   "unit": "0–30",
+   "synonyms": [
+    "MMSE",
+    "краткая шкала оценки психического статуса"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Язык и версия теста обязательны"
+  },
+  {
+   "code": "surgical_wound_class",
+   "category": "Хирургия",
+   "name": "Класс хирургической раны",
+   "unit": "I–IV",
+   "synonyms": [
+    "wound class",
+    "класс раны"
+   ],
+   "value_type": "классификация",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": ""
+  },
+  {
+   "code": "estimated_blood_loss",
+   "category": "Хирургия",
+   "name": "Интраоперационная кровопотеря",
+   "unit": "мл",
+   "synonyms": [
+    "EBL",
+    "кровопотеря"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "drain_output_24h",
+   "category": "Хирургия",
+   "name": "Отделяемое по дренажу за 24 часа",
+   "unit": "мл/24 ч",
+   "synonyms": [
+    "дренаж",
+    "drain output"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Тип и локализация дренажа обязательны"
+  },
+  {
+   "code": "head_circumference",
+   "category": "Педиатрия",
+   "name": "Окружность головы",
+   "unit": "см",
+   "synonyms": [
+    "ОГ",
+    "head circumference"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Возраст и пол обязательны"
+  },
+  {
+   "code": "weight_for_age_z",
+   "category": "Педиатрия",
+   "name": "Z-score массы к возрасту",
+   "unit": "z-score",
+   "synonyms": [
+    "WAZ",
+    "масса к возрасту"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Стандарт роста и версия обязательны"
+  },
+  {
+   "code": "height_for_age_z",
+   "category": "Педиатрия",
+   "name": "Z-score роста к возрасту",
+   "unit": "z-score",
+   "synonyms": [
+    "HAZ",
+    "рост к возрасту"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Стандарт роста и версия обязательны"
+  },
+  {
+   "code": "bmi_for_age_z",
+   "category": "Педиатрия",
+   "name": "Z-score ИМТ к возрасту",
+   "unit": "z-score",
+   "synonyms": [
+    "BAZ",
+    "BMI-for-age"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Стандарт роста и версия обязательны"
+  },
+  {
+   "code": "gestational_age_birth",
+   "category": "Неонатология",
+   "name": "Гестационный возраст при рождении",
+   "unit": "недели+дни",
+   "synonyms": [
+    "gestational age",
+    "гестационный возраст"
+   ],
+   "value_type": "структурированное число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "apgar_1min",
+   "category": "Неонатология",
+   "name": "Оценка Апгар 1 минута",
+   "unit": "0–10",
+   "synonyms": [
+    "Apgar 1 min",
+    "Апгар 1"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "apgar_5min",
+   "category": "Неонатология",
+   "name": "Оценка Апгар 5 минут",
+   "unit": "0–10",
+   "synonyms": [
+    "Apgar 5 min",
+    "Апгар 5"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "gestational_age_current",
+   "category": "Акушерство",
+   "name": "Срок беременности",
+   "unit": "недели+дни",
+   "synonyms": [
+    "срок гестации",
+    "gestational age"
+   ],
+   "value_type": "структурированное число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "fetal_heart_rate",
+   "category": "Акушерство",
+   "name": "Частота сердечных сокращений плода",
+   "unit": "уд/мин",
+   "synonyms": [
+    "ЧСС плода",
+    "FHR"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "cervical_dilation",
+   "category": "Акушерство",
+   "name": "Раскрытие шейки матки",
+   "unit": "см",
+   "synonyms": [
+    "раскрытие",
+    "cervical dilation"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "bishop_score",
+   "category": "Акушерство",
+   "name": "Шкала Бишопа",
+   "unit": "баллы",
+   "synonyms": [
+    "Bishop score",
+    "шкала Бишопа"
+   ],
+   "value_type": "балл",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Хранить компоненты"
+  },
+  {
+   "code": "recist_sum_diameters",
+   "category": "Онкология",
+   "name": "Сумма измеряемых очагов RECIST",
+   "unit": "мм",
+   "synonyms": [
+    "RECIST sum",
+    "сумма диаметров"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Версия RECIST и набор таргетных очагов обязательны"
+  },
+  {
+   "code": "allergy_event_id",
+   "category": "Аллергологический анамнез",
+   "name": "Идентификатор события лекарственной реакции",
+   "unit": "",
+   "synonyms": [
+    "allergy event ID"
+   ],
+   "value_type": "UUID",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Стабильный ключ; одно событие может иметь несколько подозреваемых препаратов"
+  },
+  {
+   "code": "allergy_suspect_drug_id",
+   "category": "Аллергологический анамнез",
+   "name": "Подозреваемый концепт МНН/комбинации",
+   "unit": "",
+   "synonyms": [
+    "culprit drug",
+    "suspected medicine"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "FK на «Препараты_МНН»"
+  },
+  {
+   "code": "allergy_suspect_product_id",
+   "category": "Аллергологический анамнез",
+   "name": "Подозреваемый зарегистрированный продукт",
+   "unit": "",
+   "synonyms": [
+    "brand product",
+    "RU product"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Нужен идентификатор актуального продуктового реестра ЕСКЛП/ГРЛС"
+  },
+  {
+   "code": "allergy_suspect_component_id",
+   "category": "Аллергологический анамнез",
+   "name": "Подозреваемый компонент комбинации",
+   "unit": "",
+   "synonyms": [
+    "culprit component"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "FK на «Компоненты_препаратов»"
+  },
+  {
+   "code": "allergy_suspect_excipient_id",
+   "category": "Аллергологический анамнез",
+   "name": "Подозреваемое вспомогательное вещество",
+   "unit": "",
+   "synonyms": [
+    "excipient",
+    "hidden allergen"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "FK на «Скрытые_аллергены»"
+  },
+  {
+   "code": "allergy_reaction_phenotype_id",
+   "category": "Аллергологический анамнез",
+   "name": "Фенотип лекарственной реакции",
+   "unit": "",
+   "synonyms": [
+    "reaction phenotype"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "FK на «Фенотипы_реакций»"
+  },
+  {
+   "code": "allergy_reaction_severity",
+   "category": "Аллергологический анамнез",
+   "name": "Тяжесть реакции",
+   "unit": "",
+   "synonyms": [
+    "severity",
+    "grade"
+   ],
+   "value_type": "категория",
+   "threshold": "лёгкая; средняя; тяжёлая; критическая; неизвестно",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "Не выводить только из названия аллергена"
+  },
+  {
+   "code": "allergy_reaction_date",
+   "category": "Аллергологический анамнез",
+   "name": "Дата/год реакции",
+   "unit": "",
+   "synonyms": [
+    "reaction date",
+    "year"
+   ],
+   "value_type": "дата/год",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Допускать неполную дату с указанием точности"
+  },
+  {
+   "code": "allergy_latency_value",
+   "category": "Аллергологический анамнез",
+   "name": "Латентность до симптомов",
+   "unit": "мин/ч/сут",
+   "synonyms": [
+    "time to onset",
+    "latency"
+   ],
+   "value_type": "число",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "Хранить единицу отдельно"
+  },
+  {
+   "code": "allergy_latency_unit",
+   "category": "Аллергологический анамнез",
+   "name": "Единица латентности",
+   "unit": "",
+   "synonyms": [
+    "latency unit"
+   ],
+   "value_type": "категория",
+   "threshold": "минуты; часы; сутки; недели; неизвестно",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": ""
+  },
+  {
+   "code": "allergy_route",
+   "category": "Аллергологический анамнез",
+   "name": "Путь введения",
+   "unit": "",
+   "synonyms": [
+    "route of administration"
+   ],
+   "value_type": "категория",
+   "threshold": "per os; в/в; в/м; п/к; ингаляционно; местно; ректально; иное",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Связать со справочником путей введения"
+  },
+  {
+   "code": "allergy_exposure_text",
+   "category": "Аллергологический анамнез",
+   "name": "Доза/экспозиция перед реакцией",
+   "unit": "",
+   "synonyms": [
+    "dose",
+    "exposure"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Сохранять исходную формулировку и нормализованное значение"
+  },
+  {
+   "code": "allergy_exposure_number",
+   "category": "Аллергологический анамнез",
+   "name": "Номер экспозиции/цикла",
+   "unit": "",
+   "synonyms": [
+    "first dose",
+    "cycle number"
+   ],
+   "value_type": "текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Средний",
+   "note": "Особенно важно для инфузионных и противоопухолевых препаратов"
+  },
+  {
+   "code": "allergy_reaction_treatment",
+   "category": "Аллергологический анамнез",
+   "name": "Потребовавшееся лечение реакции",
+   "unit": "",
+   "synonyms": [
+    "epinephrine",
+    "ICU",
+    "treatment"
+   ],
+   "value_type": "множественный выбор",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "Фиксировать адреналин, реанимацию, госпитализацию"
+  },
+  {
+   "code": "allergy_reaction_outcome",
+   "category": "Аллергологический анамнез",
+   "name": "Исход реакции",
+   "unit": "",
+   "synonyms": [
+    "outcome"
+   ],
+   "value_type": "категория",
+   "threshold": "разрешилась; последствия; смерть; неизвестно",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": ""
+  },
+  {
+   "code": "allergy_causality",
+   "category": "Аллергологический анамнез",
+   "name": "Причинная уверенность",
+   "unit": "",
+   "synonyms": [
+    "certainty",
+    "causality"
+   ],
+   "value_type": "категория",
+   "threshold": "подозреваемая; вероятная; подтверждённая; опровергнутая; неизвестно",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "Не использовать бинарное поле без степени уверенности"
+  },
+  {
+   "code": "allergy_label_status",
+   "category": "Аллергологический анамнез",
+   "name": "Статус аллергологической метки",
+   "unit": "",
+   "synonyms": [
+    "active",
+    "delabelled",
+    "historical"
+   ],
+   "value_type": "категория",
+   "threshold": "активна; требует проверки; опровергнута; снята; архивная",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "Историю изменения метки не удалять"
+  },
+  {
+   "code": "allergy_test_result",
+   "category": "Аллергологический анамнез",
+   "name": "Результат кожного/лабораторного теста",
+   "unit": "",
+   "synonyms": [
+    "skin test",
+    "in vitro test"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Хранить метод, концентрацию, дату и специалиста"
+  },
+  {
+   "code": "allergy_challenge_result",
+   "category": "Аллергологический анамнез",
+   "name": "Результат лекарственной провокации",
+   "unit": "",
+   "synonyms": [
+    "drug challenge"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "SCAR и органные реакции — стоп-сигнал для обычной провокации"
+  },
+  {
+   "code": "allergy_desensitization_result",
+   "category": "Аллергологический анамнез",
+   "name": "Результат десенсибилизации",
+   "unit": "",
+   "synonyms": [
+    "desensitization"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Переносимость после десенсибилизации временная и протокол-специфичная"
+  },
+  {
+   "code": "allergy_cross_rule_id",
+   "category": "Аллергологический анамнез",
+   "name": "Связанное правило перекрёстной реактивности",
+   "unit": "",
+   "synonyms": [
+    "cross-reactivity rule"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "FK на «Перекрестные_реакции»"
+  },
+  {
+   "code": "allergy_alternative_rule_id",
+   "category": "Аллергологический анамнез",
+   "name": "Рассмотренный вариант альтернативы",
+   "unit": "",
+   "synonyms": [
+    "alternative candidate"
+   ],
+   "value_type": "ссылка",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "FK на «Матрица_альтернатив»; не является назначением"
+  },
+  {
+   "code": "allergy_alternative_decision",
+   "category": "Аллергологический анамнез",
+   "name": "Решение врача по альтернативе",
+   "unit": "",
+   "synonyms": [
+    "accepted",
+    "rejected",
+    "reason"
+   ],
+   "value_type": "структурированный текст",
+   "threshold": "",
+   "source": "",
+   "mvp_priority": "Критический",
+   "note": "Хранить причину, автора и время решения"
+  },
+  {
+   "code": "allergy_record_source",
+   "category": "Аллергологический анамнез",
+   "name": "Источник аллергологической записи",
+   "unit": "",
+   "synonyms": [
+    "patient report",
+    "document",
+    "specialist"
+   ],
+   "value_type": "категория",
+   "threshold": "со слов; выписка; медицинская карта; аллерголог; тест; неизвестно",
+   "source": "",
+   "mvp_priority": "Высокий",
+   "note": "Сохранять документ/ссылку и дату"
+  }
+ ]
+}
