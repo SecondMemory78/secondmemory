@@ -3,12 +3,13 @@
 Создаются из среза по картотеке. При запуске проверяют всех пациентов и для
 подходящих заводят напоминание-контроль (если ещё не заведено этим триггером).
 """
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from ..deps import current_doctor_id
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 from ..db import get_session
+from .. import clock
 from ..reference_data import parameter_label
 from ..models import Trigger, Patient, Observation, Reminder
 from ..services.telemetry import log_event
@@ -30,7 +31,7 @@ class TriggerIn(BaseModel):
 def _matches(t: Trigger, s: Session):
     """Пациенты, у кого последнее подтверждённое значение показателя
     удовлетворяет условию триггера."""
-    pts = s.exec(select(Patient).where(Patient.doctor_id == current_doctor_id())).all()
+    pts = s.exec(select(Patient).where(Patient.doctor_id == current_doctor_id(), Patient.is_training == False)).all()
     res = []
     for p in pts:
         if t.diagnosis_code and t.diagnosis_code.lower() not in (p.diagnosis_code or "").lower():
@@ -94,8 +95,9 @@ def run(s: Session = Depends(get_session)):
             r = Reminder(doctor_id=current_doctor_id(), patient_id=p.id,
                          title=f"Контроль: {p.short_name} — {label} {v:g}",
                          kind="control", project="Контроли", priority=2,
+                         parameter_code=t.parameter_code,     # структурно — для списка C01
                          labels=tag, source="trigger",
-                         due_at=datetime.utcnow() + timedelta(days=1))
+                         due_at=clock.now() + timedelta(days=1))
             s.add(r); created += 1
     s.commit()
     log_event(s, "trigger.run", {"created": created})

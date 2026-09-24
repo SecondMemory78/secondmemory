@@ -28,25 +28,55 @@ def _ics_dt(dt: datetime) -> str:
     return dt.strftime("%Y%m%dT%H%M%S")
 
 
+def _ics_escape(text: str) -> str:
+    """Экранирование спецсимволов текста для .ics (RFC 5545)."""
+    return (text or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+# Обезличенные заголовки типов приёма/дела — БЕЗ ФИО и диагноза (152-ФЗ, ТЗ).
+_APPT_TITLE = {"primary": "Первичный приём", "repeat": "Повторный приём"}
+_REM_TITLE = {"control": "Контроль", "appointment": "Приём", "call": "Звонок", "task": "Задача"}
+
+
 @router.get("/export.ics")
 def export_ics(s: Session = Depends(get_session)):
-    """Выгрузка приёмов в стандартный .ics — врач сам добавит в любой календарь.
-    Данные пациентов НЕ уходят в стороннее облако автоматически (152-ФЗ)."""
-    since = clock.now() - timedelta(days=30)
-    rows = s.exec(select(Appointment).where(
-        Appointment.doctor_id == current_doctor_id(),
-        Appointment.starts_at >= since)).all()
-    rows = [a for a in rows if a.status != "cancelled"]
-    rows.sort(key=lambda a: a.starts_at)
+    """Выгрузка приёмов и напоминаний в стандартный .ics.
+
+    ЗАГОЛОВКИ ОБЕЗЛИЧЕНЫ: в событие не попадают ФИО пациента, диагноз или причина —
+    только тип дела и время. Файл врач добавляет в свой календарь (часто облачный,
+    синхронизируемый), поэтому персональных данных пациента в нём быть не должно
+    (152-ФЗ). Идентификация — только по внутренней ссылке (UID), которую видит лишь
+    приложение, а сам пациент открывается в «Второй памяти» по этому UID.
+    """
+    from ..models import Reminder
+    did = current_doctor_id()
+    now = clock.now()
+    since = now - timedelta(days=30)
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Вторая память//RU", "CALSCALE:GREGORIAN"]
-    for a in rows:
-        p = s.get(Patient, a.patient_id)
-        name = f"{p.last_name} {p.first_name[:1]}." if p else "Пациент"
+
+    appts = s.exec(select(Appointment).where(
+        Appointment.doctor_id == did, Appointment.starts_at >= since)).all()
+    for a in sorted((x for x in appts if x.status != "cancelled"), key=lambda x: x.starts_at):
+        title = _APPT_TITLE.get(a.kind, "Приём")
         end = a.starts_at + timedelta(minutes=30)
         lines += ["BEGIN:VEVENT", f"UID:appt-{a.id}@vtoraya-pamyat",
-                  f"DTSTAMP:{_ics_dt(clock.now())}", f"DTSTART:{_ics_dt(a.starts_at)}",
+                  f"DTSTAMP:{_ics_dt(now)}", f"DTSTART:{_ics_dt(a.starts_at)}",
                   f"DTEND:{_ics_dt(end)}",
-                  f"SUMMARY:Приём: {name}", f"DESCRIPTION:{a.reason or ''}", "END:VEVENT"]
+                  f"SUMMARY:{_ics_escape(title)}",
+                  "DESCRIPTION:Откройте в приложении «Вторая память»", "END:VEVENT"]
+
+    rems = s.exec(select(Reminder).where(
+        Reminder.doctor_id == did, Reminder.due_at != None,
+        Reminder.due_at >= since, Reminder.status == "open")).all()
+    for r in sorted(rems, key=lambda x: x.due_at):
+        title = _REM_TITLE.get(r.kind, "Дело")
+        end = r.due_at + timedelta(minutes=15)
+        lines += ["BEGIN:VEVENT", f"UID:rem-{r.id}@vtoraya-pamyat",
+                  f"DTSTAMP:{_ics_dt(now)}", f"DTSTART:{_ics_dt(r.due_at)}",
+                  f"DTEND:{_ics_dt(end)}",
+                  f"SUMMARY:{_ics_escape(title)}",
+                  "DESCRIPTION:Откройте в приложении «Вторая память»", "END:VEVENT"]
+
     lines.append("END:VCALENDAR")
     ics = "\r\n".join(lines)
     return Response(content=ics, media_type="text/calendar",
@@ -89,7 +119,7 @@ async def import_csv(file: UploadFile = File(...), s: Session = Depends(get_sess
 def _match_or_create(name: str, s: Session) -> Patient:
     parts = name.split()
     last = parts[0]
-    pts = s.exec(select(Patient).where(Patient.doctor_id == current_doctor_id())).all()
+    pts = s.exec(select(Patient).where(Patient.doctor_id == current_doctor_id(), Patient.is_training == False)).all()
     for p in pts:
         if p.last_name.lower() == last.lower():
             return p

@@ -1,5 +1,5 @@
 from typing import List
-from ..deps import current_doctor_id
+from ..deps import current_doctor_id, get_owned_patient
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..db import get_session
@@ -96,3 +96,34 @@ def prescribe(pid: int, body: PrescriptionIn, s: Session = Depends(get_session))
     s.commit()
     return {"conflict": bool(conflict), "saved": True, "id": p.id,
             **(conflict or {})}
+
+
+@router.get("/patients/{pid}/prescriptions")
+def list_prescriptions(pid: int, s: Session = Depends(get_session)):
+    """Назначения пациента (активные и отменённые — историю не прячем)."""
+    get_owned_patient(s, pid)                 # чужой/несуществующий пациент → 404
+    rows = s.exec(select(Prescription).where(Prescription.patient_id == pid)
+                  .order_by(Prescription.status.desc(), Prescription.id.desc())).all()
+    return {"items": [{"id": r.id, "drug_name": r.drug_name, "dose": r.dose,
+                       "regimen": r.regimen, "status": r.status,
+                       "cancelled_at": r.cancelled_at.isoformat() if r.cancelled_at else None}
+                      for r in rows]}
+
+
+@router.post("/prescriptions/{rx_id}/cancel")
+def cancel_prescription(rx_id: int, s: Session = Depends(get_session)):
+    """Отменить назначение (не удаляем — помечаем cancelled, история сохраняется)."""
+    from .. import clock
+    r = s.get(Prescription, rx_id)
+    if not r:
+        raise HTTPException(404, "Назначение не найдено")
+    get_owned_patient(s, r.patient_id)        # владелец пациента → 404 для чужого
+    if r.status == "cancelled":
+        raise HTTPException(409, "Назначение уже отменено")
+    r.status = "cancelled"
+    r.cancelled_at = clock.now()
+    s.add(r)
+    s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="prescription",
+                     entity_id=r.id, action="cancel", detail=r.drug_name))
+    s.commit()
+    return {"ok": True, "id": r.id, "status": r.status}

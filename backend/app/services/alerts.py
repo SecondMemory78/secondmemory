@@ -57,8 +57,18 @@ def set_alerts(s: Session, doctor_id: int, entity_type: str, entity_id: int,
     return created
 
 
-def in_quiet_hours(prefs: NotificationPreference, at=None) -> bool:
-    h = (at or clock.now()).hour
+def doctor_tz(s: Session, doctor_id: int) -> str | None:
+    """Таймзона врача (для тихих часов/дайджеста/сводок). None → дефолтная зона."""
+    from ..models import Doctor
+    d = s.get(Doctor, doctor_id)
+    return d.timezone if d and d.timezone else None
+
+
+def in_quiet_hours(prefs: NotificationPreference, at=None, tz: str | None = None) -> bool:
+    """Тихие часы врача. Час берём в ТАЙМЗОНЕ ВРАЧА (tz), а не в глобальной зоне
+    сервера — иначе врач в другом часовом поясе получал бы тишину не в своё время.
+    at (если передан) имеет приоритет над tz (используется в тестах)."""
+    h = at.hour if at is not None else clock.hour_in(tz)
     start, end = prefs.quiet_hours_start, prefs.quiet_hours_end
     if start == end:
         return False
@@ -77,8 +87,8 @@ def due_alerts(s: Session, limit: int = 200):
     ready = []
     for a in rows:
         prefs = get_or_create_prefs(s, a.doctor_id)
-        if in_quiet_hours(prefs, now):
-            continue          # подождём до конца тихих часов
+        if in_quiet_hours(prefs, tz=doctor_tz(s, a.doctor_id)):
+            continue          # подождём до конца тихих часов (в зоне врача)
         ready.append(a)
     return ready
 

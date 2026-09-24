@@ -34,7 +34,7 @@ class SecurityHeadersMiddleware:
 from .routers import (patients, clinical, reminders, intake, appointments, protocol,
                       dashboard, assistant, analytics, calendar, privacy, support, triggers,
                       reference, auth, encounters, diagnoses, settings, usage, notifications,
-                      billing, multiphoto, dictation, notify_prefs, push, templates)
+                      billing, multiphoto, dictation, notify_prefs, push, templates, onboarding, lists, devices)
 
 
 class DoctorContextMiddleware:
@@ -200,6 +200,7 @@ app.include_router(analytics.ingest)
 app.include_router(analytics.admin)
 app.include_router(calendar.router)
 app.include_router(privacy.router)
+app.include_router(privacy.account_router)
 app.include_router(support.doctor)
 app.include_router(support.staff)
 app.include_router(triggers.router)
@@ -210,6 +211,9 @@ app.include_router(settings.router)
 app.include_router(usage.doctor)
 app.include_router(usage.admin)
 app.include_router(notifications.router)
+app.include_router(onboarding.router)
+app.include_router(lists.router)
+app.include_router(devices.router)
 
 
 @app.on_event("startup")

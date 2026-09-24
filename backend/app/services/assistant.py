@@ -71,7 +71,7 @@ def route_command(text: str, s: Session) -> dict:
 
 
 def _find_patient(low: str, s: Session):
-    pts = s.exec(select(Patient).where(Patient.doctor_id == current_doctor_id())).all()
+    pts = s.exec(select(Patient).where(Patient.doctor_id == current_doctor_id(), Patient.is_training == False)).all()
     for p in pts:
         # ищем по фамилии (в т.ч. падежные формы: Иванов/Иванова/Иванову)
         stem = p.last_name.lower()[:-1] if len(p.last_name) > 4 else p.last_name.lower()

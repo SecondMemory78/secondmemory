@@ -48,7 +48,8 @@ def _fragment_view(s: Session, f: PhotoFragment) -> dict:
 
 def _batch_view(s: Session, b: PhotoBatch) -> dict:
     frags = s.exec(select(PhotoFragment).where(PhotoFragment.batch_id == b.id)).all()
-    return {"id": b.id, "status": b.status, "has_image": bool(b.image_b64),
+    return {"id": b.id, "status": b.status, "proc_status": b.proc_status,
+            "proc_error": b.proc_error, "has_image": bool(b.image_b64),
             "fragments": [_fragment_view(s, f) for f in frags]}
 
 
@@ -66,28 +67,18 @@ async def upload_batch(file: UploadFile = File(None), sim: str = Form(default=""
 
     from ..services.uploads import read_limited
     image_bytes = await read_limited(file)
-    sim_list = None
-    if sim:
-        try:
-            sim_list = json.loads(sim)
-        except Exception:
-            sim_list = None
-    fragments = split_photo(image_bytes, sim=sim_list)
-
-    # каждый фрагмент — отдельная «операция распознавания» по учёту расхода
-    meter(s, did, "ocr", units=max(1, len(fragments)), detail="photo-batch")
-
-    b = PhotoBatch(doctor_id=did, status="pending", idempotency_key=idempotency_key,
+    # В очередь: разбор фото выполняется фоновым тиком, запрос НЕ ждёт OCR.
+    b = PhotoBatch(doctor_id=did, status="pending", proc_status="queued",
+                   idempotency_key=idempotency_key, sim_json=(sim or ""),
                    image_b64=base64.b64encode(image_bytes).decode() if image_bytes else "")
     s.add(b); s.commit(); s.refresh(b)
-    for fr in fragments:
-        nm = fr.get("name", {})
-        full = " ".join(x for x in [nm.get("last", ""), nm.get("first", ""), nm.get("middle", "")] if x)
-        f = PhotoFragment(batch_id=b.id, doctor_id=did, region=json.dumps(fr.get("region", {})),
-                          extracted_name=full, extracted_dob=fr.get("birth_date", ""),
-                          values_json=json.dumps(fr.get("values", []), ensure_ascii=False))
-        s.add(f)
-    s.commit()
+    # Немедленная обработка в фоне (быстрый путь), плюс страховка тиком планировщика,
+    # если фон не отработал (рестарт и т.п.) — пакет остаётся queued в БД.
+    try:
+        from ..services.photo_pipeline import process_batch
+        process_batch(s, b); s.refresh(b)
+    except Exception:
+        pass    # останется queued → подхватит тик
     return _batch_view(s, b)
 
 

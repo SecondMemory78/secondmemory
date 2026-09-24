@@ -88,18 +88,22 @@ def _alert_text(s: Session, a) -> str:
 
 
 def _digest_tick():
-    """Раз в час: тем врачам, у кого сейчас час их дайджеста, — одна сводка."""
+    """Раз в час: тем врачам, у кого СЕЙЧАС (в их таймзоне) час их дайджеста, — сводка."""
     from sqlmodel import select
-    from ..models import NotificationPreference, Notification
+    from ..models import NotificationPreference, Notification, Doctor
     from ..routers.dashboard import attention as _attention_fn  # переиспользуем «Требуют внимания»
     try:
         with Session(engine) as s:
-            now_hour = clock.now().hour
+            # Час совпадения проверяем в ТАЙМЗОНЕ ВРАЧА, поэтому нельзя фильтровать
+            # одним now_hour в SQL — берём всех с включённым дайджестом и сверяем в Python.
             prefs = s.exec(select(NotificationPreference).where(
-                NotificationPreference.digest_enabled == True,
-                NotificationPreference.digest_hour == now_hour)).all()
-            today = clock.today().isoformat()
+                NotificationPreference.digest_enabled == True)).all()
             for p in prefs:
+                doc = s.get(Doctor, p.doctor_id)
+                tz = doc.timezone if doc and doc.timezone else None
+                if clock.hour_in(tz) != p.digest_hour:
+                    continue
+                today = clock.now_in(tz).date().isoformat()   # «сегодня» в зоне врача
                 key = f"digest:{p.doctor_id}:{today}"
                 exists = s.exec(select(Notification).where(Notification.dedup_key == key)).first()
                 if exists:
@@ -122,24 +126,28 @@ def _digest_tick():
 
 
 def _recap_tick():
-    """Раз в час: сводка по ВЫПОЛНЕННОМУ тем врачам, у кого сейчас их час.
+    """Раз в час: сводка по ВЫПОЛНЕННОМУ тем врачам, у кого сейчас (в их зоне) их час.
     daily — за сегодня; weekly — за 7 дней, только в выбранный день недели."""
     from sqlmodel import select
-    from ..models import NotificationPreference, Notification, Reminder
+    from ..models import NotificationPreference, Notification, Reminder, Doctor
     from datetime import timedelta
     try:
         with Session(engine) as s:
-            now = clock.now()
             prefs = s.exec(select(NotificationPreference).where(
-                NotificationPreference.recap_mode != "off",
-                NotificationPreference.recap_hour == now.hour)).all()
+                NotificationPreference.recap_mode != "off")).all()
             for p in prefs:
+                doc = s.get(Doctor, p.doctor_id)
+                tz = doc.timezone if doc and doc.timezone else None
+                now = clock.now_in(tz)                 # «сейчас» в зоне врача
+                if now.hour != p.recap_hour:
+                    continue
                 if p.recap_mode == "weekly" and now.weekday() != p.recap_weekday:
                     continue
                 period_days = 7 if p.recap_mode == "weekly" else 1
                 start = now - timedelta(days=period_days)
-                tag = "week" if p.recap_mode == "weekly" else clock.today().isoformat()
-                key = f"recap:{p.doctor_id}:{tag}:{clock.today().isoformat()}"
+                today_local = now.date().isoformat()
+                tag = "week" if p.recap_mode == "weekly" else today_local
+                key = f"recap:{p.doctor_id}:{tag}:{today_local}"
                 if s.exec(select(Notification).where(Notification.dedup_key == key)).first():
                     continue
                 done = s.exec(select(Reminder).where(
@@ -162,6 +170,31 @@ def _recap_tick():
         log.exception("recap tick failed")
 
 
+def _training_sweep_tick():
+    """Страховочная зачистка «зависших» учебных пациентов (прерванный онбординг)."""
+    from .onboarding import sweep_stale_training
+    try:
+        with Session(engine) as s:
+            n = sweep_stale_training(s)
+            if n:
+                s.commit()
+                log.info("training sweep: удалено учебных пациентов: %d", n)
+    except Exception:
+        log.exception("training sweep failed")
+
+
+def _photo_queue_tick():
+    """Страховочная обработка застрявших в очереди фото-пакетов (рестарт и т.п.)."""
+    from .photo_pipeline import process_queued
+    try:
+        with Session(engine) as s:
+            n = process_queued(s)
+            if n:
+                log.info("photo queue: обработано пакетов: %d", n)
+    except Exception:
+        log.exception("photo queue tick failed")
+
+
 def start():
     global _scheduler
     if _scheduler is not None:
@@ -170,6 +203,8 @@ def start():
     sched.add_job(_tick, "interval", minutes=1, id="alerts_tick", max_instances=1)
     sched.add_job(_digest_tick, "interval", hours=1, id="digest_tick", max_instances=1)
     sched.add_job(_recap_tick, "interval", hours=1, id="recap_tick", max_instances=1)
+    sched.add_job(_training_sweep_tick, "interval", hours=1, id="training_sweep", max_instances=1)
+    sched.add_job(_photo_queue_tick, "interval", minutes=1, id="photo_queue", max_instances=1)
     sched.start()
     _scheduler = sched
     return sched

@@ -83,6 +83,7 @@ def run():
 
         s.add(Reminder(doctor_id=doc.id, patient_id=p2.id,
                        title="Контроль PSA — Кузнецов А. И.", kind="control",
+                       parameter_code="psa_total",
                        project="Контроли", priority=2, repeat_days=90,
                        due_at=clock.now() - timedelta(days=4)))
         s.add(Reminder(doctor_id=doc.id, patient_id=p1.id,

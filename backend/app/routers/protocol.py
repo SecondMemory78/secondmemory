@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..db import get_session
 from ..services.consent import require_consent
+from ..deps import get_owned_patient
 from ..reference_data import parameter_label
 from ..services.visits import active_encounter_id
 from ..models import VisitProtocol, Patient, Observation, SafetyItem
@@ -15,9 +16,7 @@ router = APIRouter(prefix="/api/patients", tags=["protocol"])
 
 @router.get("/{pid}/protocol")
 def get_protocol(pid: int, s: Session = Depends(get_session)):
-    p = s.get(Patient, pid)
-    if not p:
-        raise HTTPException(404, "Пациент не найден")
+    p = get_owned_patient(s, pid)                # чужой/несуществующий пациент → 404
     row = s.exec(select(VisitProtocol).where(VisitProtocol.patient_id == pid)).first()
     if row:
         return row.model_dump()
@@ -27,6 +26,7 @@ def get_protocol(pid: int, s: Session = Depends(get_session)):
 
 @router.put("/{pid}/protocol")
 def save_protocol(pid: int, body: ProtocolIn, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                     # сначала владелец (чужой/нет → 404), потом согласие
     require_consent(s, pid)
     row = s.exec(select(VisitProtocol).where(VisitProtocol.patient_id == pid)).first()
     if row:

@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 from ..db import get_session
 from ..services.consent import require_consent
-from ..deps import current_doctor_id
+from ..deps import current_doctor_id, get_owned_patient
 from ..serialization import dump, dump_all
 from ..models import PatientDiagnosis, Patient, AuditEvent
 
@@ -42,6 +42,7 @@ def _clear_primary(s: Session, pid: int):
 
 @router.get("/{pid}/diagnoses")
 def list_diagnoses(pid: int, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     rows = s.exec(select(PatientDiagnosis).where(PatientDiagnosis.patient_id == pid)).all()
     rows.sort(key=lambda d: (d.status != "active", not d.is_primary, d.created_at))
     return dump_all(rows)
@@ -49,9 +50,8 @@ def list_diagnoses(pid: int, s: Session = Depends(get_session)):
 
 @router.post("/{pid}/diagnoses")
 def add_diagnosis(pid: int, body: DiagnosisIn, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # сначала владелец (чужой/нет → 404), потом согласие
     require_consent(s, pid)
-    if not s.get(Patient, pid):
-        raise HTTPException(404, "Пациент не найден")
     active = s.exec(select(PatientDiagnosis).where(
         PatientDiagnosis.patient_id == pid, PatientDiagnosis.status == "active")).all()
     primary = body.is_primary or len(active) == 0     # первый диагноз — основной
@@ -69,6 +69,7 @@ def add_diagnosis(pid: int, body: DiagnosisIn, s: Session = Depends(get_session)
 
 @router.post("/{pid}/diagnoses/{did}/primary")
 def set_primary(pid: int, did: int, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     d = s.get(PatientDiagnosis, did)
     if not d or d.patient_id != pid or d.status != "active":
         raise HTTPException(404, "Диагноз не найден")
@@ -82,6 +83,7 @@ def set_primary(pid: int, did: int, s: Session = Depends(get_session)):
 
 @router.post("/{pid}/diagnoses/{did}/remove")
 def remove_diagnosis(pid: int, did: int, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     d = s.get(PatientDiagnosis, did)
     if not d or d.patient_id != pid:
         raise HTTPException(404, "Диагноз не найден")

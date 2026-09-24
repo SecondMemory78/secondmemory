@@ -18,7 +18,8 @@ def attention(s: Session = Depends(get_session)):
     from ..reference_data import parameters
     did = current_doctor_id()
     now = clock.now()
-    patients = {p.id: p for p in s.exec(select(Patient).where(Patient.doctor_id == did)).all()}
+    patients = {p.id: p for p in s.exec(select(Patient).where(Patient.doctor_id == did,
+                                                              Patient.is_training == False)).all()}
     if not patients:
         return {"count": 0, "items": []}
 

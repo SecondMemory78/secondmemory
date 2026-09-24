@@ -51,7 +51,7 @@ def subscribe(body: SubscribeIn, request: Request, s: Session = Depends(get_sess
         from ..deps import AUTH_OPTIONAL
         if not AUTH_OPTIONAL:
             raise HTTPException(503, "Приём оплаты временно недоступен. Обратитесь в поддержку.")
-        sub = apply_payment(s, did, body.plan, payment_id="dev-no-payment")
+        sub = apply_payment(s, did, body.plan, payment_id="")   # dev-активация без реального платежа
         return {"ok": True, "activated": True, "dev_mode": True,
                 "period_end": sub.period_end.isoformat()}
 
@@ -96,11 +96,18 @@ async def webhook(request: Request, s: Session = Depends(get_session)):
     # сверяем, что оплаченная сумма соответствует тарифу (защита от подмены суммы)
     if abs(verified["amount_rub"] - price_for(plan)) > 0.01:
         raise HTTPException(400, "Сумма платежа не соответствует тарифу")
-    # идемпотентность: этот платёж уже применён — не продлеваем повторно
+    # идемпотентность: этот платёж уже применён — не продлеваем повторно.
+    # Быстрая проверка (частый случай) + атомарная защита от гонки ниже: при
+    # параллельных вебхуках ЮKassa (штатные ретраи) проверка-перед-вставкой не
+    # спасает от TOCTOU, поэтому полагаемся на уникальный индекс payment_id.
     if s.exec(select(Subscription).where(Subscription.payment_id == payment_id)).first():
         return {"ok": True, "already": True}
-
-    apply_payment(s, int(did), plan, payment_id=payment_id)
+    from sqlalchemy.exc import IntegrityError
+    try:
+        apply_payment(s, int(did), plan, payment_id=payment_id)
+    except IntegrityError:
+        s.rollback()
+        return {"ok": True, "already": True}      # другой параллельный вебхук уже применил
     return {"ok": True}
 
 

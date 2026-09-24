@@ -6,7 +6,7 @@
 """
 from datetime import datetime, date
 from typing import Optional
-from sqlalchemy import Column
+from sqlalchemy import Column, Index, text
 from .crypto import EncryptedStr
 from sqlmodel import SQLModel, Field
 
@@ -29,6 +29,32 @@ class Doctor(SQLModel, table=True):
     notify_push: bool = True          # push при распознавании документов
     notify_tracking: bool = True      # уведомления автослежения (триггеры)
     pin_hash: str = ""            # локальный разблок (биометрия/PIN) — заглушка
+    totp_secret: str = Field(default="", sa_column=Column(EncryptedStr))   # секрет TOTP — шифруем
+    totp_enabled: bool = False    # включён ли вход по коду из приложения-аутентификатора
+    created_at: datetime = Field(default_factory=now)
+
+
+class DoctorProgress(SQLModel, table=True):
+    """Что врач уже видел/прошёл: онбординг и разовые точечные подсказки.
+
+    Одна строка = один увиденный ключ (onboarding:done, tip:attention, tip:protocol, …).
+    Узкая таблица вместо JSON в Doctor: легко проверять изоляцию (ключи одного врача
+    не видны другому) и добавлять новые подсказки без миграции модели врача.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    doctor_id: int = Field(foreign_key="doctor.id", index=True)
+    key: str = Field(index=True)          # напр. "onboarding:done", "tip:protocol"
+    seen_at: datetime = Field(default_factory=now)
+
+
+class BackupCode(SQLModel, table=True):
+    """Одноразовый резервный код для входа, если недоступны и приложение-
+    аутентификатор, и почта. Храним только хэш (sha256; коды высокоэнтропийные).
+    used=True после первого применения — код сгорает."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    doctor_id: int = Field(foreign_key="doctor.id", index=True)
+    code_hash: str = Field(index=True)
+    used: bool = False
     created_at: datetime = Field(default_factory=now)
 
 
@@ -77,6 +103,7 @@ class Patient(SQLModel, table=True):
     diagnosis_code: str = ""      # МКБ-10 — основной/наблюдательный диагноз (в шапке карты)
     diagnosis_text: str = ""
     identity_status: str = "confirmed"   # confirmed | provisional (неполные данные)
+    is_training: bool = Field(default=False, index=True)   # учебный пациент онбординга — не рабочие данные
     version: int = 1              # для защиты от одновременного изменения (expected_version)
     # слепой индекс: HMAC ФИО для ТОЧНОЙ сверки личности без расшифровки всех карточек
     name_index: str = Field(default="", index=True)
@@ -255,7 +282,10 @@ class PhotoBatch(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     doctor_id: int = Field(foreign_key="doctor.id", index=True)
     image_b64: str = Field(default="", sa_column=Column(EncryptedStr))   # временно, до подтверждения
-    status: str = "pending"                   # pending | confirmed | discarded
+    status: str = "pending"                   # pending | confirmed | discarded (подтверждение врачом)
+    proc_status: str = Field(default="done", index=True)   # queued | processing | done | failed (конвейер OCR)
+    proc_error: str = ""                      # текст ошибки обработки (для диагностики)
+    sim_json: str = ""                        # симулированные фрагменты для отложенного разбора (демо/тесты)
     idempotency_key: str = Field(default="", index=True)   # защита от дублей при повторе загрузки
     created_at: datetime = Field(default_factory=now)
 
@@ -307,8 +337,33 @@ class Prescription(SQLModel, table=True):
     drug_name: str
     dose: str = ""
     regimen: str = ""
+    status: str = Field(default="active", index=True)   # active | cancelled
+    cancelled_at: Optional[datetime] = None
     conflict_flag: bool = False
     override_reason: str = ""
+    created_at: datetime = Field(default_factory=now)
+
+
+class Device(SQLModel, table=True):
+    """Установленное устройство: катетер / стент / нефростома (ТЗ §11, список C02).
+
+    Действие (замена/удаление) подтверждается по КОНКРЕТНОМУ device_id — общий срок
+    замены на все устройства пациента не задаётся. У каждого устройства свой due_at
+    (может быть None → «срок не задан»). При замене старое закрывается (active=False),
+    новое заводится отдельной записью со своим сроком.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    doctor_id: int = Field(foreign_key="doctor.id", index=True)
+    patient_id: int = Field(foreign_key="patient.id", index=True)
+    kind: str = Field(index=True)             # catheter | stent | nephrostomy
+    device_label: str = ""                    # метка конкретного изделия (напр. «стент справа», номер)
+    active: bool = Field(default=True, index=True)
+    installed_at: Optional[date] = None
+    due_at: Optional[date] = None             # плановая замена/удаление; None = срок не задан
+    closed_at: Optional[date] = None          # когда фактически заменено/удалено
+    closed_action: str = ""                   # replaced | removed
+    note: str = ""
+    version: int = 1
     created_at: datetime = Field(default_factory=now)
 
 
@@ -331,6 +386,10 @@ class SystemMeta(SQLModel, table=True):
 class Subscription(SQLModel, table=True):
     """Подписка врача. Без активной подписки (кроме демо-аккаунта) — только просмотр,
     вся запись заблокирована (SubscriptionGateMiddleware)."""
+    __table_args__ = (
+        Index("uq_subscription_payment_id", "payment_id", unique=True,
+              sqlite_where=text("payment_id != ''"), postgresql_where=text("payment_id != ''")),
+    )
     id: Optional[int] = Field(default=None, primary_key=True)
     doctor_id: int = Field(foreign_key="doctor.id", index=True)
     plan: str = "1m"                       # 1m | 3m | 6m | 12m
@@ -379,6 +438,7 @@ class Reminder(SQLModel, table=True):
     title: str
     due_at: Optional[datetime] = None
     kind: str = "task"                        # task | control | appointment | call
+    parameter_code: str = Field(default="", index=True)   # что контролируем (psa_total, ...) — для списка C01
     project: str = "Входящие"                 # раздел (свой тег-список, как в Todoist)
     priority: int = 4                         # 1 (срочно) .. 4 (обычный) — как в Todoist
     repeat_days: Optional[int] = None         # legacy: повтор каждые N дней (совместимость)
@@ -455,7 +515,7 @@ class AuditEvent(SQLModel, table=True):
     entity_type: str = ""
     entity_id: Optional[int] = None
     action: str = ""
-    detail: str = ""
+    detail: str = Field(default="", sa_column=Column(EncryptedStr))   # может содержать медданные — шифруем (152-ФЗ)
     created_at: datetime = Field(default_factory=now)
 
 

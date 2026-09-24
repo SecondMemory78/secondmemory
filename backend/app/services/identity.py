@@ -52,7 +52,8 @@ def resolve_identity(s: Session, doctor_id: int, q: dict, mode: str = "auto") ->
     qmid = _norm(middle)
     idx = name_index_for(last, first)
     same_name_all = s.exec(select(Patient).where(
-        Patient.doctor_id == doctor_id, Patient.name_index == idx)).all()
+        Patient.doctor_id == doctor_id, Patient.name_index == idx,
+        Patient.is_training == False)).all()
 
     def middle_ok(p):
         pm = _norm(p.middle_name)

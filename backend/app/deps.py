@@ -9,10 +9,10 @@ Dev-режим (AUTH_OPTIONAL=1): без токена берётся демо-в
 """
 import os
 import contextvars
-from datetime import datetime
 from fastapi import Header, HTTPException, Request
 from sqlmodel import Session, select
 from .db import engine
+from . import clock
 from .models import AuthSession, Doctor
 
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "dev-admin-token")
@@ -45,9 +45,33 @@ def resolve_doctor_id_from_token(token: str):
     token_hash = hashlib.sha256(token.encode()).hexdigest()
     with Session(engine) as s:
         sess = s.exec(select(AuthSession).where(AuthSession.token_hash == token_hash)).first()
-        if sess and sess.expires_at > datetime.utcnow():
+        if sess and sess.expires_at > clock.now():
             return sess.doctor_id
     return None
+
+
+def get_owned_patient(s: Session, pid: int):
+    """Пациент, принадлежащий ТЕКУЩЕМУ врачу, иначе 404.
+
+    Единый шов проверки владельца для роутеров: не раскрываем существование чужих
+    карточек (одинаковый 404 и для «нет такого», и для «чужой»). Второй слой —
+    RLS на Postgres; в dev/тестах (SQLite) RLS — no-op, поэтому проверка в коде
+    обязательна и здесь.
+    """
+    from .models import Patient
+    p = s.get(Patient, pid)
+    if not p or p.doctor_id != current_doctor_id():
+        raise HTTPException(404, "Пациент не найден")
+    return p
+
+
+def get_owned_encounter(s: Session, eid: int):
+    """Эпизод (Encounter), принадлежащий текущему врачу, иначе 404."""
+    from .models import Encounter
+    e = s.get(Encounter, eid)
+    if not e or e.doctor_id != current_doctor_id():
+        raise HTTPException(404, "Эпизод не найден")
+    return e
 
 
 def require_admin(request: Request = None, x_admin_token: str = Header(default="")):

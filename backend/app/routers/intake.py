@@ -1,5 +1,5 @@
 from datetime import datetime
-from ..deps import current_doctor_id
+from ..deps import current_doctor_id, get_owned_patient
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlmodel import Session, select
 from ..db import get_session
@@ -17,11 +17,9 @@ router = APIRouter(prefix="/api", tags=["intake"])
 @router.post("/patients/{pid}/documents")
 async def upload_document(pid: int, file: UploadFile = File(None),
                           s: Session = Depends(get_session)):
+    patient = get_owned_patient(s, pid)          # сначала владелец (чужой/нет → 404)
     require_consent(s, pid)
     meter(s, current_doctor_id(), "ocr", detail="document")
-    patient = s.get(Patient, pid)
-    if not patient:
-        raise HTTPException(404, "Пациент не найден")
 
     from ..services.uploads import read_limited
     image_bytes = await read_limited(file)
@@ -67,6 +65,7 @@ async def upload_document(pid: int, file: UploadFile = File(None),
 @router.post("/patients/{pid}/transcribe")
 async def transcribe_note(pid: int, save: bool = Form(True),
                           audio: UploadFile = File(None), s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                     # сначала владелец (чужой/нет → 404)
     require_consent(s, pid)
     meter(s, current_doctor_id(), "stt", detail="note")
     data = await audio.read() if audio else b""
@@ -93,6 +92,7 @@ def active_session(s: Session = Depends(get_session)):
 
 @router.post("/session/start")
 def start_session(patient_id: int = Form(...), s: Session = Depends(get_session)):
+    get_owned_patient(s, patient_id)              # сначала владелец (чужой/нет → 404)
     require_consent(s, patient_id)
     # завершаем прежние
     for r in s.exec(select(VisitSession).where(VisitSession.doctor_id == current_doctor_id(),

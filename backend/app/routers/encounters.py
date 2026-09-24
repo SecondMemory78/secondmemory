@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlmodel import Session, select
 from ..db import get_session
-from ..deps import current_doctor_id
+from ..deps import current_doctor_id, get_owned_patient, get_owned_encounter
 from ..serialization import dump, dump_all
 from ..services.consent import consent_ok
 from ..services.visits import day_of_stay, open_encounters
@@ -66,8 +66,7 @@ def _view(e: Encounter, s: Session = None):
 # ── Совместимость: быстрый амбулаторный приём (одна открытая сессия типа visit) ──
 @router.post("/patients/{pid}/encounters")
 def start(pid: int, body: EncounterIn, s: Session = Depends(get_session)):
-    if not s.get(Patient, pid):
-        raise HTTPException(404, "Пациент не найден")
+    get_owned_patient(s, pid)                   # чужой/несуществующий пациент → 404
     if not consent_ok(s, pid):
         raise HTTPException(403, "Нет согласия на обработку ПДн — приём вести нельзя. Оформите согласие.")
     e = s.exec(select(Encounter).where(Encounter.patient_id == pid,
@@ -82,8 +81,7 @@ def start(pid: int, body: EncounterIn, s: Session = Depends(get_session)):
 # ── Богатое создание эпизода (в т.ч. госпитализации) — всегда новый ──
 @router.post("/patients/{pid}/episodes")
 def create_episode(pid: int, body: EpisodeIn, s: Session = Depends(get_session)):
-    if not s.get(Patient, pid):
-        raise HTTPException(404, "Пациент не найден")
+    get_owned_patient(s, pid)                   # чужой/несуществующий пациент → 404
     if not consent_ok(s, pid):
         raise HTTPException(403, "Нет согласия на обработку ПДн — вести эпизод нельзя. Оформите согласие.")
     e = Encounter(doctor_id=current_doctor_id(), patient_id=pid,
@@ -99,6 +97,7 @@ def create_episode(pid: int, body: EpisodeIn, s: Session = Depends(get_session))
 
 @router.get("/patients/{pid}/episodes")
 def episodes(pid: int, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                   # чужой/несуществующий пациент → 404
     rows = s.exec(select(Encounter).where(Encounter.patient_id == pid)).all()
     rows.sort(key=lambda e: e.started_at, reverse=True)
     open_count = sum(1 for e in rows if e.status == "open")
@@ -113,15 +112,14 @@ def history(pid: int, s: Session = Depends(get_session)):
 
 @router.get("/patients/{pid}/encounters/active")
 def active(pid: int, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                   # чужой/несуществующий пациент → 404
     rows = open_encounters(s, pid)
     return _view(rows[0]) if len(rows) == 1 else None
 
 
 @router.get("/encounters/{eid}")
 def detail(eid: int, s: Session = Depends(get_session)):
-    e = s.get(Encounter, eid)
-    if not e:
-        raise HTTPException(404, "Эпизод не найден")
+    e = get_owned_encounter(s, eid)             # чужой/несуществующий эпизод → 404
 
     def items(model):
         return dump_all(s.exec(select(model).where(model.encounter_id == eid)).all())
@@ -153,8 +151,8 @@ def update_episode(eid: int, body: EpisodePatch, s: Session = Depends(get_sessio
 
 @router.post("/encounters/{eid}/close")
 def close(eid: int, s: Session = Depends(get_session)):
-    e = s.get(Encounter, eid)
-    if e and e.status == "open":
+    e = get_owned_encounter(s, eid)             # чужой/несуществующий эпизод → 404
+    if e.status == "open":
         e.status = "closed"; e.closed_at = datetime.utcnow(); s.add(e); s.commit()
     return {"ok": True}
 
@@ -177,8 +175,7 @@ class SickLeavePatch(BaseModel):
 
 @router.post("/patients/{pid}/sick-leaves")
 def open_sick_leave(pid: int, body: SickLeaveIn, s: Session = Depends(get_session)):
-    if not s.get(Patient, pid):
-        raise HTTPException(404, "Пациент не найден")
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     sl = SickLeave(doctor_id=current_doctor_id(), patient_id=pid, encounter_id=body.encounter_id,
                    number=body.number, note=body.note,
                    opened_at=date.fromisoformat(body.opened_at) if body.opened_at else date.today())
@@ -188,6 +185,7 @@ def open_sick_leave(pid: int, body: SickLeaveIn, s: Session = Depends(get_sessio
 
 @router.get("/patients/{pid}/sick-leaves")
 def list_sick_leaves(pid: int, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     rows = s.exec(select(SickLeave).where(SickLeave.patient_id == pid)).all()
     rows.sort(key=lambda x: x.created_at, reverse=True)
     return dump_all(rows)

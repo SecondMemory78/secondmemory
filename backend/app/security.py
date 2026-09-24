@@ -8,6 +8,21 @@ import hmac
 import os
 import secrets
 
+MIN_PASSWORD_LEN = 8
+
+
+def validate_password(password: str) -> None:
+    """Единая парольная политика (регистрация и сброс). Бросает ValueError при провале.
+
+    Минимум для медприложения под 152-ФЗ: длина ≥ 8 и не из списка самых
+    распространённых. Хеш — PBKDF2; интерфейс проверки один на все точки входа.
+    """
+    if not password or len(password) < MIN_PASSWORD_LEN:
+        raise ValueError(f"Пароль должен быть не короче {MIN_PASSWORD_LEN} символов")
+    common = {"password", "12345678", "qwerty123", "11111111", "parol123", "12345678a"}
+    if password.lower() in common:
+        raise ValueError("Пароль слишком простой — выберите другой")
+
 
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(16)

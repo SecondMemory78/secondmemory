@@ -1,5 +1,5 @@
 from datetime import date
-from ..deps import current_doctor_id
+from ..deps import current_doctor_id, get_owned_patient
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
@@ -20,7 +20,8 @@ def _audit(s: Session, entity_id, action, detail=""):
 
 @router.get("")
 def list_patients(q: Optional[str] = None, s: Session = Depends(get_session)):
-    stmt = select(Patient).where(Patient.doctor_id == current_doctor_id())
+    stmt = select(Patient).where(Patient.doctor_id == current_doctor_id(),
+                                 Patient.is_training == False)
     rows = [p for p in s.exec(stmt).all() if not (p.identity_status or "").startswith("merged_into")]
     if q:
         ql = q.lower()
@@ -100,15 +101,14 @@ def merge_patients(body: MergeIn, s: Session = Depends(get_session)):
 
 @router.get("/{pid}")
 def get_patient(pid: int, s: Session = Depends(get_session)):
-    p = s.get(Patient, pid)
-    if not p:
-        raise HTTPException(404, "Пациент не найден")
+    p = get_owned_patient(s, pid)               # чужой/несуществующий пациент → 404
     return _card(p)
 
 
 @router.get("/{pid}/timeline")
 def timeline(pid: int, s: Session = Depends(get_session)):
     """Динамика: по каждому параметру — упорядоченный ряд значений."""
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     obs = s.exec(select(Observation).where(Observation.patient_id == pid)).all()
     series = {}
     for o in obs:
@@ -137,6 +137,7 @@ def _threshold_num(code: str):
 @router.get("/{pid}/integrity")
 def integrity(pid: int, s: Session = Depends(get_session)):
     """Детерминированная проверка целостности карты (D-правила без ИИ). Только сигналы."""
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     from ..services.integrity import check_patient
     findings = check_patient(s, pid)
     return {"count": len(findings), "findings": findings}
@@ -146,6 +147,7 @@ def integrity(pid: int, s: Session = Depends(get_session)):
 def whats_new(pid: int, s: Session = Depends(get_session)):
     """Сводка «что изменилось с прошлого раза» — из готовых данных, без ИИ.
     Только чтение: доступно и для просмотра (барьер согласия не нужен)."""
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     from ..models import Reminder
     from .. import clock
     now = clock.now()
@@ -202,6 +204,7 @@ def whats_new(pid: int, s: Session = Depends(get_session)):
 
 @router.get("/{pid}/notes")
 def notes(pid: int, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     rows = s.exec(select(Note).where(Note.patient_id == pid)).all()
     return sorted([n.model_dump() for n in rows], key=lambda x: x["created_at"], reverse=True)
 
@@ -210,6 +213,7 @@ def notes(pid: int, s: Session = Depends(get_session)):
 def add_note(pid: int, text: str = Query(...), source: str = "typed",
              encounter_id: int = Query(default=None),
              s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # сначала владелец (чужой/нет → 404), потом согласие
     require_consent(s, pid)
     from ..services.visits import resolve_encounter, open_encounters
     eid, ambiguous = resolve_encounter(s, pid, encounter_id)
@@ -224,6 +228,7 @@ def add_note(pid: int, text: str = Query(...), source: str = "typed",
 
 @router.patch("/{pid}/notes/{nid}")
 def edit_note(pid: int, nid: int, text: str = Query(...), s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     require_consent(s, pid)
     n = s.get(Note, nid)
     if not n or n.patient_id != pid:
@@ -234,6 +239,7 @@ def edit_note(pid: int, nid: int, text: str = Query(...), s: Session = Depends(g
 
 @router.delete("/{pid}/notes/{nid}")
 def delete_note(pid: int, nid: int, s: Session = Depends(get_session)):
+    get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     n = s.get(Note, nid)
     if n and n.patient_id == pid:
         s.delete(n); s.commit()
@@ -245,13 +251,13 @@ def note_to_task(pid: int, nid: int, due_at: str = Query(default=""), s: Session
     """Сделать из заметки задачу: создаёт напоминание с текстом заметки, привязанное к пациенту."""
     from ..models import Reminder
     from datetime import datetime
+    p = get_owned_patient(s, pid)               # чужой/несуществующий пациент → 404
     n = s.get(Note, nid)
     if not n or n.patient_id != pid:
         raise HTTPException(404, "Заметка не найдена")
     due = None
     if due_at:
         due = datetime.fromisoformat(due_at + "T09:00:00" if len(due_at) == 10 else due_at)
-    p = s.get(Patient, pid)
     title = n.text if len(n.text) <= 120 else n.text[:117] + "…"
     r = Reminder(doctor_id=current_doctor_id(), title=title, patient_id=pid,
                  due_at=due, project="Из заметок", kind="task",
@@ -290,7 +296,8 @@ def edit_patient(pid: int, body: PatientPatch, s: Session = Depends(get_session)
 @router.post("/cohort")
 def cohort(body: CohortQuery, s: Session = Depends(get_session)):
     """Срез по картотеке: диагноз + порог показателя + возраст."""
-    pts = s.exec(select(Patient).where(Patient.doctor_id == current_doctor_id())).all()
+    pts = s.exec(select(Patient).where(Patient.doctor_id == current_doctor_id(),
+                                       Patient.is_training == False)).all()
     result = []
     today = date.today()
     for p in pts:
