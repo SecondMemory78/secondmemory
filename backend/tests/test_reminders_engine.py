@@ -49,10 +49,14 @@ def test_prefs_roundtrip_with_version():
 
 
 def test_quiet_hours_defers_delivery():
-    with Session(engine) as s:
-        prefs = NotificationPreference(doctor_id=99999, quiet_hours_start=0, quiet_hours_end=23)
-        # 0..23 → почти весь день тихий (для теста)
-        assert alerts_svc.in_quiet_hours(prefs) is True
+    from datetime import datetime
+    prefs = NotificationPreference(doctor_id=99999, quiet_hours_start=0, quiet_hours_end=23)
+    # фиксируем «сейчас» на заведомо тихий час (10:00), чтобы не зависеть от реального времени
+    with clock.frozen(datetime(2026, 6, 15, 10, 0, 0)):
+        assert alerts_svc.in_quiet_hours(prefs) is True        # 0 <= 10 < 23
+    # и наоборот — в 23:00 окно 0..23 уже НЕ тихое (конец исключается)
+    with clock.frozen(datetime(2026, 6, 15, 23, 0, 0)):
+        assert alerts_svc.in_quiet_hours(prefs) is False
 
 
 def test_appointment_alert_and_cancel():
@@ -71,35 +75,42 @@ def test_scheduler_delivers_and_escalates():
     """Планировщик доставляет наступивший будильник (обезличенно) и эскалирует один раз."""
     from app.services.scheduler import _tick
     from app.models import ReminderAlert, NotificationPreference
-    # свежий врач с чистым состоянием и НЕактивными тихими часами
-    def tok(email):
-        c.post("/api/auth/register", json={"email": email, "phone": "+7900" + str(abs(hash(email)) % 10**7).zfill(7), "password": "pass12345", "full_name": "В"})
-        r = c.post("/api/auth/login", json={"email": email, "password": "pass12345", "device_id": "d"}).json()
-        v = c.post("/api/auth/verify", json={"email": email, "code": r["dev_code"], "device_id": "d"}).json()
-        h = {"Authorization": "Bearer " + v["token"]}
-        c.post("/api/billing/subscribe", json={"plan": "1m"}, headers=h)
-        return h, v["doctor"]["id"]
-    h, did = tok("sched@x.ru")
-    pf = c.get("/api/notify-prefs", headers=h).json()
-    c.patch("/api/notify-prefs", headers=h, json={"expected_version": pf["version"],
-            "quiet_hours_start": 3, "quiet_hours_end": 4, "escalation_minutes": 30})
-    due = (clock.now() + timedelta(hours=2)).isoformat()
-    r = c.post("/api/reminders", headers=h, json={"title": "z", "kind": "task", "due_at": due}).json()
-    with Session(engine) as s:
-        a = s.exec(select(ReminderAlert).where(ReminderAlert.entity_id == r["id"],
-                                               ReminderAlert.status == "pending")).first()
-        a.fire_at = clock.now() - timedelta(minutes=1); s.add(a); s.commit(); aid = a.id
-    _tick()
-    with Session(engine) as s:
-        assert s.get(ReminderAlert, aid).status == "sent"        # доставлен, ещё не эскалирован
-    # ускоряем эскалацию: сделаем её мгновенной и сдвинем sent_at в прошлое
-    pf2 = c.get("/api/notify-prefs", headers=h).json()
-    c.patch("/api/notify-prefs", headers=h, json={"expected_version": pf2["version"], "escalation_minutes": 0})
-    with Session(engine) as s:
-        a = s.get(ReminderAlert, aid); a.sent_at = clock.now() - timedelta(minutes=1); s.add(a); s.commit()
-    _tick()
-    with Session(engine) as s:
-        assert s.get(ReminderAlert, aid).status == "escalated"   # повторён один раз
+    from datetime import datetime
+    # Фиксируем «сейчас» на заведомо НЕ тихий час (12:00), чтобы тест не зависел
+    # от реального времени суток (quiet_hours 3–4 гарантированно не активны).
+    clock.set_fixed(datetime(2026, 6, 15, 12, 0, 0))
+    try:
+        # свежий врач с чистым состоянием и НЕактивными тихими часами
+        def tok(email):
+            c.post("/api/auth/register", json={"email": email, "phone": "+7900" + str(abs(hash(email)) % 10**7).zfill(7), "password": "pass12345", "full_name": "В"})
+            r = c.post("/api/auth/login", json={"email": email, "password": "pass12345", "device_id": "d"}).json()
+            v = c.post("/api/auth/verify", json={"email": email, "code": r["dev_code"], "device_id": "d"}).json()
+            h = {"Authorization": "Bearer " + v["token"]}
+            c.post("/api/billing/subscribe", json={"plan": "1m"}, headers=h)
+            return h, v["doctor"]["id"]
+        h, did = tok("sched@x.ru")
+        pf = c.get("/api/notify-prefs", headers=h).json()
+        c.patch("/api/notify-prefs", headers=h, json={"expected_version": pf["version"],
+                "quiet_hours_start": 3, "quiet_hours_end": 4, "escalation_minutes": 30})
+        due = (clock.now() + timedelta(hours=2)).isoformat()
+        r = c.post("/api/reminders", headers=h, json={"title": "z", "kind": "task", "due_at": due}).json()
+        with Session(engine) as s:
+            a = s.exec(select(ReminderAlert).where(ReminderAlert.entity_id == r["id"],
+                                                   ReminderAlert.status == "pending")).first()
+            a.fire_at = clock.now() - timedelta(minutes=1); s.add(a); s.commit(); aid = a.id
+        _tick()
+        with Session(engine) as s:
+            assert s.get(ReminderAlert, aid).status == "sent"        # доставлен, ещё не эскалирован
+        # ускоряем эскалацию: сделаем её мгновенной и сдвинем sent_at в прошлое
+        pf2 = c.get("/api/notify-prefs", headers=h).json()
+        c.patch("/api/notify-prefs", headers=h, json={"expected_version": pf2["version"], "escalation_minutes": 0})
+        with Session(engine) as s:
+            a = s.get(ReminderAlert, aid); a.sent_at = clock.now() - timedelta(minutes=1); s.add(a); s.commit()
+        _tick()
+        with Session(engine) as s:
+            assert s.get(ReminderAlert, aid).status == "escalated"   # повторён один раз
+    finally:
+        clock.reset()
 
 
 def test_recap_settings_and_daily_recap():
