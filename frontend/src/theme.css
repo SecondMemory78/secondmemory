@@ -22,9 +22,9 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body,#root{height:100%}
 body{font-family:'Golos Text',sans-serif;background:var(--s1);color:var(--tp)}
-.app{max-width:480px;margin:0 auto;min-height:100%;background:var(--s2);
+.app{max-width:480px;margin:0 auto;height:100%;background:var(--s2);
   display:flex;flex-direction:column;box-shadow:0 0 40px rgba(20,32,44,.06)}
-.scroll{flex:1;overflow-y:auto;padding:14px 18px 24px}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 18px 24px}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .muted{color:var(--tm)} .warn{color:var(--wn)} .dng{color:var(--dn)} .succ{color:var(--sc)} .acc{color:var(--act)}
 .rmc{color:var(--rm)}
@@ -88,8 +88,9 @@ body{font-family:'Golos Text',sans-serif;background:var(--s1);color:var(--tp)}
   color:var(--tm);font-size:10px;text-decoration:none}
 .tabbar a i{font-size:21px}
 .tabbar a.active{color:var(--act)}
-.tabs{display:flex;gap:4px;background:var(--s1);border-radius:12px;padding:3px;margin:12px 0 16px}
-.tabs .t{flex:1;text-align:center;padding:8px 0;font-size:12.5px;color:var(--ts);border-radius:9px;cursor:pointer}
+.tabs{display:flex;gap:4px;background:var(--s1);border-radius:12px;padding:3px;margin:12px 0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs .t{flex:1 0 auto;min-width:72px;text-align:center;padding:8px 10px;font-size:12.5px;color:var(--ts);border-radius:9px;cursor:pointer;white-space:nowrap}
 .tabs .t.on{background:var(--s2);font-weight:500;color:var(--tp)}
 .empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 16px}
 .empty i{font-size:30px;color:var(--tm);margin-bottom:10px}
@@ -99,7 +100,7 @@ td{padding:7px 0;font-size:13px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ---- desktop ---- */
-.shell{display:flex;min-height:100%}
+.shell{display:flex;height:100%}
 .sidebar{display:none}
 .pri-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 textarea.input{resize:vertical;min-height:64px;line-height:1.5}
@@ -170,3 +171,60 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
 .app{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
 .toast-host{bottom:calc(76px + env(safe-area-inset-bottom))}
 .modal-ov{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+
+/* ── Онбординг (обучение на вымышленном пациенте, ТЗ §31) ── */
+.ob-overlay{position:fixed;inset:0;z-index:1000;background:rgba(20,32,44,.55);
+  display:flex;align-items:flex-end;justify-content:center;padding:0}
+.ob-card{background:var(--s2);width:100%;max-width:480px;border-radius:18px 18px 0 0;
+  padding:20px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -8px 40px rgba(20,32,44,.22);
+  animation:ob-up .22s ease}
+@keyframes ob-up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@media(min-width:520px){.ob-overlay{align-items:center}.ob-card{border-radius:18px}}
+.ob-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ob-count{font-size:12px}
+.ob-skip{background:none;border:0;font:inherit;font-size:13px;cursor:pointer}
+.ob-title{font-size:19px;font-weight:600;margin:2px 0 10px;color:var(--tp)}
+.ob-body{font-size:14.5px;line-height:1.5;color:var(--tp);margin:0 0 12px}
+.ob-hint{font-size:12.5px;line-height:1.45;color:var(--ts);background:var(--s1);
+  border-radius:10px;padding:10px 12px;margin:0}
+.ob-memo{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}
+.ob-memo-row{font-size:13.5px;line-height:1.4;color:var(--tp)}
+.ob-memo-row b{color:var(--act)}
+.ob-dots{display:flex;gap:6px;justify-content:center;margin:16px 0}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--bd);transition:.15s}
+.ob-dot.on{background:var(--ac);transform:scale(1.15)}
+.ob-nav{display:flex;gap:8px;margin-top:6px}
+.ob-nav .btn{flex:1}
+.ob-nav .ob-cta{flex:1}
+
+/* ── Точечные подсказки (коуч-марки «в момент первого использования») ── */
+.tip-anchor{position:relative;display:block}
+.tip-pop{position:absolute;z-index:900;width:min(280px,86vw);background:var(--tp);color:var(--s2);
+  border-radius:12px;padding:12px 13px;box-shadow:0 8px 30px rgba(20,32,44,.28);
+  animation:tip-in .16s ease}
+@keyframes tip-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.tip-title{font-size:13.5px;font-weight:600;margin-bottom:4px}
+.tip-text{font-size:12.5px;line-height:1.5;opacity:.92}
+.tip-ok{margin-top:10px}
+.tip-arrow{position:absolute;width:10px;height:10px;background:var(--tp);transform:rotate(45deg)}
+/* размещение относительно якоря */
+.tip-bottom{top:calc(100% + 10px);left:0}
+.tip-bottom .tip-arrow{top:-5px;left:18px}
+.tip-top{bottom:calc(100% + 10px);left:0}
+.tip-top .tip-arrow{bottom:-5px;left:18px}
+.tip-right{left:calc(100% + 10px);top:0}
+.tip-right .tip-arrow{left:-5px;top:16px}
+.tip-left{right:calc(100% + 10px);top:0}
+.tip-left .tip-arrow{right:-5px;top:16px}
+
+/* ── Счётчик-бейдж (списки пациентов) ── */
+.badge{min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:var(--s1);
+  color:var(--tm);font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.badge-warn{background:var(--wnbg,var(--s1));color:var(--wn)}
+
+/* ── Плашка офлайн-очереди ── */
+.outbox-badge{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  z-index:800;display:flex;align-items:center;gap:7px;background:var(--tp);color:var(--s2);
+  font-size:12.5px;font-weight:500;padding:8px 14px;border-radius:20px;box-shadow:0 4px 16px rgba(20,32,44,.25);
+  cursor:pointer;max-width:90vw}
+.outbox-badge i{font-size:15px}

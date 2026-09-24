@@ -6,6 +6,8 @@ import Button from "../components/Button";
 import { Spinner } from "../components/Loading";
 import { pushSupported, isStandalone, detectPlatform, rememberPlatform,
          permissionStatus, subscribePush, unsubscribePush } from "../lib/push";
+import Tip from "../components/Tip";
+import { useTips } from "../lib/tips";
 
 const KINDS = [
   ["appointment", "Приёмы"],
@@ -18,12 +20,14 @@ const OFFSET_LABEL = { 5: "5 мин", 15: "15 мин", 30: "30 мин", 60: "1 �
 
 export default function NotifySettings() {
   const nav = useNavigate();
+  const { show } = useTips();
   const [p, setP] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
   function load() { api.notifyPrefs().then(setP).catch(() => {}); }
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (p) show("tip:timezone"); }, [p, show]);   // подсказка при первом заходе в настройки
 
   // ── Push-подписка ──
   const [perm, setPerm] = useState(permissionStatus());
@@ -205,6 +209,8 @@ export default function NotifySettings() {
       </div>
 
       <div className="sec-label">Тихие часы</div>
+      <Tip tipKey="tip:timezone" place="top" title="Считается в вашем часовом поясе"
+           text="Тихие часы, утренняя сводка и дайджест приходят по вашему местному времени — тому, что указано в настройках профиля. Врач в другом регионе получит их по своему времени.">
       <div className="card" style={{ marginBottom: 10 }}>
         <div className="sub" style={{ marginBottom: 8 }}>В это время напоминания не беспокоят — придут, как тихие часы закончатся.</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -217,6 +223,7 @@ export default function NotifySettings() {
           </select>
         </div>
       </div>
+      </Tip>
 
       <div className="sec-label">Повтор напоминания</div>
       <div className="card" style={{ marginBottom: 10 }}>

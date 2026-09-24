@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import Tip from "./Tip";
+import { useTips } from "../lib/tips";
 
 const FIELDS = [
   ["complaints", "Жалобы"],
@@ -23,12 +25,14 @@ function copy(text) {
  * Разметка полей будет уточнена под реальный экран ЕМИАС.
  */
 export default function ProtocolTab({ id, disabled }) {
+  const { show } = useTips();
   const [p, setP] = useState(null);
   const [saved, setSaved] = useState(false);
   const [tpls, setTpls] = useState({ builtin: [], custom: [] });
 
   useEffect(() => { api.protocol(id).then(setP); }, [id]);
   useEffect(() => { api.templates().then(setTpls).catch(() => {}); }, []);
+  useEffect(() => { if (tpls.builtin.length) show("tip:protocol"); }, [tpls, show]);
   if (!p) return <div className="sub">Загрузка протокола…</div>;
 
   const set = (k, v) => { setP({ ...p, [k]: v }); setSaved(false); };
@@ -76,6 +80,8 @@ export default function ProtocolTab({ id, disabled }) {
       )}
 
       <div className="copyrow"><span className="lbl">Шаблон приёма</span></div>
+      <Tip tipKey="tip:protocol" place="bottom" title="Шаблоны приёма — это подсказки"
+           text="Выберите тип приёма (например, «Повышенный ПСА») — форма подскажет, что важно заполнить: дополнительные поля, осмотр, план. Шаблон ничего не назначает автоматически, вы заполняете сами.">
       <select className="input" value={p.template_code || ""} onChange={(e) => applyTemplate(e.target.value)} style={{ marginBottom: 8 }}>
         <option value="">Без шаблона</option>
         <optgroup label="Типовые приёмы">
@@ -87,6 +93,7 @@ export default function ProtocolTab({ id, disabled }) {
           </optgroup>
         )}
       </select>
+      </Tip>
 
       {p.template_code && (() => {
         const t = [...tpls.builtin, ...tpls.custom].find((x) => x.code === p.template_code) || {};

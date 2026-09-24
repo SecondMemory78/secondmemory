@@ -10,6 +10,7 @@ import NewEntry from "./pages/NewEntry";
 import Search from "./pages/Search";
 import SupportChat from "./pages/SupportChat";
 import Triggers from "./pages/Triggers";
+import Lists from "./pages/Lists";
 import Help from "./pages/Help";
 import Notifications from "./pages/Notifications";
 import Patients from "./pages/Patients";
@@ -22,6 +23,8 @@ import PhotoBatch from "./pages/PhotoBatch";
 import Dictation from "./pages/Dictation";
 import NotifySettings from "./pages/NotifySettings";
 import Toast from "./components/Toast";
+import Onboarding from "./components/Onboarding";
+import { TipsProvider } from "./lib/tips";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { api } from "./api";
 import { auth as authApi } from "./api";
@@ -35,9 +38,26 @@ export default function App() {
   const [token, setToken] = useState(getToken());
   const [unlocked, setUnlocked] = useState(!quickUnlockEnabled());
   const [sub, setSub] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (token && unlocked) api.billingStatus().then(setSub).catch(() => setSub(null));
+  }, [token, unlocked]);
+
+  // Офлайн-очередь: при входе включаем автоотправку (online/focus) и досылаем накопленное.
+  useEffect(() => {
+    if (token && unlocked) {
+      import("./lib/outbox").then((m) => m.wireAutoFlush());
+    }
+  }, [token, unlocked]);
+
+  // Онбординг при первом входе: показываем, только если врач его ещё не проходил.
+  // Не мешает подписке — если её нет, сначала экран тарифов, обучение потом.
+  useEffect(() => {
+    if (!token || !unlocked) { setShowOnboarding(false); return; }
+    api.onboardingProgress()
+      .then((p) => setShowOnboarding(!p.onboarding_done))
+      .catch(() => setShowOnboarding(false));
   }, [token, unlocked]);
 
   // авто-блокировка по бездействию: если задан PIN/биометрия — через N минут без
@@ -73,6 +93,10 @@ export default function App() {
     <>
     <Toast />
     <ConfirmDialog />
+    {showOnboarding && !needsBilling && (
+      <Onboarding onDone={() => setShowOnboarding(false)} />
+    )}
+    <TipsProvider enabled={!showOnboarding && !needsBilling}>
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
@@ -83,6 +107,7 @@ export default function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/support" element={<SupportChat />} />
           <Route path="/triggers" element={<Triggers />} />
+          <Route path="/lists" element={<Lists />} />
           <Route path="/help" element={<Help />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/billing" element={<Billing />} />
@@ -98,6 +123,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </TipsProvider>
     </>
   );
 }

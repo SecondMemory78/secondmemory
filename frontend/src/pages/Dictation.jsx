@@ -1,22 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import Button from "../components/Button";
 import VoiceButton from "../components/VoiceButton";
+import Tip from "../components/Tip";
+import { useTips } from "../lib/tips";
+import { toast } from "../lib/toast";
 
 const TYPE_LABEL = { patient_note: "Заметка пациенту", task: "Задача", call: "Звонок", idea: "Идея" };
 const TYPE_ICON = { patient_note: "ti-note", task: "ti-checkbox", call: "ti-phone", idea: "ti-bulb" };
 
 export default function Dictation() {
   const nav = useNavigate();
+  const { show } = useTips();
   const [text, setText] = useState("");
   const [dic, setDic] = useState(null);
   const [result, setResult] = useState(null);
   const [search, setSearch] = useState({});
 
+  // Подсказка про смешанную диктовку — когда система распознала больше одного пациента.
+  useEffect(() => {
+    if (!dic?.segments) return;
+    const names = new Set(dic.segments.map((s) => s.extracted_name || s.resolved_patient_id).filter(Boolean));
+    if (names.size > 1) show("tip:dictation");
+  }, [dic, show]);
+
   async function analyze() {
     if (!text.trim()) return;
-    setDic(await api.createDictation(text));
+    if (!navigator.onLine) {
+      const { enqueue } = await import("../lib/outbox");
+      await enqueue("dictation", { text });
+      toast("Нет сети — заметка сохранена и отправится сама, когда связь появится", "success");
+      setText("");
+      return;
+    }
+    try {
+      setDic(await api.createDictation(text));
+    } catch (e) {
+      if (e && e.status === 0) {   // сеть отвалилась в процессе — в очередь
+        const { enqueue } = await import("../lib/outbox");
+        await enqueue("dictation", { text });
+        toast("Связь пропала — заметка в очереди, отправится автоматически", "info");
+        setText("");
+      }
+    }
   }
   async function reload() { setDic(await api.getDictation(dic.id)); }
   async function assign(sid, pid) { await api.assignSegment(dic.id, sid, pid); reload(); }
@@ -49,6 +76,13 @@ export default function Dictation() {
             Точность разбора свободной речи вырастет с ключами Yandex GPT. Механика разложения и приватность уже работают.
           </div>
         </>
+      )}
+
+      {dic && (
+        <Tip tipKey="tip:dictation" place="bottom" title="Несколько пациентов в одной записи"
+             text="Когда диктуете подряд про разных людей, называйте нового пациента ПЕРЕД его сведениями — тогда система правильно разложит, к кому что относится.">
+          <div className="sub" style={{ marginBottom: 10 }}>Проверьте разбор и, где нужно, укажите пациента.</div>
+        </Tip>
       )}
 
       {dic && (

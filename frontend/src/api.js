@@ -8,8 +8,9 @@ function authHeaders(extra = {}) {
   return t ? { ...extra, Authorization: `Bearer ${t}` } : { ...extra };
 }
 
-async function j(method, path, body) {
+async function j(method, path, body, idempotencyKey) {
   const opt = { method, headers: authHeaders() };
+  if (idempotencyKey) opt.headers["Idempotency-Key"] = idempotencyKey;
   if (body !== undefined) {
     opt.headers["Content-Type"] = "application/json";
     opt.body = JSON.stringify(body);
@@ -35,10 +36,12 @@ async function j(method, path, body) {
   return r.status === 204 ? null : r.json();
 }
 
-async function jForm(path, fd) {
+async function jForm(path, fd, idempotencyKey) {
   let r;
   try {
-    r = await fetch(BASE + path, { method: "POST", headers: authHeaders(), body: fd });
+    const headers = authHeaders();
+    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+    r = await fetch(BASE + path, { method: "POST", headers, body: fd });
   } catch {
     toast("Нет связи с сервером. Проверьте интернет.", "error");
     return { _error: true, _status: 0, detail: "Нет связи с сервером" };
@@ -65,7 +68,13 @@ export const auth = {
   forgot: (email) => j("POST", "/auth/forgot", { email }),
   resetPassword: (email, token, new_password) => j("POST", "/auth/reset", { email, token, new_password }),
   demo: () => j("POST", "/auth/demo"),
+  logout: () => j("POST", "/auth/logout").catch(() => {}),
+};
+
+export const api = {
+  // account/billing/notifications — вызываются везде как api.X, поэтому и определены здесь
   settings: () => j("GET", "/settings"),
+  saveSettings: (b) => j("PUT", "/settings", b),
   usageToday: () => j("GET", "/usage/today"),
   billingPlans: () => j("GET", "/billing/plans"),
   billingStatus: () => j("GET", "/billing/status"),
@@ -74,11 +83,12 @@ export const auth = {
   notifications: () => j("GET", "/notifications"),
   markNotifRead: (id) => j("POST", `/notifications/${id}/read`),
   readAllNotifs: () => j("POST", "/notifications/read-all"),
-  saveSettings: (b) => j("PUT", "/settings", b),
-  logout: () => j("POST", "/auth/logout").catch(() => {}),
-};
-
-export const api = {
+  totpStatus: () => j("GET", "/auth/totp/status"),
+  totpSetup: () => j("POST", "/auth/totp/setup"),
+  totpActivate: (code) => j("POST", "/auth/totp/activate", { code }),
+  totpDisable: (code) => j("POST", "/auth/totp/disable", { code }),
+  totpBackupCount: () => j("GET", "/auth/totp/backup-codes/count"),
+  totpRegenerateBackup: (code) => j("POST", "/auth/totp/backup-codes", { code }),
   sessions: () => j("GET", "/auth/sessions"),
   revokeSession: (id) => j("POST", `/auth/sessions/${id}/revoke`),
   health: () => j("GET", "/health"),
@@ -108,13 +118,13 @@ export const api = {
   updateNotifyPrefs: (body) => j("PATCH", "/notify-prefs", body),
   eventAlerts: (type, id) => j("GET", `/alerts/${type}/${id}`),
   setReminderAlerts: (id, offsets) => j("POST", `/alerts/reminder/${id}`, { offsets }),
-  createDictation: (text) => j("POST", "/dictation", { text }),
+  createDictation: (text, idem) => j("POST", "/dictation", { text }, idem),
   getDictation: (id) => j("GET", `/dictation/${id}`),
   assignSegment: (did, sid, patient_id) => j("POST", `/dictation/${did}/segment/${sid}/assign`, { patient_id }),
   confirmDictation: (did) => j("POST", `/dictation/${did}/confirm`),
   discardDictation: (did) => j("POST", `/dictation/${did}/discard`),
   createPatient: (b) => j("POST", "/patients", b),
-  uploadPhotoBatch: (file) => { const fd = new FormData(); fd.append("file", file); return jForm("/intake/photo-batch", fd); },
+  uploadPhotoBatch: (file, idem) => { const fd = new FormData(); fd.append("file", file); return jForm("/intake/photo-batch", fd, idem); },
   photoBatch: (bid) => j("GET", `/intake/photo-batch/${bid}`),
   assignFragment: (bid, fid, patient_id) => j("POST", `/intake/photo-batch/${bid}/fragment/${fid}/assign`, { patient_id }),
   discardFragment: (bid, fid) => j("POST", `/intake/photo-batch/${bid}/fragment/${fid}/discard`),
@@ -249,4 +259,25 @@ export const api = {
   reminderPostpone: (id, days = 1) => j("POST", `/reminders/${id}/postpone?days=${days}`),
   updateReminder: (id, body) => j("PATCH", `/reminders/${id}`, body),
   deleteReminder: (id) => j("DELETE", `/reminders/${id}`),
+
+  // онбординг и точечные подсказки
+  onboardingProgress: () => j("GET", "/onboarding/progress"),
+  tipSeen: (key) => j("POST", "/onboarding/tips/seen", { key }).catch(() => {}),
+  sandboxStart: () => j("POST", "/onboarding/sandbox/start"),
+  sandboxFinish: (completed = true) => j("POST", "/onboarding/sandbox/finish", { completed }),
+
+  // готовые списки пациентов (C01–C05, ТЗ §11)
+  lists: () => j("GET", "/lists"),
+  list: (code) => j("GET", `/lists/${code}`),
+
+  // устройства пациента (C02)
+  devices: (pid) => j("GET", `/patients/${pid}/devices`),
+  addDevice: (pid, body) => j("POST", `/patients/${pid}/devices`, body),
+  closeDevice: (pid, did, body) => j("POST", `/patients/${pid}/devices/${did}/close`, body),
+  replaceDevice: (pid, did, body) => j("POST", `/patients/${pid}/devices/${did}/replace`, body),
+
+  // назначения (лекарства)
+  prescriptions: (pid) => j("GET", `/patients/${pid}/prescriptions`),
+  prescribe: (pid, body) => j("POST", `/patients/${pid}/prescriptions`, body),
+  cancelPrescription: (rxId) => j("POST", `/prescriptions/${rxId}/cancel`),
 };

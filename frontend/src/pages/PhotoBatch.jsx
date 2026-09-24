@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import Button from "../components/Button";
@@ -11,11 +11,38 @@ export default function PhotoBatch() {
   const [result, setResult] = useState(null);
   const [search, setSearch] = useState({});   // {fragId: [patients]}
 
+  // Пока пакет распознаётся — тихо опрашиваем сервер, чтобы результат появился сам.
+  useEffect(() => {
+    if (!batch || (batch.proc_status !== "queued" && batch.proc_status !== "processing")) return;
+    const t = setInterval(async () => {
+      try { setBatch(await api.photoBatch(batch.id)); } catch { /* сеть — попробуем позже */ }
+    }, 2000);
+    return () => clearInterval(t);
+  }, [batch]);
+
   async function upload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!navigator.onLine) {
+      const { enqueue } = await import("../lib/outbox");
+      await enqueue("photo", { file });
+      const { toast } = await import("../lib/toast");
+      toast("Нет сети — фото сохранено и отправится само, когда связь появится", "success");
+      e.target.value = "";
+      return;
+    }
     setBusy(true);
-    try { setBatch(await api.uploadPhotoBatch(file)); }
+    try {
+      const r = await api.uploadPhotoBatch(file);
+      if (r && r._error) {   // сеть отвалилась — в очередь
+        const { enqueue } = await import("../lib/outbox");
+        await enqueue("photo", { file });
+        const { toast } = await import("../lib/toast");
+        toast("Связь пропала — фото в очереди, отправится автоматически", "info");
+      } else {
+        setBatch(r);
+      }
+    }
     finally { setBusy(false); e.target.value = ""; }
   }
   async function reload() { setBatch(await api.photoBatch(batch.id)); }
@@ -55,7 +82,22 @@ export default function PhotoBatch() {
 
       {batch && (
         <>
-          {batch.fragments.length === 0 && <Empty icon="ti-photo" title="Фрагменты не распознаны" />}
+          {(batch.proc_status === "queued" || batch.proc_status === "processing") && (
+            <div className="card" style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
+              <i className="ti ti-loader-2 acc" style={{ fontSize: 20 }} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>Распознаётся…</div>
+                <div className="sub">Фото в очереди на разбор — результат появится здесь автоматически.</div>
+              </div>
+            </div>
+          )}
+          {batch.proc_status === "failed" && (
+            <div className="card" style={{ marginBottom: 10, borderLeft: "3px solid var(--dn)" }}>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>Не удалось распознать</div>
+              <div className="sub">Попробуйте пересъёмку — снимок должен быть чётким и полным.</div>
+            </div>
+          )}
+          {batch.proc_status === "done" && batch.fragments.length === 0 && <Empty icon="ti-photo" title="Фрагменты не распознаны" />}
           {batch.fragments.map((f) => (
             <div key={f.id} className="card" style={{ marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

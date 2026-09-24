@@ -20,24 +20,78 @@ export function clearSession() {
 }
 
 // ---- быстрый разблок: PIN ----
-// Хеш на чистом JS (cyrb53), без crypto.subtle — работает и по http, и по IP.
-// PIN — локальный замок поверх серверной сессии, не основной секрет.
-function hashPin(pin) {
-  const s = String(pin) + "|second-memory";
-  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
-  for (let i = 0; i < s.length; i++) {
-    const ch = s.charCodeAt(i);
-    h1 = Math.imul(h1 ^ ch, 2654435761);
-    h2 = Math.imul(h2 ^ ch, 1597334677);
+// PIN — локальный замок поверх серверной сессии (не основной секрет; основной —
+// пароль + 2FA). Усилен: индивидуальная соль на устройство + медленный KDF
+// (PBKDF2 через Web Crypto в secure context, иначе — усиленный fallback), плюс
+// лимит неверных попыток (после него PIN сбрасывается → полный вход).
+const K_SALT = "sm_pin_salt", K_FAILS = "sm_pin_fails";
+const PIN_MAX_FAILS = 5;
+
+function _salt() {
+  let s = localStorage.getItem(K_SALT);
+  if (!s) {
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    s = Array.from(b).map((x) => x.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem(K_SALT, s);
+  }
+  return s;
+}
+
+// Усиленный чистый-JS fallback (много раундов cyrb53) — для http/IP без crypto.subtle.
+function _cyrb53(str, rounds = 20000) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57, s = str;
+  for (let r = 0; r < rounds; r++) {
+    for (let i = 0; i < s.length; i++) {
+      const ch = s.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    s = ((h1 >>> 0).toString(16) + (h2 >>> 0).toString(16));
   }
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
 }
-export function setPin(pin) { localStorage.setItem(K.pin, hashPin(pin)); }
+
+async function hashPin(pin) {
+  const salted = _salt() + "|" + String(pin) + "|second-memory";
+  // PBKDF2 через Web Crypto — только в secure context (https/localhost)
+  if (window.isSecureContext && crypto.subtle) {
+    try {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", enc.encode(salted), "PBKDF2", false, ["deriveBits"]);
+      const bits = await crypto.subtle.deriveBits(
+        { name: "PBKDF2", salt: enc.encode(_salt()), iterations: 150000, hash: "SHA-256" }, key, 256);
+      return "p2:" + Array.from(new Uint8Array(bits)).map((x) => x.toString(16).padStart(2, "0")).join("");
+    } catch { /* падение subtle — уходим в fallback */ }
+  }
+  return "c2:" + _cyrb53(salted);
+}
+
+export async function setPin(pin) {
+  localStorage.setItem(K.pin, await hashPin(pin));
+  localStorage.removeItem(K_FAILS);
+}
 export function hasPin() { return !!localStorage.getItem(K.pin); }
-export function checkPin(pin) { return localStorage.getItem(K.pin) === hashPin(pin); }
-export function clearPin() { localStorage.removeItem(K.pin); }
+
+export function pinFails() { return parseInt(localStorage.getItem(K_FAILS) || "0", 10); }
+export function pinAttemptsLeft() { return Math.max(0, PIN_MAX_FAILS - pinFails()); }
+
+// Возвращает "ok" | "wrong" | "locked" (лимит исчерпан — PIN сброшен, нужен полный вход).
+export async function checkPin(pin) {
+  if (pinFails() >= PIN_MAX_FAILS) { clearPin(); return "locked"; }
+  const ok = localStorage.getItem(K.pin) === await hashPin(pin);
+  if (ok) { localStorage.removeItem(K_FAILS); return "ok"; }
+  const fails = pinFails() + 1;
+  localStorage.setItem(K_FAILS, String(fails));
+  if (fails >= PIN_MAX_FAILS) { clearPin(); return "locked"; }
+  return "wrong";
+}
+
+export function clearPin() {
+  localStorage.removeItem(K.pin);
+  localStorage.removeItem(K_FAILS);
+}
 
 export function quickUnlockEnabled() { return hasPin() || hasBiometric(); }
 

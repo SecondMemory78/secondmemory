@@ -3,13 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { SkeletonList, Empty } from "../components/Loading";
 import Button from "../components/Button";
+import Tip from "../components/Tip";
+import { useTips } from "../lib/tips";
 
 export default function Patients() {
   const nav = useNavigate();
+  const { show } = useTips();
   const [q, setQ] = useState("");
   const [list, setList] = useState(null);   // null = грузится
   const [form, setForm] = useState(null);   // null | {last_name,...}
   const [dupes, setDupes] = useState(null); // предупреждение о похожих
+
+  useEffect(() => { if (dupes?.candidates?.length) show("tip:identity"); }, [dupes, show]);
 
   function load(query) {
     api.patients(query).then(setList).catch(() => setList([]));
@@ -46,9 +51,12 @@ export default function Patients() {
 
       {dupes && (
         <div className="card" style={{ marginBottom: 12, borderLeft: "3px solid var(--wn)" }}>
+          <Tip tipKey="tip:identity" place="bottom" title="Выберите нужного человека"
+               text="Нашлись тёзки. Сверьте по дате рождения и другим данным и выберите существующую карточку. Создавайте нового только если это точно другой человек — так истории пациентов не смешаются.">
           <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>
             <i className="ti ti-alert-triangle wn" /> {dupes.action === "conflict" ? "Противоречие данных" : "Возможно, такой пациент уже есть"}
           </div>
+          </Tip>
           <div className="sub" style={{ marginBottom: 8 }}>
             {dupes.action === "conflict"
               ? (dupes.message || "Проверьте данные перед созданием.")

@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import Onboarding from "../components/Onboarding";
 
 const SECTIONS = [
   ["ti-shield-check", "Согласие 152-ФЗ", "Перед приёмом нового пациента оформите согласие на обработку персональных данных — без него приём вести нельзя. Три способа: бумажный бланк (распечатать, подписать, сфотографировать — ИИ проверит и сохранит только текст, не фото), электронно на устройстве, удалённо по QR/SMS. Статус виден в карте пациента (Сводка → «Согласие 152-ФЗ»)."],
@@ -11,13 +13,23 @@ const SECTIONS = [
 
 export default function Help() {
   const nav = useNavigate();
+  const [replay, setReplay] = useState(false);
   return (
     <>
+      {replay && <Onboarding onDone={() => setReplay(false)} />}
       <div className="hd">
         <i className="ti ti-arrow-left back" onClick={() => nav("/more")} />
         <div className="ttl">Помощь</div>
       </div>
       <div className="sub" style={{ marginBottom: 12 }}>Короткие ответы по основным функциям.</div>
+      <div className="card" style={{ marginBottom: 10, display: "flex", gap: 10, alignItems: "center", cursor: "pointer" }}
+           onClick={() => setReplay(true)}>
+        <i className="ti ti-school acc" style={{ fontSize: 18 }} />
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 500 }}>Пройти обучение заново</div>
+          <div style={{ fontSize: 12.5, color: "var(--ts)" }}>5–7 минут на вымышленном пациенте</div>
+        </div>
+      </div>
       {SECTIONS.map(([ic, t, body]) => (
         <div key={t} className="card" style={{ marginBottom: 10 }}>
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>

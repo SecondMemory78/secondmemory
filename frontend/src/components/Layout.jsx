@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import HeaderSearch from "./HeaderSearch";
+import OutboxBadge from "./OutboxBadge";
 import { api } from "../api";
 
 const TABS = [
@@ -50,6 +51,7 @@ export default function Layout() {
         <div className="scroll">
           <Outlet />
         </div>
+        <OutboxBadge />
         <nav className="tabbar">
           {TABS.map((t) => (
             <NavLink key={t.to} to={t.to} end={t.end}>

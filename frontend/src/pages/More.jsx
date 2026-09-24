@@ -3,11 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import Toggle from "../components/Toggle";
 import { confirmAction } from "../lib/confirm";
+import TotpSettings from "../components/TotpSettings";
+import { toast } from "../lib/toast";
 import { getDoctor, hasPin, setPin, clearPin, hasBiometric, biometricSupported, registerBiometric } from "../lib/auth";
 
 function setTheme(dark) {
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
   try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) {}
+}
+
+// Человекочитаемое имя устройства из user-agent (без внешних библиотек).
+function deviceLabel(ua) {
+  if (!ua) return "Устройство";
+  const os = /Windows/i.test(ua) ? "Windows"
+    : /iPhone|iPad|iOS/i.test(ua) ? "iPhone/iPad"
+    : /Android/i.test(ua) ? "Android"
+    : /Mac OS X|Macintosh/i.test(ua) ? "Mac"
+    : /Linux/i.test(ua) ? "Linux" : "";
+  const br = /Edg/i.test(ua) ? "Edge" : /OPR|Opera/i.test(ua) ? "Opera"
+    : /Chrome/i.test(ua) ? "Chrome" : /Firefox/i.test(ua) ? "Firefox"
+    : /Safari/i.test(ua) ? "Safari" : "Браузер";
+  return [br, os].filter(Boolean).join(" · ") || "Устройство";
+}
+function fmtD(iso) {
+  try { return new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "short" }); }
+  catch { return ""; }
 }
 
 export default function More({ onLogout }) {
@@ -62,10 +82,23 @@ export default function More({ onLogout }) {
       URL.revokeObjectURL(url);
     } catch { alert("Не удалось выгрузить календарь."); }
   }
-  function savePin() {
+  async function exportAll() {
+    try {
+      const r = await fetch("/api/privacy/export-all", { headers: { Authorization: `Bearer ${localStorage.getItem("sm_token") || ""}` } });
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `second-memory-data-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+      URL.revokeObjectURL(url);
+      toast("Все данные выгружены", "success");
+    } catch { toast("Не удалось выгрузить данные", "error"); }
+  }
+  async function savePin() {
     if (!/^\d{4}$/.test(pin1)) { setPinErr("PIN — 4 цифры"); return; }
     if (pin1 !== pin2) { setPinErr("PIN не совпадает"); return; }
-    setPin(pin1); setPinSet(true); setPinForm(false); setPin1(""); setPin2(""); setPinErr("");
+    await setPin(pin1); setPinSet(true); setPinForm(false); setPin1(""); setPin2(""); setPinErr("");
   }
   async function enableBio() {
     const ok = await registerBiometric();
@@ -138,18 +171,20 @@ export default function More({ onLogout }) {
         <i className="ti ti-chevron-right muted" />
       </div>
 
-      <div className="sec-label">Устройства</div>
+      <div className="sec-label">Устройства и входы</div>
+      <div className="sub" style={{ marginBottom: 6, fontSize: 12 }}>Незнакомое устройство? Завершите его сессию.</div>
       <div className="card">
         {sessions === null && <div className="sub">Загрузка…</div>}
         {sessions !== null && sessions.length === 0 && <div className="sub">Нет активных сессий.</div>}
         {(sessions || []).map((d) => (
-          <div key={d.id} className="row">
-            <div>
-              <div style={{ fontSize: 13 }}>
-                {d.current ? "Это устройство" : (d.device_id || "Устройство")}
-                {d.current && <span className="acc" style={{ fontSize: 11, marginLeft: 6 }}>● активно</span>}
+          <div key={d.id} className="row" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <i className={"ti " + (/iPhone|Android|iPad/i.test(d.user_agent) ? "ti-device-mobile" : "ti-device-desktop") + " acc"} style={{ fontSize: 20 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>
+                {deviceLabel(d.user_agent)}
+                {d.current && <span className="acc" style={{ fontSize: 11, marginLeft: 6 }}>● это устройство</span>}
               </div>
-              <div className="sub">{(d.user_agent || "").slice(0, 40) || "вход " + d.created_at.slice(0, 10)}</div>
+              <div className="sub">вход {fmtD(d.created_at)} · активна до {fmtD(d.expires_at)}</div>
             </div>
             {!d.current && (
               <button className="btn sm dng-solid" onClick={() => revokeDevice(d.id)}>Выйти</button>
@@ -159,6 +194,7 @@ export default function More({ onLogout }) {
       </div>
 
       <div className="sec-label">Безопасность входа</div>
+      <TotpSettings />
       <div className="row">
         <div>
           <div style={{ fontSize: 13 }}>Авто-блокировка</div>
@@ -210,13 +246,25 @@ export default function More({ onLogout }) {
       <div className="sec-label">Календарь</div>
       <div className="row">
         <div>
-          <div style={{ fontSize: 13 }}>Экспорт приёмов (.ics)</div>
-          <div className="sub" style={{ marginTop: 2 }}>добавить в любой календарь на устройстве</div>
+          <div style={{ fontSize: 13 }}>Экспорт в календарь (.ics)</div>
+          <div style={{ fontSize: 12.5, color: "var(--ts)", marginTop: 2 }}>приёмы и напоминания, без имён и диагнозов</div>
         </div>
         <button className="btn sm" onClick={exportIcs}>Скачать</button>
       </div>
       <div className="sub" style={{ marginTop: 4, marginBottom: 8 }}>
-        Прямую синхронизацию с Google не делаем: данные пациентов нельзя выгружать во внешнее облако (152-ФЗ). Файл .ics вы добавляете в свой календарь сами.
+        В событиях только тип и время — ФИО и диагноз пациента не выгружаются (152-ФЗ). Прямую синхронизацию с Google не делаем: файл .ics вы добавляете в свой календарь сами.
+      </div>
+
+      <div className="sec-label">Мои данные</div>
+      <div className="row">
+        <div>
+          <div style={{ fontSize: 13 }}>Выгрузить все мои данные</div>
+          <div style={{ fontSize: 12.5, color: "var(--ts)", marginTop: 2 }}>профиль, все пациенты, записи и настройки — файл JSON</div>
+        </div>
+        <button className="btn sm" onClick={exportAll}>Скачать</button>
+      </div>
+      <div className="sub" style={{ marginTop: 4, marginBottom: 8 }}>
+        Полная копия ваших данных для переноса или хранения. Пароль и коды доступа в выгрузку не входят.
       </div>
 
       <div className="sec-label">Уведомления</div>
@@ -224,6 +272,13 @@ export default function More({ onLogout }) {
         <div>
           <div style={{ fontSize: 13 }}>Напоминания и тихие часы</div>
           <div className="sub" style={{ marginTop: 2 }}>когда напоминать, утренняя сводка, повтор</div>
+        </div>
+        <i className="ti ti-chevron-right muted" />
+      </div>
+      <div className="row" onClick={() => nav("/lists")} style={{ cursor: "pointer" }}>
+        <div>
+          <div style={{ fontSize: 13 }}>Списки пациентов</div>
+          <div className="sub" style={{ marginTop: 2 }}>готовые фильтры: повторы, результаты, выписки</div>
         </div>
         <i className="ti ti-chevron-right muted" />
       </div>

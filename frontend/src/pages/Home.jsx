@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { WD, monthMatrix, monthRange, monthLabel, todayISO, weekOffsetOfISO, fmtDay, iso as isoOf } from "../lib/dates";
+import Tip from "../components/Tip";
+import { useTips } from "../lib/tips";
 
 export default function Home() {
   const nav = useNavigate();
+  const { show } = useTips();
   const now = new Date();
   const Y = now.getFullYear(), M = now.getMonth() + 1;
   const [dash, setDash] = useState(null);
@@ -24,6 +27,7 @@ export default function Home() {
     api.reminders("open").then(setRems).catch(() => {});
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (attn && attn.count > 0) show("tip:attention"); }, [attn, show]);
 
   const TODAY = todayISO();
   const dotDays = new Set(appts.map((a) => a.day));
@@ -85,7 +89,10 @@ export default function Home() {
       {/* требуют внимания — проактивная лента по всем пациентам */}
       {attn && attn.count > 0 && (
         <div style={{ marginTop: 6 }}>
-          <div className="sec-label"><i className="ti ti-alert-triangle dng" /> Требуют внимания · {attn.count}</div>
+          <Tip tipKey="tip:attention" place="bottom" title="Это автоматический список"
+               text="«Требуют внимания» собирается по правилам (контроль ПСА, дренажи, неподтверждённые повторы и т.д.) — это подсказка системы, а не диагноз. Нажмите на пациента, чтобы разобраться и закрыть пункт.">
+            <div className="sec-label"><i className="ti ti-alert-triangle dng" /> Требуют внимания · {attn.count}</div>
+          </Tip>
           {attn.items.slice(0, 8).map((it) => (
             <div key={it.patient_id} className="row" style={{ cursor: "pointer" }} onClick={() => nav(`/patients/${it.patient_id}`)}>
               <div>

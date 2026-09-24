@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { checkPin, hasBiometric, unlockBiometric, getDoctor } from "../lib/auth";
+import { checkPin, hasBiometric, unlockBiometric, getDoctor, pinAttemptsLeft } from "../lib/auth";
 
 export default function Lock({ onUnlock, onLogout }) {
   const [pin, setPin] = useState("");
@@ -10,8 +10,16 @@ export default function Lock({ onUnlock, onLogout }) {
     const v = (pin + d).slice(0, 4);
     setPin(v); setErr("");
     if (v.length === 4) {
-      if (await checkPin(v)) onUnlock();
-      else { setErr("Неверный PIN"); setTimeout(() => setPin(""), 250); }
+      const res = await checkPin(v);
+      if (res === "ok") { onUnlock(); return; }
+      if (res === "locked") {
+        setErr("Слишком много попыток. Войдите паролем.");
+        setTimeout(() => onLogout(), 1200);   // PIN сброшен — на полный вход
+        return;
+      }
+      const left = pinAttemptsLeft();
+      setErr(left > 0 ? `Неверный PIN — осталось попыток: ${left}` : "Неверный PIN");
+      setTimeout(() => setPin(""), 250);
     }
   }
   async function bio() {

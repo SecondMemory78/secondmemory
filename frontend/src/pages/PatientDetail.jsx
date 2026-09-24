@@ -3,11 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import VoiceButton from "../components/VoiceButton";
 import ProtocolTab from "../components/ProtocolTab";
+import DevicesTab from "../components/DevicesTab";
+import PrescriptionsTab from "../components/PrescriptionsTab";
 import TrendChart from "../components/TrendChart";
 import { Spinner } from "../components/Loading";
 import Button from "../components/Button";
 import { confirmAction } from "../lib/confirm";
 import { loadLabels, plabel } from "../lib/params";
+import Tip from "../components/Tip";
+import { useTips } from "../lib/tips";
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -20,7 +24,9 @@ export default function PatientDetail() {
   const [obs, setObs] = useState(null);     // {code,name,value,unit,date,q} | null
   const [news, setNews] = useState(null);
   const [integrity, setIntegrity] = useState(null);
+  const { show } = useTips();
   useEffect(() => { if (id) api.integrity(id).then(setIntegrity).catch(() => setIntegrity(null)); }, [id, tl]);
+  useEffect(() => { if (integrity && integrity.count > 0) show("tip:integrity"); }, [integrity, show]);
   const [epForm, setEpForm] = useState(null);
   async function saveEpisode() {
     const b = { type: epForm.type, reason: epForm.reason, ward: epForm.ward,
@@ -309,9 +315,12 @@ export default function PatientDetail() {
 
       {integrity && integrity.count > 0 && (
         <div className="card" style={{ marginBottom: 10, borderLeft: "3px solid var(--wn)" }}>
+          <Tip tipKey="tip:integrity" place="bottom" title="Система только подсказывает"
+               text="«Проверка карты» отмечает несоответствия в данных — неверные даты, значения вне диапазона, недостающие единицы. Ничего не меняется автоматически: цвет показывает уровень (красный — ошибка, жёлтый — уточнение, серый — не хватает сведений), решение за вами.">
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
             <i className="ti ti-shield-check wn" /> Проверка карты — {integrity.count}
           </div>
+          </Tip>
           {integrity.findings.map((f, i) => {
             const col = f.level === "D" ? "var(--dn)" : f.level === "Q" ? "var(--wn)" : "var(--tm)";
             const ic = f.level === "D" ? "ti-alert-triangle" : f.level === "Q" ? "ti-help-circle" : "ti-info-circle";
@@ -386,11 +395,17 @@ export default function PatientDetail() {
       <div className="tabs">
         <div className={"t" + (tab === "s" ? " on" : "")} onClick={() => setTab("s")}>Сводка</div>
         <div className={"t" + (tab === "p" ? " on" : "")} onClick={() => setTab("p")}>Протокол</div>
+        <div className={"t" + (tab === "d" ? " on" : "")} onClick={() => setTab("d")}>Устройства</div>
+        <div className={"t" + (tab === "rx" ? " on" : "")} onClick={() => setTab("rx")}>Назначения</div>
         <div className={"t" + (tab === "v" ? " on" : "")} onClick={() => setTab("v")}>Визиты</div>
         <div className={"t" + (tab === "n" ? " on" : "")} onClick={() => setTab("n")}>Заметки</div>
       </div>
 
       {tab === "p" && <ProtocolTab id={id} disabled={!consentOk} />}
+
+      {tab === "d" && <DevicesTab id={id} disabled={!consentOk} />}
+
+      {tab === "rx" && <PrescriptionsTab id={id} disabled={!consentOk} />}
 
       {tab === "v" && (
         <>

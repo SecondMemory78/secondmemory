@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { Spinner, Empty } from "../components/Loading";
 
-const ICON = { overdue: "ti-clock-exclamation", limit: "ti-gauge", trigger: "ti-filter", ocr: "ti-file-text", billing: "ti-credit-card", info: "ti-info-circle" };
+const ICON = { overdue: "ti-clock-exclamation", limit: "ti-gauge", trigger: "ti-filter", ocr: "ti-file-text", billing: "ti-credit-card", security: "ti-shield-lock", info: "ti-info-circle" };
 
 export default function Notifications() {
   const nav = useNavigate();
