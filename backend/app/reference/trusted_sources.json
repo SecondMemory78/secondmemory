@@ -1,0 +1,74 @@
+{
+ "version": "2026-09-27",
+ "note": "Доверенные источники для проверки клинических вопросов. Список задан врачом. Показываем только цитату и ссылку; выводы делает врач.",
+ "sources": [
+  {"code": "kr_minzdrav", "title": "Клинические рекомендации Минздрава РФ",
+   "url": "https://cr.minzdrav.gov.ru/clin-rec", "domains": ["cr.minzdrav.gov.ru"],
+   "scope": "rf", "use_for": ["нозологии", "тактика", "показания", "контроль"],
+   "caveat": "Проверять статус, ID и редакцию; проект КР не равен утверждённой."},
+
+  {"code": "grls", "title": "ГРЛС — реестр лекарственных средств",
+   "url": "https://grls.rosminzdrav.ru/GRLS.aspx", "domains": ["grls.rosminzdrav.ru"],
+   "scope": "rf", "use_for": ["инструкция", "дозы", "показания", "противопоказания"],
+   "caveat": "Сверять МНН, торговое название, форму и статус регистрации конкретного продукта."},
+
+  {"code": "eaeu_smpc", "title": "ОХЛП и листки-вкладыши ЕАЭС",
+   "url": "https://lk.regmed.ru/Register/EAEU_smpc", "domains": ["lk.regmed.ru"],
+   "scope": "eaeu", "use_for": ["ОХЛП", "листок-вкладыш"],
+   "caveat": "Документ ЕАЭС — не замена российской инструкции."},
+
+  {"code": "esklp", "title": "ЕСКЛП — МНН, торговые названия, формы",
+   "url": "https://esklp.egisz.rosminzdrav.ru/", "domains": ["esklp.egisz.rosminzdrav.ru"],
+   "scope": "rf", "use_for": ["МНН", "торговые названия", "формы выпуска"]},
+
+  {"code": "nsi_icd", "title": "ФР НСИ — МКБ-10 и справочники",
+   "url": "https://nsi.rosminzdrav.ru/dictionaries", "domains": ["nsi.rosminzdrav.ru"],
+   "scope": "rf", "use_for": ["МКБ-10", "версии справочников"],
+   "caveat": "Не подменять МКБ-10 кодом МКБ-11; указывать версию справочника."},
+
+  {"code": "minzdrav_docs", "title": "Документы Минздрава России",
+   "url": "https://minzdrav.gov.ru/documents", "domains": ["minzdrav.gov.ru"],
+   "scope": "rf", "use_for": ["приказы", "порядки", "стандарты"]},
+
+  {"code": "pravo_gov", "title": "Официальное опубликование приказов",
+   "url": "https://publication.pravo.gov.ru/documents/block/foiv065",
+   "domains": ["publication.pravo.gov.ru"], "scope": "rf",
+   "use_for": ["официальный текст приказа", "дата вступления в силу"]},
+
+  {"code": "rzn_devices", "title": "Реестр медицинских изделий Росздравнадзора",
+   "url": "https://elk.roszdravnadzor.gov.ru/widget/", "domains": ["elk.roszdravnadzor.gov.ru"],
+   "scope": "rf", "use_for": ["регистрация изделия", "производитель", "модель"],
+   "caveat": "Факт регистрации НЕ означает допуска к МРТ — нужна инструкция производителя на модель."},
+
+  {"code": "rzn_safety", "title": "Безопасность лекарств: письма Росздравнадзора",
+   "url": "https://roszdravnadzor.gov.ru/drugs/monitpringlp",
+   "domains": ["roszdravnadzor.gov.ru"], "scope": "rf",
+   "use_for": ["письма о безопасности", "ограничения применения"]},
+
+  {"code": "rzn_quality", "title": "Изъятия и качество лекарств",
+   "url": "https://roszdravnadzor.gov.ru/services/qclssearch",
+   "domains": ["roszdravnadzor.gov.ru"], "scope": "rf",
+   "use_for": ["изъятия серий", "недоброкачественные препараты"]},
+
+  {"code": "caprini", "title": "Шкала Каприни — авторский первоисточник",
+   "url": "https://capriniriskscore.org/assessment-for-healthcare-professionals/",
+   "domains": ["capriniriskscore.org"], "scope": "author",
+   "use_for": ["версия модели", "факторы и баллы"],
+   "caveat": "Авторская шкала — не государственный реестр; неизвестный фактор не равен нулю."},
+
+  {"code": "ema", "title": "EMA — европейские препараты",
+   "url": "https://www.ema.europa.eu/en/medicines", "domains": ["ema.europa.eu"],
+   "scope": "eu", "use_for": ["европейская инструкция"],
+   "caveat": "Помечать как EU; не выдавать за российскую инструкцию."},
+
+  {"code": "dailymed", "title": "DailyMed — инструкции США",
+   "url": "https://dailymed.nlm.nih.gov/", "domains": ["dailymed.nlm.nih.gov"],
+   "scope": "us", "use_for": ["инструкция США"],
+   "caveat": "Помечать как US; не выдавать за российскую инструкцию."},
+
+  {"code": "eau", "title": "EAU — рекомендации Европейской ассоциации урологов",
+   "url": "https://uroweb.org/guidelines", "domains": ["uroweb.org"],
+   "scope": "eu", "use_for": ["международные рекомендации"],
+   "caveat": "Помечать как EU; не выдавать за КР РФ."}
+ ]
+}
