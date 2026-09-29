@@ -1,0 +1,3 @@
+# Боевой сервер: всё из основного файла + драйвер PostgreSQL.
+-r requirements.txt
+psycopg2-binary>=2.9.9

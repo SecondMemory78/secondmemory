@@ -1,0 +1,20 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlmodel==0.0.22
+python-multipart==0.0.9
+alembic==1.13.2
+pytest
+cryptography==43.0.1
+requests==2.32.3
+reportlab==4.4.10
+apscheduler==3.10.4
+pywebpush==2.0.0
+python-dotenv>=1.0.0
+Pillow>=10.0.0
+
+# Драйвер PostgreSQL — нужен ТОЛЬКО для боевого сервера. Локально база SQLite,
+# и без него всё работает. Жёсткая версия 2.9.9 не имеет готовой сборки под
+# свежие Python на Windows: pip пытался собирать из исходников и падал с
+# «Microsoft Visual C++ 14.0 or greater is required», обрывая установку
+# остальных пакетов. Не закрепляем версию — pip возьмёт ту, для которой
+# сборка есть. Для прод-развёртывания: pip install -r requirements-prod.txt
