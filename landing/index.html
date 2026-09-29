@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<meta name="description" content="«Вторая память» — цифровая память врача. Система помнит всё о каждом пациенте и сама показывает, где нужно внимание. Решения принимает врач.">
+<title>Вторая память — цифровая память врача</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Cpath d='M32 20a8 8 0 0 0-8 8c-3 1-5 3.5-5 6.8 0 4.4 3.8 8.2 8.5 8.2H36c4.7 0 8.5-3.8 8.5-8.2 0-3.3-2-5.8-5-6.8a8 8 0 0 0-7.5-8Z' stroke='%23fff' stroke-width='4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/golostext-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="glow g1"></div>
+<div class="glow g2"></div>
+
+<!-- ── шапка ─────────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="wrap nav-in">
+    <a class="logo" href="#top">
+      <span class="logo-ic" data-ic="brain"></span>
+      <span class="logo-name">Вторая память</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Возможности</a>
+      <a href="#how">Как работает</a>
+      <a href="#screens">Экраны</a>
+      <a href="#security">Безопасность</a>
+      <a href="investors.html">Инвесторам</a>
+    </div>
+    <a class="btn btn-pri btn-nav nav-cta" href="/app/"><span data-ic="play"></span> Открыть приложение</a>
+  </div>
+</nav>
+
+<!-- ── первый экран ──────────────────────────────────────────────────────── -->
+<section class="hero" id="top">
+  <div class="wrap hero-in">
+    <div>
+      <span class="badge rv"><span class="dot"></span>Рабочий продукт · первая ниша — урология</span>
+      <h1 class="rv">Цифровая <span class="grad">вторая память</span> врача</h1>
+      <p class="lead rv">
+        Приём идёт двадцать минут, а помнить про пациента нужно годами. Система держит в памяти
+        анализы, документы и динамику показателей — и сама показывает, к кому пора вернуться.
+        Выводы делаете вы: она не ставит диагнозов и ничего не назначает.
+      </p>
+      <div class="hero-cta rv">
+        <a class="btn btn-pri" href="/app/"><span data-ic="play"></span> Посмотреть демо</a>
+        <a class="btn btn-ghost" href="#how">Как это работает <span data-ic="arrowDown"></span></a>
+      </div>
+      <div class="hero-stats rv">
+        <div class="stat"><b>12</b><span>шаблонов приёма — от первичного до выписки</span></div>
+        <div class="stat"><b>5</b><span>списков «кого нельзя забыть» по всей базе</span></div>
+        <div class="stat"><b>0</b><span>значений в карте без подтверждения врача</span></div>
+      </div>
+    </div>
+
+    <div class="mock-zone rv">
+      <div class="mock-glow"></div>
+      <div class="phone">
+        <div class="p-screen shot">
+          <img src="shots/card.webp" width="465" height="911"
+               alt="Карта пациента: блок «С прошлого раза», ПСА выше порога и графики динамики">
+        </div>
+      </div>
+      <div class="float-chip fc1"><span data-ic="camera"></span> Документ распознан — 2 значения ждут проверки</div>
+      <div class="float-chip fc2"><span data-ic="list"></span> 5 пациентов требуют внимания</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── возможности ───────────────────────────────────────────────────────── -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="sec-tag rv">Возможности</div>
+    <h2 class="sec-title rv">Не очередной блокнот, а вторая память</h2>
+    <p class="sec-sub rv">
+      Это не медицинский ИИ и не система принятия решений. Это память, которая хранит факты,
+      показывает, что изменилось, и говорит, куда посмотреть. Дальше — вы.
+    </p>
+
+    <div class="bento">
+      <div class="bcard big rv">
+        <div class="b-ic" data-ic="trendingUp"></div>
+        <h3>Динамика собирается сама</h3>
+        <p>
+          Значение привязано к показателю, а не к бумажке, в которой оно приехало. ПСА, объём простаты,
+          Qmax, креатинин выстраиваются в ряд по датам: было — стало, вверх или вниз. Не нужно
+          перелистывать полгода выписок, чтобы понять, что ПСА растёт третий визит подряд.
+        </p>
+      </div>
+
+      <div class="bcard rv">
+        <div class="b-ic" data-ic="list"></div>
+        <h3>Лента «Требуют внимания»</h3>
+        <p>Пять готовых списков по всей базе — система сама собирает тех, кого нельзя забыть:</p>
+        <div class="b-list">
+          <span class="b-mini">Контроль ПСА</span>
+          <span class="b-mini">Катетер, стент, нефростома</span>
+          <span class="b-mini">Повтор не подтверждён</span>
+          <span class="b-mini">Ждём результат</span>
+          <span class="b-mini">Выписка и больничный</span>
+        </div>
+      </div>
+
+      <div class="bcard rv">
+        <div class="b-ic" data-ic="camera"></div>
+        <h3>Фото документа и диктовка</h3>
+        <p>
+          Снимок анализа или голосовая заметка превращаются в значения в карте. Даже если
+          наговорить подряд про нескольких пациентов, система разложит сказанное по нужным картам —
+          и остановится, ожидая вашего подтверждения.
+        </p>
+      </div>
+
+      <div class="bcard rv">
+        <div class="b-ic" data-ic="template"></div>
+        <h3>12 шаблонов приёма</h3>
+        <p>
+          От первичного приёма при СНМП до онкоконтроля, дренажей и выписки. Шаблон подсказывает,
+          что стоит не забыть спросить и заполнить. Ничего не назначает и не заполняет за вас.
+        </p>
+      </div>
+
+      <div class="bcard rv">
+        <div class="b-ic" data-ic="shield"></div>
+        <h3>Сверка карты со справочником</h3>
+        <p>
+          Конфликт назначения с аллергией, дубль, значение вне диапазона, несходящиеся даты —
+          подсвечиваются сразу. Всегда как вопрос к врачу и никогда как запрет.
+        </p>
+      </div>
+
+      <div class="bcard rv">
+        <div class="b-ic" data-ic="search"></div>
+        <h3>Поиск по всей памяти</h3>
+        <p>
+          Ищет по тексту документов, заметок и расшифровок: «цистостома, креатинин 400» — и вы
+          видите, у кого и когда это было, даже если помните только обрывок фразы.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── как работает ──────────────────────────────────────────────────────── -->
+<section class="section tint" id="how">
+  <div class="wrap">
+    <div class="sec-tag rv">Как это работает</div>
+    <h2 class="sec-title rv">Три шага — и ничего не теряется</h2>
+
+    <div class="steps">
+      <div class="step rv">
+        <span data-ic="camera"></span>
+        <h3>Снимите или продиктуйте</h3>
+        <p>
+          Фото анализа, выписки или голосовая заметка. Система распознаёт значения и сама замечает,
+          если документ от другого пациента или уже был внесён.
+        </p>
+      </div>
+      <div class="step rv">
+        <span data-ic="check"></span>
+        <h3>Подтвердите</h3>
+        <p>
+          Распознанное ждёт в отдельной очереди и помечено как непроверенное. В карту оно попадает
+          только тогда, когда вы это подтвердили — одним касанием.
+        </p>
+      </div>
+      <div class="step rv">
+        <span data-ic="trendingUp"></span>
+        <h3>Смотрите изменения</h3>
+        <p>
+          Открывая карту повторного пациента, вы первым делом видите блок «Изменения с последнего
+          визита». Всё, что не менялось, свёрнуто и не отвлекает.
+        </p>
+      </div>
+    </div>
+
+    <div class="strip rv">
+      <span class="chip-x"><span data-ic="check"></span> Телефон</span>
+      <span class="chip-x"><span data-ic="check"></span> Планшет</span>
+      <span class="chip-x"><span data-ic="check"></span> Компьютер</span>
+      <span class="chip-x"><span data-ic="check"></span> Одна база на всех устройствах</span>
+      <span class="chip-x"><span data-ic="check"></span> Выгрузка своих данных в один клик</span>
+      <span class="chip-x"><span data-ic="check"></span> Работает без обучения</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── живые экраны ──────────────────────────────────────────────────────── -->
+<section class="section" id="screens">
+  <div class="wrap">
+    <div class="sec-tag rv">Как это выглядит</div>
+    <h2 class="sec-title rv">Настоящие экраны, а не рисунки</h2>
+    <p class="sec-sub rv">
+      Снято в работающем приложении на вымышленном пациенте. Выглядит ровно так же,
+      как будет выглядеть у вас.
+    </p>
+
+    <div class="shots">
+      <div class="shot-card rv">
+        <div class="shot-frame"><img src="shots/protocol.webp" width="469" height="949" loading="lazy"
+             alt="Протокол приёма: черновик собран автоматически, поля жалоб и анамнеза"></div>
+        <div>
+          <h3>Продиктовали — разложилось по разделам</h3>
+          <p>
+            Говорите подряд, как думаете: жалобы, анамнез, осмотр. Система раскладывает сказанное
+            по полям протокола и честно оставляет пустым то, о чём вы не сказали — отсутствие
+            данных не выдаётся за норму.
+          </p>
+        </div>
+      </div>
+
+      <div class="shot-card rv">
+        <div class="shot-frame"><img src="shots/calendar.webp" width="476" height="879" loading="lazy"
+             alt="Календарь на день: приёмы с указанием типа визита и задача"></div>
+        <div>
+          <h3>День виден целиком</h3>
+          <p>
+            Приёмы и дела в одном списке, у каждого видно, первичный он или повторный и с чем
+            пациент приходит. День и неделю можно распечатать и взять с собой.
+          </p>
+        </div>
+      </div>
+
+      <div class="shot-card rv">
+        <div class="shot-frame"><img src="shots/tasks.webp" width="480" height="882" loading="lazy"
+             alt="Задачи по разделам: контроли и рабочие дела, ввод текстом или голосом"></div>
+        <div>
+          <h3>Дела не держатся в голове</h3>
+          <p>
+            Задачу можно наговорить одной фразой — «снять катетер Петровой в четверг». Просроченное
+            подсвечивается, повторяющееся возвращается само.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── принцип ───────────────────────────────────────────────────────────── -->
+<section class="section" style="padding:56px 0">
+  <div class="wrap">
+    <div class="band rv">
+      <h2>Система помнит.<br>Врач принимает решения.</h2>
+      <div class="who">Главный принцип, на котором построена «Вторая память»</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── безопасность ──────────────────────────────────────────────────────── -->
+<section class="section tint" id="security">
+  <div class="wrap">
+    <div class="sec-tag rv">Безопасность и право</div>
+    <h2 class="sec-title rv">Спроектировано для врачебной тайны</h2>
+    <p class="sec-sub rv">
+      Система управляет информацией и не участвует в принятии решений. Граница жёсткая:
+      она показывает факты, выводы делает врач.
+    </p>
+
+    <div class="sec-grid">
+      <div class="scard rv">
+        <div class="b-ic" data-ic="server"></div>
+        <div>
+          <h3>Данные не покидают Россию</h3>
+          <p>
+            Серверы в РФ. Чувствительные поля хранятся зашифрованными, врачи изолированы друг от
+            друга на уровне кода и базы — чужую карту не открыть, даже зная её номер.
+          </p>
+        </div>
+      </div>
+      <div class="scard rv">
+        <div class="b-ic" data-ic="history"></div>
+        <div>
+          <h3>Видно, кто и что менял</h3>
+          <p>
+            У каждого изменения сохраняются прежнее значение, новое, автор и дата. Записи не
+            стираются насовсем, обращения к картам пишутся в журнал доступа.
+          </p>
+        </div>
+      </div>
+      <div class="scard rv">
+        <div class="b-ic" data-ic="download"></div>
+        <div>
+          <h3>База принадлежит врачу</h3>
+          <p>
+            Выгрузка всех своих данных одной кнопкой, в любой момент и без просьб к поддержке.
+            Уходите — забираете базу с собой.
+          </p>
+        </div>
+      </div>
+      <div class="scard rv">
+        <div class="b-ic" data-ic="signature"></div>
+        <div>
+          <h3>Согласие пациента в карте</h3>
+          <p>
+            Бумажный бланк, подписанный в приложении или оформленный дистанционно — способ, дата и
+            версия текста сохраняются рядом с картой, а не в отдельной папке.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── призыв ────────────────────────────────────────────────────────────── -->
+<section class="section final" id="demo">
+  <div class="wrap">
+    <h2 class="rv">Освободите голову<br>от <span class="grad">лишней памяти</span></h2>
+    <p class="lede rv">
+      Демо открыто без регистрации: внутри вымышленный пациент, на нём можно потрогать всё —
+      распознавание, подтверждение значений, динамику и списки. Сейчас идёт подготовка к запуску,
+      об условиях подписки расскажем отдельно.
+    </p>
+    <div class="final-ctas rv">
+      <a class="btn btn-white" href="/app/"><span data-ic="play"></span> Открыть демо</a>
+      <a class="btn btn-light" href="/app/">Создать аккаунт</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <a class="logo" href="#top">
+      <span class="logo-ic" data-ic="brain"></span>
+      <span class="logo-name">Вторая память</span>
+    </a>
+    <span>Все пациенты в материалах вымышлены · Не является медицинским изделием</span>
+    <span>© 2026 «Вторая память» · <a href="https://t.me/DEFesT888" target="_blank" rel="noreferrer">Связаться</a> · <a href="investors.html">Инвесторам</a></span>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

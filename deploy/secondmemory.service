@@ -1,0 +1,49 @@
+# Автозапуск бэкенда «Второй памяти».
+#
+#   sudo cp deploy/secondmemory.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now secondmemory
+#   systemctl status secondmemory          # проверить
+#   journalctl -u secondmemory -f          # смотреть журнал
+#
+# После обновления кода: sudo systemctl restart secondmemory
+
+[Unit]
+Description=Вторая память — бэкенд
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=secondmemory
+Group=secondmemory
+WorkingDirectory=/srv/secondmemory/backend
+EnvironmentFile=/srv/secondmemory/backend/.env
+
+# Один воркер. Больше одного нельзя, пока лимиты запросов и очередь живут
+# в памяти процесса: у каждого воркера будет свой счётчик. Для нескольких
+# нужен Redis — это отдельный шаг, на старте не требуется.
+ExecStart=/srv/secondmemory/backend/.venv/bin/uvicorn app.main:app \
+          --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers
+
+Restart=always
+RestartSec=3
+
+# ── ограничения прав ─────────────────────────────────────────────────────────
+# Служба работает с медицинскими данными, поэтому по умолчанию ей запрещено
+# всё, что не нужно для работы.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/secondmemory/backend /var/log/secondmemory
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=secondmemory
+
+[Install]
+WantedBy=multi-user.target

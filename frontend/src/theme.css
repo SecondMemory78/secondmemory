@@ -1,0 +1,331 @@
+:root{
+  --s2:#FFFFFF; --s1:#F3F6FA; --s0:#EAEEF4;
+  --tp:#16202C; --ts:#5A6675; --tm:#8B95A3;
+  --bd:#E5E9EF; --bds:#CFD6E0;
+  --ac:#2563EB; --act:#1D4ED8; --acbg:#EAF1FD; --acsub:#DEEAFB;
+  --dn:#C4322B; --dnbg:#FBEAE9; --dnbd:#E7A19C;
+  --wn:#9A6A00; --wnbg:#FBF2DC; --wnbd:#E7C77A;
+  --sc:#1E7A52; --scbg:#E6F5EE;
+  --rm:#7C3AED; --rmbg:#F1EAFE;
+  --mono:'JetBrains Mono',monospace;
+}
+[data-theme="dark"]{
+  --s2:#171D25; --s1:#10151B; --s0:#0C1116;
+  --tp:#E9EDF2; --ts:#AEB8C4; --tm:#95A0AE;
+  --bd:#28303A; --bds:#3A434E;
+  --ac:#4B8BF5; --act:#82AEF8; --acbg:#16283E; --acsub:#1B324D;
+  --dn:#EF9089; --dnbg:#301A18; --dnbd:#5A312D;
+  --wn:#E6B658; --wnbg:#2C2511; --wnbd:#544719;
+  --sc:#6FCB9B; --scbg:#132619;
+  --rm:#A78BFA; --rmbg:#241A3A;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body,#root{height:100%}
+body{font-family:'Golos Text',sans-serif;background:var(--s1);color:var(--tp)}
+.app{max-width:480px;width:100%;min-width:0;margin:0 auto;height:100%;background:var(--s2);
+  display:flex;flex-direction:column;overflow-x:hidden;box-shadow:0 0 40px rgba(20,32,44,.06)}
+.scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:14px 18px 24px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--tm)} .warn{color:var(--wn)} .dng{color:var(--dn)} .succ{color:var(--sc)} .acc{color:var(--act)}
+.rmc{color:var(--rm)}
+.hero{background:linear-gradient(135deg,var(--acbg),var(--rmbg));border-radius:16px;padding:18px;text-align:center;margin-bottom:16px}
+.mic{width:60px;height:60px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 10px;cursor:pointer;border:none}
+.mic.rec{background:var(--dn)}
+.legdot{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ts);margin-right:12px}
+.legdot span{width:8px;height:8px;border-radius:50%}
+.topbar-search{display:flex;justify-content:flex-end;padding:10px 18px 0}
+.gsearch-wrap{position:relative;width:100%;max-width:280px}
+.gsearch{display:flex;align-items:center;gap:8px;background:var(--s1);border:.5px solid var(--bd);
+  border-radius:11px;padding:9px 12px;font-size:13px;color:var(--tm)}
+.gsearch:focus-within{border-color:var(--ac)}
+.gsearch i{font-size:16px}
+.gsearch input{border:0;background:transparent;outline:none;flex:1;min-width:0;font:inherit;color:var(--tp)}
+.gsearch input::placeholder{color:var(--tm)}
+.gsearch-drop{position:absolute;top:calc(100% + 6px);right:0;left:0;background:var(--s2);
+  border:.5px solid var(--bd);border-radius:12px;box-shadow:0 10px 30px rgba(20,32,44,.16);
+  z-index:30;overflow:hidden;max-height:60vh;overflow-y:auto}
+.gsearch-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer}
+.gsearch-item:hover{background:var(--s1)}
+.gsearch-empty{padding:12px;font-size:12.5px;color:var(--tm)}
+.gsearch-sec{padding:7px 12px 3px;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--tm);border-top:.5px solid var(--bd)}
+.gsearch-foot{display:flex;align-items:center;gap:7px;padding:10px 12px;border-top:.5px solid var(--bd);
+  font-size:12.5px;color:var(--act);cursor:pointer}
+.gsearch-foot:hover{background:var(--acbg)}
+.sub{font-size:12.5px;color:var(--ts)}
+.hd{display:flex;align-items:center;gap:10px;padding:6px 0 10px}
+.hd .back{font-size:20px;color:var(--tm);cursor:pointer}
+.hd .ttl{font-size:18px;font-weight:600;flex:1}
+.hd .act{font-size:19px;color:var(--tm);cursor:pointer}
+.sec-label{font-size:11px;color:var(--tm);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 6px}
+.card{background:var(--s2);border:.5px solid var(--bd);border-radius:14px;padding:14px}
+.soft{background:var(--s1);border-radius:12px}
+.row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:.5px solid var(--bd)}
+.row:first-child{border-top:0}
+.btn{font-family:inherit;font-size:13px;font-weight:500;padding:11px 14px;border-radius:11px;
+  border:.5px solid var(--bd);background:var(--s2);color:var(--tp);cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--bds)}
+.btn.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btn.pri:hover{filter:brightness(1.06)}
+.btn.dng{color:var(--dn)}
+.btn.block{width:100%}
+.btn.sm{font-size:12px;padding:8px 12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:8px;margin-top:14px}
+.input{width:100%;font-family:inherit;background:var(--s1);border:.5px solid var(--bd);
+  border-radius:11px;padding:11px 13px;font-size:13px;color:var(--tp)}
+.input::placeholder{color:var(--tm)}
+.banner{border-left:2px solid;border-radius:0;padding:10px 12px;margin-bottom:8px;font-size:12.5px;
+  display:flex;gap:7px;align-items:flex-start;cursor:pointer}
+.banner i{font-size:15px;margin-top:1px}
+.b-dn{border-color:var(--dnbd);background:var(--dnbg);color:var(--dn)}
+.b-wn{border-color:var(--wnbd);background:var(--wnbg);color:var(--wn)}
+.b-ac{border-color:var(--ac);background:var(--acbg);color:var(--act)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--acsub);color:var(--act);
+  border-radius:999px;padding:6px 12px;font-size:12px}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--acsub);color:var(--act);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0}
+.tabbar{display:flex;border-top:.5px solid var(--bd);background:var(--s2);flex-shrink:0}
+.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 11px;
+  color:var(--tm);font-size:10px;text-decoration:none}
+.tabbar a i{font-size:21px}
+.tabbar a.active{color:var(--act)}
+.tabs{display:flex;gap:4px;background:var(--s1);border-radius:12px;padding:3px;margin:12px 0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs .t{flex:1 0 auto;min-width:72px;text-align:center;padding:8px 10px;font-size:12.5px;color:var(--ts);border-radius:9px;cursor:pointer;white-space:nowrap}
+.tabs .t.on{background:var(--s2);font-weight:500;color:var(--tp)}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 16px}
+.empty i{font-size:30px;color:var(--tm);margin-bottom:10px}
+table{width:100%;border-collapse:collapse}
+td{padding:7px 0;font-size:13px}
+.rec{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ---- desktop ---- */
+.shell{display:flex;height:100%}
+.sidebar{display:none}
+.pri-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+textarea.input{resize:vertical;min-height:64px;line-height:1.5}
+.copyrow{display:flex;align-items:center;justify-content:space-between;margin:14px 0 4px}
+.copyrow .lbl{font-size:11px;color:var(--tm);text-transform:uppercase;letter-spacing:.04em}
+.copyrow .cp{font-size:12px;color:var(--act);cursor:pointer;display:flex;gap:4px;align-items:center}
+@media(min-width:960px){
+  body{background:var(--s0)}
+  .shell{max-width:1320px;margin:0 auto}
+  .sidebar{display:flex;flex-direction:column;width:238px;flex-shrink:0;padding:18px 12px;
+    border-right:.5px solid var(--bd);background:var(--s2);position:sticky;top:0;height:100vh}
+  .sidebar .brand{display:flex;gap:10px;align-items:center;padding:8px 12px 16px;font-weight:600;font-size:15px}
+  .sidebar .brand i{color:var(--act);font-size:20px}
+  .sidebar a{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;
+    color:var(--ts);text-decoration:none;font-size:14px;margin-bottom:2px}
+  .sidebar a i{font-size:20px}
+  .sidebar a:hover{background:var(--s1)}
+  .sidebar a.active{background:var(--acbg);color:var(--act)}
+  .sidebar .startbtn{margin-top:10px}
+  .app{max-width:none;flex:1;box-shadow:none;min-height:100vh;background:var(--s2)}
+  /* Контент был зажат в 840px — по бокам оставались широкие пустые поля */
+  .scroll{padding:26px 40px 44px;max-width:1120px;margin:0 auto;width:100%}
+  .tabbar{display:none}
+  .topbar-search{padding:18px 40px 0;max-width:1120px;margin:0 auto;width:100%}
+  .gsearch-wrap{max-width:340px}
+}
+
+/* ── Загрузки и скелетоны (UX-полировка) ── */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 16px;gap:10px}
+.spinner{width:26px;height:26px;border:2.5px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite}
+.spinner.sm{width:16px;height:16px;border-width:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.skel{border-radius:8px;background:linear-gradient(90deg,var(--s1) 25%,var(--s2,var(--bd)) 37%,var(--s1) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.skel-row{height:56px;margin-bottom:8px}
+.skel-line{height:12px;margin:6px 0}
+
+/* ── Тосты (обработка ошибок сети и т.п.) ── */
+.toast-host{position:fixed;left:0;right:0;bottom:76px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:1000;pointer-events:none;padding:0 16px}
+.toast{display:flex;align-items:center;gap:8px;max-width:420px;width:fit-content;padding:10px 16px;border-radius:10px;font-size:13px;color:#fff;background:#333d4d;box-shadow:0 6px 24px rgba(0,0,0,.22);animation:toast-in .22s ease;pointer-events:auto}
+.toast.error{background:var(--dn)}
+.toast.success{background:var(--ac)}
+.toast i{font-size:16px}
+@keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* На широком мониторе оболочку не сжимаем: боковая панель прижата к краю,
+   контент занимает доступное место — иначе половина экрана пустует. */
+@media(min-width:1400px){
+  .shell{max-width:none}
+  .scroll,.topbar-search{max-width:1800px}
+}
+
+@media(min-width:768px){.toast-host{bottom:28px}}
+
+/* ── Полировка: отклик на нажатие, фокус (доступность), плавность ── */
+.btn:active:not(:disabled){transform:scale(.975)}
+.row{transition:background .12s}
+.row[onclick],.row.tap{cursor:pointer}
+.btn:focus-visible,.input:focus-visible,.t:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.input{transition:border-color .15s,box-shadow .15s}
+.input:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acbg)}
+.chip,.t,.tab{transition:.15s}
+
+/* ── Модальный диалог подтверждения ── */
+.modal-ov{position:fixed;inset:0;background:rgba(15,20,28,.5);display:flex;align-items:center;justify-content:center;z-index:1100;padding:20px;animation:fade .15s ease}
+.modal{background:var(--s2);border:.5px solid var(--bd);border-radius:16px;padding:20px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:pop .16s ease}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.modal-msg{font-size:13px;color:var(--ts);line-height:1.5}
+.btn.dng-solid{background:var(--dn);color:#fff;border-color:var(--dn)}
+.btn.dng-solid:hover{filter:brightness(1.05)}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+
+/* ── Безопасные зоны на телефонах (чёлка, «домашняя» полоса, жесты) ── */
+/* Боковые вырезы отступают СОДЕРЖИМОЕ, а не саму .app: иначе фон, шапка и
+   таб-бар идут во всю ширину, а контент оказывается уже — видно как «поля»
+   по бокам на Пациентах/Календаре при ненулевом safe-area-inset. */
+.tabbar{padding-bottom:env(safe-area-inset-bottom);
+  padding-left:calc(8px + env(safe-area-inset-left,0px));
+  padding-right:calc(8px + env(safe-area-inset-right,0px))}
+.topbar-search{padding-top:calc(10px + env(safe-area-inset-top));
+  padding-left:calc(18px + env(safe-area-inset-left,0px));
+  padding-right:calc(18px + env(safe-area-inset-right,0px))}
+.scroll{padding-left:calc(18px + env(safe-area-inset-left,0px));
+  padding-right:calc(18px + env(safe-area-inset-right,0px))}
+.toast-host{bottom:calc(76px + env(safe-area-inset-bottom))}
+.modal-ov{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+
+/* ── Онбординг (обучение на вымышленном пациенте, ТЗ §31) ── */
+.ob-overlay{position:fixed;inset:0;z-index:1000;background:rgba(20,32,44,.55);
+  display:flex;align-items:flex-end;justify-content:center;padding:0}
+.ob-card{background:var(--s2);width:100%;max-width:480px;border-radius:18px 18px 0 0;
+  padding:20px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -8px 40px rgba(20,32,44,.22);
+  animation:ob-up .22s ease}
+@keyframes ob-up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@media(min-width:520px){.ob-overlay{align-items:center}.ob-card{border-radius:18px}}
+.ob-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ob-count{font-size:12px}
+.ob-skip{background:none;border:0;font:inherit;font-size:13px;cursor:pointer}
+.ob-title{font-size:19px;font-weight:600;margin:2px 0 10px;color:var(--tp)}
+.ob-body{font-size:14.5px;line-height:1.5;color:var(--tp);margin:0 0 12px}
+.ob-hint{font-size:12.5px;line-height:1.45;color:var(--ts);background:var(--s1);
+  border-radius:10px;padding:10px 12px;margin:0}
+.ob-memo{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}
+.ob-memo-row{font-size:13.5px;line-height:1.4;color:var(--tp)}
+.ob-memo-row b{color:var(--act)}
+.ob-dots{display:flex;gap:6px;justify-content:center;margin:16px 0}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--bd);transition:.15s}
+.ob-dot.on{background:var(--ac);transform:scale(1.15)}
+.ob-nav{display:flex;gap:8px;margin-top:6px}
+.ob-nav .btn{flex:1}
+.ob-nav .ob-cta{flex:1}
+
+/* ── Точечные подсказки (коуч-марки «в момент первого использования») ── */
+.tip-anchor{position:relative;display:block}
+.tip-pop{position:absolute;z-index:900;width:min(280px,86vw);background:var(--tp);color:var(--s2);
+  border-radius:12px;padding:12px 13px;box-shadow:0 8px 30px rgba(20,32,44,.28);
+  animation:tip-in .16s ease}
+@keyframes tip-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.tip-title{font-size:13.5px;font-weight:600;margin-bottom:4px}
+.tip-text{font-size:12.5px;line-height:1.5;opacity:.92}
+.tip-ok{margin-top:10px}
+.tip-arrow{position:absolute;width:10px;height:10px;background:var(--tp);transform:rotate(45deg)}
+/* размещение относительно якоря */
+.tip-bottom{top:calc(100% + 10px);left:0}
+.tip-bottom .tip-arrow{top:-5px;left:18px}
+.tip-top{bottom:calc(100% + 10px);left:0}
+.tip-top .tip-arrow{bottom:-5px;left:18px}
+.tip-right{left:calc(100% + 10px);top:0}
+.tip-right .tip-arrow{left:-5px;top:16px}
+.tip-left{right:calc(100% + 10px);top:0}
+.tip-left .tip-arrow{right:-5px;top:16px}
+
+/* ── Счётчик-бейдж (списки пациентов) ── */
+.badge{min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:var(--s1);
+  color:var(--tm);font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.badge-warn{background:var(--wnbg,var(--s1));color:var(--wn)}
+
+/* ── Плашка офлайн-очереди ── */
+.outbox-badge{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  z-index:800;display:flex;align-items:center;gap:7px;background:var(--tp);color:var(--s2);
+  font-size:12.5px;font-weight:500;padding:8px 14px;border-radius:20px;box-shadow:0 4px 16px rgba(20,32,44,.25);
+  cursor:pointer;max-width:90vw}
+.outbox-badge i{font-size:15px}
+
+/* ── Единый ассистент: плавающая кнопка + панель (пункт 5) ── */
+.asst-fab{position:fixed;right:16px;bottom:calc(74px + env(safe-area-inset-bottom,0px));
+  width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;z-index:850;
+  background:linear-gradient(135deg,var(--ac),var(--rm));color:#fff;font-size:25px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(37,99,235,.4);transition:transform .12s ease}
+.asst-fab:active{transform:scale(.92)}
+@media(min-width:768px){.asst-fab{bottom:24px;right:24px}}
+.asst-ov{position:fixed;inset:0;background:rgba(15,20,28,.5);z-index:1100;
+  display:flex;align-items:flex-end;justify-content:center;animation:fade .15s ease}
+@media(min-width:768px){.asst-ov{align-items:center}}
+.asst-sheet{background:var(--s2);width:100%;max-width:440px;border-radius:18px 18px 0 0;
+  padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 -8px 40px rgba(20,32,44,.28);animation:sheetUp .2s ease}
+@media(min-width:768px){.asst-sheet{border-radius:18px;margin-bottom:0}}
+@keyframes sheetUp{from{transform:translateY(30px);opacity:.6}to{transform:translateY(0);opacity:1}}
+.asst-mic-sm{width:38px;height:38px;border-radius:50%;border:none;color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+
+/* Освежённая геро-кнопка микрофона на Главной */
+.mic{width:66px;height:66px;box-shadow:0 6px 22px rgba(37,99,235,.35);
+  background:linear-gradient(135deg,var(--ac),var(--rm));transition:transform .12s ease}
+.mic:active{transform:scale(.94)}
+.mic.rec{background:var(--dn);animation:micPulse 1.2s ease-in-out infinite}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(196,50,43,.5)}50%{box-shadow:0 0 0 12px rgba(196,50,43,0)}}
+
+/* ── Движение интерфейса ─────────────────────────────────────────────────────
+   Всё быстрое (0.15–0.26 с): на приёме медленная анимация раздражает.
+   Ниже блок уважает системную настройку «уменьшить движение». */
+
+/* Смена экрана — мягкое появление вместо рывка */
+.scroll > * { animation: screen-in .2s ease both; }
+@keyframes screen-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+
+/* Списки: карточки и строки появляются с лёгким запаздыванием друг за другом */
+.card, .row { animation: item-in .22s ease both; }
+@keyframes item-in { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+.card:nth-child(2), .row:nth-child(2) { animation-delay: .02s }
+.card:nth-child(3), .row:nth-child(3) { animation-delay: .04s }
+.card:nth-child(4), .row:nth-child(4) { animation-delay: .06s }
+.card:nth-child(5), .row:nth-child(5) { animation-delay: .08s }
+.card:nth-child(n+6), .row:nth-child(n+6) { animation-delay: .1s }
+
+/* Нажатия: ощутимый отклик, а не «провал в пустоту» */
+.btn { transition: transform .12s ease, filter .15s ease, background .15s ease,
+                   border-color .15s ease, opacity .15s ease }
+.btn:active:not(:disabled) { transform: scale(.975) }
+.row.tap:active, .row[onclick]:active { background: var(--acbg) }
+.asst-fab { transition: transform .16s ease, box-shadow .16s ease }
+.asst-fab:active { transform: scale(.94) }
+
+/* Переключение вкладок: подложка активной вкладки едет плавно */
+.tabs .t { transition: background .18s ease, color .18s ease, font-weight .18s ease }
+
+/* Раскрытие блоков (значения показателя, история назначения, подробности) */
+details > summary { transition: color .15s ease }
+.expand-in { animation: expand-in .2s ease both }
+@keyframes expand-in { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
+
+/* Нижняя панель ассистента — выезжает снизу */
+.asst-sheet { animation: sheet-up .24s cubic-bezier(.22,.8,.3,1) both }
+@keyframes sheet-up { from { transform: translateY(18px); opacity: .7 } to { transform: none; opacity: 1 } }
+
+/* Поля ввода: фокус заметен, но не мигает */
+.input:focus, .input:focus-within { transition: border-color .15s ease, box-shadow .15s ease }
+
+/* Значения и счётчики, которые меняются на глазах */
+.stat-n { transition: color .2s ease }
+
+/* Уважение к настройке «уменьшить движение»: у кого укачивает — без анимаций */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Объявление из админки — полоса над содержимым экрана */
+.ann-bar{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:12px;
+  margin-bottom:12px;border:.5px solid var(--bd)}

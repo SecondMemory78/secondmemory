@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вторая память — админ-панель</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+:root{--s2:#fff;--s1:#f3f6fa;--tp:#16202c;--ts:#5a6675;--tm:#8b95a3;--bd:#e5e9ef;--ac:#2563eb;--acbg:#eaf1fd;--act:#1d4ed8;--dn:#c4322b;--sc:#1e7a52;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Golos Text',sans-serif;background:var(--s1);color:var(--tp);padding:24px}
+.wrap{max-width:1080px;margin:0 auto}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.top h1{font-size:20px;font-weight:600;flex:1}
+.top h1 i{color:var(--ac)}
+input,button{font-family:inherit;font-size:13px}
+.field{background:var(--s2);border:.5px solid var(--bd);border-radius:10px;padding:9px 12px;outline:none;color:var(--tp)}
+.btn{background:var(--ac);color:#fff;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:500}
+.btn.ghost{background:var(--s2);color:var(--tp);border:.5px solid var(--bd)}
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tab{padding:9px 16px;border-radius:10px;background:var(--s2);border:.5px solid var(--bd);cursor:pointer;font-size:13px}
+.tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--s2);border:.5px solid var(--bd);border-radius:14px;padding:16px}
+.stat .n{font-size:28px;font-weight:600;color:var(--ac)}
+.stat .l{font-size:12px;color:var(--ts);margin-top:2px}
+.sec{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--tm);margin:18px 0 8px}
+.row{display:flex;justify-content:space-between;padding:9px 0;border-top:.5px solid var(--bd);font-size:13px}
+.bar{height:8px;border-radius:4px;background:var(--ac)}
+.split{display:grid;grid-template-columns:340px 1fr;gap:16px}
+.thread{padding:11px 12px;border:.5px solid var(--bd);border-radius:10px;margin-bottom:8px;cursor:pointer;background:var(--s2)}
+.thread.on{border-color:var(--ac);background:var(--acbg)}
+.thread .subj{font-size:13px;font-weight:500}
+.thread .meta{font-size:11px;color:var(--tm);margin-top:3px;display:flex;justify-content:space-between}
+.pill{font-size:10px;padding:2px 7px;border-radius:999px}
+.pill.open{background:var(--acbg);color:var(--act)}
+.pill.closed{background:var(--s1);color:var(--tm)}
+.badge{background:var(--dn);color:#fff;border-radius:999px;font-size:10px;padding:1px 6px}
+.msgs{background:var(--s2);border:.5px solid var(--bd);border-radius:14px;padding:16px;min-height:340px;display:flex;flex-direction:column}
+.mlist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.msg{max-width:78%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg.staff{align-self:flex-end;background:var(--ac);color:#fff}
+.msg.client{align-self:flex-start;background:var(--s1)}
+.msg .t{font-size:10px;opacity:.7;margin-top:4px}
+.composer{display:flex;gap:8px}
+.composer input{flex:1}
+.muted{color:var(--tm)}.empty{color:var(--tm);font-size:13px;padding:20px;text-align:center}
+
+/* ── формы ── */
+/* Раньше на вкладке «Объявления» поля стояли без классов, и браузер рисовал их
+   по умолчанию — серые рамки, чужой шрифт. Здесь общий вид для всей панели. */
+select,textarea{font-family:inherit;font-size:13px}
+.field,select.field,textarea.field{background:var(--s2);border:.5px solid var(--bd);border-radius:10px;
+  padding:9px 12px;outline:none;color:var(--tp);width:100%;transition:border-color .12s,box-shadow .12s}
+.field:focus,select.field:focus,textarea.field:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acbg)}
+.field:disabled{background:var(--s1);color:var(--tm)}
+textarea.field{resize:vertical;line-height:1.5;min-height:76px}
+select.field{appearance:none;cursor:pointer;padding-right:32px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b95a3' stroke-width='2' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center}
+.lbl{display:block;font-size:12px;font-weight:500;color:var(--ts);margin:0 0 5px}
+.fgroup{margin-bottom:14px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.check{display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;user-select:none}
+.check input{margin-top:2px;accent-color:var(--ac);width:15px;height:15px;cursor:pointer}
+.hint{font-size:12px;color:var(--tm);margin-top:5px;line-height:1.45}
+.picker{max-height:170px;overflow:auto;border:.5px solid var(--bd);border-radius:10px;padding:6px;background:var(--s2)}
+.picker .check{padding:6px 8px;border-radius:8px}
+.picker .check:hover{background:var(--s1)}
+.chip{display:inline-block;font-size:12px;padding:4px 10px;border-radius:999px;background:var(--s1);
+  border:.5px solid var(--bd);color:var(--ts);cursor:pointer;text-decoration:none;margin:0 6px 6px 0}
+.chip:hover{border-color:var(--ac);color:var(--act);background:var(--acbg)}
+.btn.sm{padding:6px 11px;font-size:12px}
+.btn.danger{background:var(--s2);color:var(--dn);border:.5px solid var(--bd)}
+.btn.danger:hover{background:#fdf2f1;border-color:var(--dn)}
+.btn:disabled{opacity:.5;cursor:default}
+.formfoot{display:flex;align-items:center;gap:12px;border-top:.5px solid var(--bd);padding-top:14px;margin-top:2px}
+
+/* ── карточки объявлений ── */
+.ann{background:var(--s2);border:.5px solid var(--bd);border-radius:14px;padding:14px 16px;margin-bottom:10px;
+  display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+.ann.off{background:var(--s1)}
+.ann .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ann .ttl{font-weight:500}
+.ann.off .ttl{color:var(--ts)}
+.ann .body{font-size:13px;color:var(--ts);margin-top:6px;line-height:1.5;white-space:pre-wrap}
+.ann .meta{font-size:12px;color:var(--tm);margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.ann .acts{display:flex;gap:6px;white-space:nowrap}
+.kind{font-size:10px;font-weight:500;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+.kind.maintenance{background:#fdf0e6;color:#9a5518}
+.kind.important{background:#fbeceb;color:var(--dn)}
+.kind.news{background:var(--acbg);color:var(--act)}
+.kind.off{background:var(--bd);color:var(--tm)}
+@media(max-width:720px){.frow{grid-template-columns:1fr}.ann{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1><i class="ti ti-shield-lock"></i> Админ-панель</h1>
+    <input id="base" class="field" style="width:200px" value="http://localhost:8000">
+    <input id="token" class="field" style="width:200px" placeholder="admin-токен" value="dev-admin-token">
+    <button class="btn" onclick="connect()">Подключить</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" id="tab-an" onclick="show('an')">Аналитика</div>
+    <div class="tab" id="tab-doc" onclick="show('doc')">Врачи</div>
+    <div class="tab" id="tab-use" onclick="show('use')">Расход ИИ</div>
+    <div class="tab" id="tab-sup" onclick="show('sup')">Поддержка</div>
+    <div class="tab" id="tab-aud" onclick="show('aud')">Журнал</div>
+    <div class="tab" id="tab-ann" onclick="show('ann')">Объявления</div>
+    <div class="tab" id="tab-push" onclick="show('push')">Push</div>
+  </div>
+
+  <div id="view-an"></div>
+  <div id="view-doc" style="display:none"></div>
+  <div id="view-use" style="display:none"></div>
+  <div id="view-sup" style="display:none"></div>
+  <div id="view-aud" style="display:none"></div>
+  <div id="view-ann" style="display:none"></div>
+  <div id="view-push" style="display:none"></div>
+</div>
+
+<script>
+let BASE = "http://localhost:8000", TOKEN = "dev-admin-token", curTab = "an";
+let curThread = null;
+
+function H(){ return { "X-Admin-Token": TOKEN, "Content-Type": "application/json" }; }
+async function get(p){ const r = await fetch(BASE+p, {headers:H()}); if(!r.ok) throw new Error(r.status); return r.json(); }
+async function post(p,b){ const r = await fetch(BASE+p, {method:"POST",headers:H(),body:JSON.stringify(b||{})}); return r.json(); }
+
+function connect(){ BASE=document.getElementById("base").value.replace(/\/$/,""); TOKEN=document.getElementById("token").value; show(curTab); }
+function show(t){ curTab=t;
+  for(const k of ["an","doc","use","sup","aud","ann","push"]){
+    document.getElementById("tab-"+k).className="tab"+(t===k?" on":"");
+    document.getElementById("view-"+k).style.display=t===k?"":"none";
+  }
+  t==="an"?loadAnalytics():t==="doc"?loadDoctors():t==="use"?loadUsage():t==="aud"?loadAudit():
+  t==="ann"?loadAnnouncements():t==="push"?loadPush():loadSupport();
+}
+
+let usePeriod="day";
+async function loadUsage(){
+  const v=document.getElementById("view-use");
+  try{
+    const sum=await get("/api/admin/usage/summary?period="+usePeriod);
+    const bd=await get("/api/admin/usage/by-doctor?period="+usePeriod);
+    const daily=await get("/api/admin/usage/daily?days=30");
+    const L=sum.labels;
+    const pick=(p)=>`<span class="tab ${usePeriod===p?'on':''}" style="padding:6px 12px" onclick="usePeriod='${p}';loadUsage()">${p==='day'?'День':p==='week'?'Неделя':'Месяц'}</span>`;
+    v.innerHTML=`
+      <div style="display:flex;gap:8px;margin-bottom:14px">${pick('day')}${pick('week')}${pick('month')}</div>
+      <div class="grid">
+        <div class="card stat"><div class="n">${sum.by_kind.ocr}</div><div class="l">${L.ocr}</div></div>
+        <div class="card stat"><div class="n">${sum.by_kind.stt}</div><div class="l">${L.stt}</div></div>
+        <div class="card stat"><div class="n">${sum.by_kind.llm}</div><div class="l">${L.llm}</div></div>
+        <div class="card stat"><div class="n">${sum.active_doctors}</div><div class="l">активных врачей</div></div>
+      </div>
+      <div class="sec">Расход по дням (30 дней)</div>
+      <div class="card">${chart(daily)}</div>
+      <div class="sec">По врачам · суточные лимиты: OCR ${sum.limits.ocr} · STT ${sum.limits.stt} · LLM ${sum.limits.llm}</div>
+      <div class="card">
+        <div class="row" style="font-weight:600;border:0"><span style="flex:1">Врач</span><span style="width:70px;text-align:right">OCR</span><span style="width:70px;text-align:right">STT</span><span style="width:70px;text-align:right">LLM</span><span style="width:90px;text-align:right">Сегодня OCR</span></div>
+        ${bd.map(d=>{
+          const over=d.today.ocr.used>=d.today.ocr.limit;
+          return `<div class="row"><span style="flex:1">${d.name}<div class="muted" style="font-size:11px">${d.email||''}</div></span>
+            <span class="mono" style="width:70px;text-align:right">${d.ocr}</span>
+            <span class="mono" style="width:70px;text-align:right">${d.stt}</span>
+            <span class="mono" style="width:70px;text-align:right">${d.llm}</span>
+            <span class="mono" style="width:90px;text-align:right;color:${over?'var(--dn)':'var(--ts)'}">${d.today.ocr.used}/${d.today.ocr.limit}${over?' ⛔':''}</span></div>`;
+        }).join("")||'<div class="empty">Нет данных за период</div>'}
+      </div>
+      <div class="sec">Прогноз стоимости ИИ за месяц (по прогнозным ценам)</div>
+      <div class="card">${await costBlock()}</div>`;
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; }
+}
+
+async function costBlock(){
+  try{
+    const r=await get("/api/admin/usage/cost");
+    const rows=r.doctors||[];
+    return `<div class="muted" style="font-size:12px;margin-bottom:8px">Порог тревоги: ${r.threshold_rub} ₽/врач · цены за операцию: OCR ${r.prices.ocr} · STT ${r.prices.stt} · LLM ${r.prices.llm} ₽ (прогноз, уточнится с боевыми ключами)</div>`
+      + (rows.map(d=>`<div class="row"><span>${d.name}</span><span class="mono" style="color:${d.over?'var(--dn)':'var(--ts)'}">${d.cost_rub.toFixed(0)} ₽${d.over?' ⚠️':''}</span></div>`).join("")||'<div class="empty">Нет данных</div>');
+  }catch(e){ return '<div class="empty">Не удалось загрузить стоимость</div>'; }
+}
+
+async function loadDoctors(){
+  const v=document.getElementById("view-doc");
+  try{
+    const q=document.getElementById("docq")?.value||"";
+    const rows=await get("/api/admin/doctors"+(q?("?q="+encodeURIComponent(q)):""));
+    v.innerHTML=`
+      <div class="sec">Врачи (${rows.length})</div>
+      <div class="muted" style="font-size:12px;margin-bottom:10px">Только данные аккаунта врача — карты пациентов здесь не доступны.</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="docq" class="field" style="flex:1" placeholder="Поиск по имени, почте, телефону" value="${q.replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')loadDoctors()">
+        <button class="btn ghost" onclick="loadDoctors()">Найти</button>
+      </div>
+      <div class="card" style="padding:0">
+        ${rows.map(d=>`
+          <div class="row" style="padding:11px 14px;cursor:pointer" onclick="openDoctor(${d.id})">
+            <div>
+              <div style="font-size:13px;font-weight:500">${esc(d.full_name)||'—'} ${d.is_demo?'<span class="pill closed">демо</span>':''} ${d.role!=='doctor'?'<span class="pill open">'+d.role+'</span>':''}</div>
+              <div class="muted" style="font-size:11px;margin-top:2px">${esc(d.email)||'без почты'} · ${esc(d.phone)||'—'} · ${esc(d.specialty)||''}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:12px">${d.subscription.active?'<span style="color:var(--sc)">подписка</span>':'<span class="muted">нет подписки</span>'}</div>
+              <div class="muted" style="font-size:11px">${d.totp_enabled?'2FA ✓':'2FA —'}</div>
+            </div>
+          </div>`).join("")||'<div class="empty">Никого не найдено</div>'}
+      </div>
+      <div id="doc-detail" style="margin-top:16px"></div>`;
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; }
+}
+
+async function openDoctor(id){
+  const box=document.getElementById("doc-detail");
+  box.innerHTML=`<div class="muted" style="font-size:12px">Загрузка…</div>`;
+  try{
+    const d=await get("/api/admin/doctors/"+id);
+    const sub=d.subscription.active?`активна · ${d.subscription.plan} · до ${fmtD(d.subscription.until)}`:'нет активной подписки';
+    box.innerHTML=`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:15px;font-weight:600">${esc(d.full_name)}</div>
+            <div class="muted" style="font-size:12px;margin-top:3px">${esc(d.email)} · ${esc(d.phone)}</div>
+            <div class="muted" style="font-size:12px">${esc(d.specialty)}${d.license_no?' · лиц. '+esc(d.license_no):''} · ${d.timezone}</div>
+          </div>
+          <button class="btn ghost" onclick="resetPwd(${d.id})">Сбросить пароль</button>
+        </div>
+        <div class="row"><span class="muted">Подписка</span><span>${sub}</span></div>
+        <div class="row"><span class="muted">2FA (вход по коду)</span><span>${d.totp_enabled?'включена':'выключена'}</span></div>
+        <div class="row"><span class="muted">Активных сессий</span><span>${d.active_sessions}</span></div>
+        <div class="row"><span class="muted">Регистрация</span><span>${fmtDT(d.created_at)}</span></div>
+        <div id="pwd-msg" class="muted" style="font-size:12px;margin-top:8px"></div>
+        <div class="sec">Устройства / входы</div>
+        ${(d.devices||[]).map(dv=>`<div class="row"><span style="font-size:12px">${esc(dv.user_agent)||'устройство'} ${dv.remembered?'· запомнено':''}</span><span class="muted mono" style="font-size:11px">${dv.active?'активна':'истекла'} · ${fmtD(dv.created_at)}</span></div>`).join("")||'<div class="muted" style="font-size:12px;padding:6px 0">Нет записей о входах</div>'}
+      </div>`;
+  }catch(e){ box.innerHTML=`<div class="card empty">Не удалось (${e.message}).</div>`; }
+}
+
+async function resetPwd(id){
+  const m=document.getElementById("pwd-msg");
+  if(!confirm("Отправить врачу письмо со ссылкой для сброса пароля? Пароль вы не увидите и не задаёте — врач меняет его сам."))return;
+  try{
+    const r=await post("/api/admin/doctors/"+id+"/password-reset");
+    m.style.color="var(--sc)";
+    m.textContent=r.sent_to?("Письмо со ссылкой отправлено: "+r.sent_to):(r.ok?"Отправлено.":"Не удалось.");
+    if(r.dev_token) m.textContent+=" (dev-токен: "+r.dev_token+")";
+  }catch(e){ m.style.color="var(--dn)"; m.textContent="Ошибка: "+e.message; }
+}
+
+
+// Строка-полоса: подпись, значение и доля от общего — читается без легенды
+function barRow(label, n, total, color){
+  const pct = Math.round((n/Math.max(1,total))*100);
+  return `<div style="margin:9px 0">
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+      <span>${label}</span><span class="mono">${n} <span class="muted">(${pct}%)</span></span>
+    </div>
+    <div style="height:8px;border-radius:4px;background:var(--s1);overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:${color}"></div>
+    </div>
+  </div>`;
+}
+
+// Ступень воронки: сколько дошло и какой процент от старта
+function funnelRow(label, n, total){
+  const pct = Math.round((n/Math.max(1,total))*100);
+  return `<div style="margin:9px 0">
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+      <span>${label}</span><span class="mono">${n} <span class="muted">(${pct}% от всех)</span></span>
+    </div>
+    <div style="height:14px;border-radius:4px;background:var(--s1);overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#2563eb,#8b5cf6)"></div>
+    </div>
+  </div>`;
+}
+
+
+// ── Объявления врачам ───────────────────────────────────────────────────────
+const ANN_KINDS = { maintenance: "Техработы", important: "Важно", news: "Новость" };
+let annTemplates = [];
+
+async function loadAnnouncements(){
+  const v = document.getElementById("view-ann");
+  try{
+    const tpl = await get("/api/admin/announcements/templates");
+    annTemplates = tpl.items || [];
+    const list = await get("/api/admin/announcements");
+    const docs = await get("/api/admin/doctors").catch(()=>[]);
+    v.innerHTML = `
+      <div class="sec">Новое объявление</div>
+      <div class="card">
+        ${annTemplates.length ? `<div class="fgroup">
+          <span class="lbl">Заготовки</span>
+          ${annTemplates.map((t,i)=>`<a href="#" class="chip" onclick="useTpl(${i});return false">${esc(t.title)}</a>`).join("")}
+        </div>` : ""}
+
+        <div class="frow">
+          <div class="fgroup">
+            <label class="lbl" for="ann-kind">Тип</label>
+            <select id="ann-kind" class="field" onchange="annKindChanged()">
+              ${Object.entries(ANN_KINDS).map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}
+            </select>
+          </div>
+          <div class="fgroup">
+            <label class="lbl" for="ann-aud">Кому</label>
+            <select id="ann-aud" class="field" onchange="annAudChanged()">
+              <option value="all">Всем врачам</option>
+              <option value="selected">Выбранным</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="ann-docs" class="fgroup" style="display:none">
+          <span class="lbl">Врачи</span>
+          <div class="picker">
+            ${(docs||[]).map(d=>`<label class="check"><input type="checkbox" class="ann-doc" value="${d.id}"><span>${esc(d.full_name||("врач #"+d.id))}</span></label>`).join("") || '<div class="hint" style="padding:6px 8px">Врачей пока нет</div>'}
+          </div>
+        </div>
+
+        <div class="fgroup">
+          <label class="lbl" for="ann-title">Заголовок</label>
+          <input id="ann-title" class="field" placeholder="Плановые технические работы">
+        </div>
+
+        <div class="fgroup">
+          <label class="lbl" for="ann-text">Текст</label>
+          <textarea id="ann-text" class="field" rows="3" placeholder="20.10 с 02:00 до 04:00 возможны перебои"></textarea>
+        </div>
+
+        <div class="fgroup">
+          <span class="lbl">Показывать с / по</span>
+          <div class="frow">
+            <input id="ann-from" class="field" type="datetime-local">
+            <input id="ann-to" class="field" type="datetime-local">
+          </div>
+          <div class="hint">Не заполнять — объявление висит, пока не снимете вручную.</div>
+        </div>
+
+        <div class="fgroup">
+          <label class="check"><input type="checkbox" id="ann-dismiss" checked><span>Врач может скрыть объявление</span></label>
+          <div class="hint" id="ann-dismiss-note"></div>
+        </div>
+
+        <div class="formfoot">
+          <button class="btn" onclick="createAnn()">Опубликовать</button>
+          <span id="ann-msg" class="muted" style="font-size:13px"></span>
+        </div>
+      </div>
+
+      <div class="sec">Опубликованные</div>
+      ${(list.items||[]).length ? (list.items||[]).map(a=>`
+        <div class="ann${a.active?"":" off"}">
+          <div style="min-width:0">
+            <div class="head">
+              <span class="kind ${a.active?esc(a.kind):"off"}">${ANN_KINDS[a.kind]||esc(a.kind)}</span>
+              <span class="ttl">${esc(a.title)}</span>
+              ${a.active?"":'<span class="muted" style="font-size:12px">· снято</span>'}
+            </div>
+            ${a.text?`<div class="body">${esc(a.text)}</div>`:""}
+            <div class="meta">
+              <span>${a.audience==="all"?"Всем врачам":"Выбранным ("+esc(a.doctor_ids||"")+")"}</span>
+              ${a.starts_at?`<span>с ${fmtDT(a.starts_at)}</span>`:""}
+              ${a.ends_at?`<span>по ${fmtDT(a.ends_at)}</span>`:""}
+              <span>${a.dismissible?"можно скрыть":"скрыть нельзя"}</span>
+              <span>закрыли: ${a.dismissed_count}</span>
+            </div>
+          </div>
+          <div class="acts">
+            ${a.active?`<button class="btn ghost sm" onclick="stopAnn(${a.id})">Снять</button>`:""}
+            <button class="btn danger sm" onclick="delAnn(${a.id})">Удалить</button>
+          </div>
+        </div>`).join("") : '<div class="empty">Объявлений нет</div>'}
+    `;
+    annKindChanged();
+  }catch(e){ v.innerHTML = '<div class="empty">Не удалось загрузить: '+e+'</div>'; }
+}
+
+function useTpl(i){
+  const t = annTemplates[i]; if(!t) return;
+  document.getElementById("ann-kind").value = t.kind;
+  document.getElementById("ann-title").value = t.title;
+  document.getElementById("ann-text").value = t.text;
+  document.getElementById("ann-dismiss").checked = !!t.dismissible;
+  annKindChanged();
+}
+
+function annKindChanged(){
+  const kind = document.getElementById("ann-kind").value;
+  const box = document.getElementById("ann-dismiss");
+  const note = document.getElementById("ann-dismiss-note");
+  if(kind === "maintenance"){            // техработы врач скрывать не должен
+    box.checked = false; box.disabled = true;
+    note.textContent = "Объявление о техработах врач скрыть не может.";
+  } else { box.disabled = false; note.textContent = ""; }
+}
+
+function annAudChanged(){
+  document.getElementById("ann-docs").style.display =
+    document.getElementById("ann-aud").value === "selected" ? "" : "none";
+}
+
+async function createAnn(){
+  const msg = document.getElementById("ann-msg");
+  const aud = document.getElementById("ann-aud").value;
+  const ids = [...document.querySelectorAll(".ann-doc:checked")].map(x=>+x.value);
+  const body = {
+    kind: document.getElementById("ann-kind").value,
+    title: document.getElementById("ann-title").value.trim(),
+    text: document.getElementById("ann-text").value.trim(),
+    dismissible: document.getElementById("ann-dismiss").checked,
+    audience: aud, doctor_ids: ids,
+    starts_at: document.getElementById("ann-from").value || null,
+    ends_at: document.getElementById("ann-to").value || null,
+  };
+  if(!body.title){ msg.textContent = "Заголовок обязателен"; return; }
+  const r = await post("/api/admin/announcements", body);
+  if(r && r.detail){ msg.textContent = r.detail; return; }
+  msg.textContent = "Опубликовано";
+  loadAnnouncements();
+}
+
+async function stopAnn(id){ await post("/api/admin/announcements/"+id+"/stop"); loadAnnouncements(); }
+async function delAnn(id){
+  if(!confirm("Удалить объявление?")) return;
+  await fetch(BASE+"/api/admin/announcements/"+id, {method:"DELETE", headers:H()});
+  loadAnnouncements();
+}
+
+function esc(x){ return (x==null?"":String(x)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ── даты по-русски ──────────────────────────────────────────────────────────
+// Сервер отдаёт ISO ("2026-09-28T14:04:11"), показывать его человеку нельзя.
+// Разбираем строкой, а не через new Date(): значения приходят уже в местном
+// времени врача, и Date сдвинул бы их ещё раз на часовой пояс браузера.
+function _parts(v){
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(String(v||""));
+  return m ? {y:m[1], mo:m[2], d:m[3], h:m[4], mi:m[5]} : null;
+}
+function fmtD(v){ const p=_parts(v); return p ? `${p.d}.${p.mo}.${p.y}` : ""; }          // 28.09.2026
+function fmtDT(v){ const p=_parts(v); if(!p) return "";                                   // 28.09.2026, 14:04
+  return p.h ? `${p.d}.${p.mo}.${p.y}, ${p.h}:${p.mi}` : `${p.d}.${p.mo}.${p.y}`; }
+function fmtT(v){ const p=_parts(v); return p&&p.h ? `${p.h}:${p.mi}` : ""; }             // 14:04
+
+const EVENT_LABELS={
+  "patient.opened":"Открыта карта пациента",
+  "document.uploaded":"Загружен документ (фото/скан)",
+  "search.used":"Поиск по картотеке",
+  "prescription.created":"Создано назначение",
+  "protocol.saved":"Сохранён протокол приёма",
+  "appointment.created":"Создан приём",
+  "reminder.created":"Создано напоминание/задача",
+  "note.added":"Добавлена заметка в карту",
+  "assistant.command":"Команда ассистенту",
+  "assistant.voice":"Голосовая команда ассистенту",
+  "consent.granted":"Оформлено согласие",
+  "export.pdf":"Экспорт PDF",
+};
+function eventLabel(code){
+  const name=EVENT_LABELS[code];
+  return name ? `${esc(name)} <span class="muted mono" style="font-size:11px">(${esc(code)})</span>` : `<span class="mono">${esc(code)}</span>`;
+}
+
+async function loadAudit(){
+  const v=document.getElementById("view-aud");
+  try{
+    const rows=await get("/api/admin/audit?limit=200");
+    v.innerHTML=`<div class="sec">Действия администрации (последние ${rows.length})</div>
+      <div class="muted" style="font-size:12px;margin-bottom:8px">Один общий админ-токен: конкретный сотрудник пока не различается.</div>
+      <div class="card">${rows.map(r=>`<div class="row"><span class="mono" style="font-size:12px">${r.action}${r.detail?' · '+r.detail:''}</span><span class="muted mono" style="font-size:11px">${fmtDT(r.at)}</span></div>`).join("")||'<div class="empty">Пока пусто</div>'}</div>`;
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; }
+}
+
+async function loadPush(){
+  const v=document.getElementById("view-push");
+  let health={};
+  try{ health=await get("/api/admin/push/health"); }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; return; }
+  const bp=health.by_platform||{};
+  v.innerHTML=`
+    <div class="sec">Канал поддержки на этом устройстве</div>
+    <div class="card">
+      <div class="muted" style="font-size:12px;margin-bottom:8px">Подпишите это устройство, чтобы получать пуш о новых обращениях врачей.</div>
+      <button class="tab" style="cursor:pointer;display:inline-block" onclick="subscribeAdminPush()">Подписать это устройство</button>
+      <button class="tab" style="cursor:pointer;display:inline-block;margin-left:8px" onclick="testAdminPush()">Тест</button>
+      <div id="push-sub-msg" class="muted" style="font-size:12px;margin-top:8px"></div>
+    </div>
+    <div class="sec">Здоровье доставки</div>
+    <div class="grid">
+      <div class="card stat"><div class="n">${health.subscriptions||0}</div><div class="l">подписок всего</div></div>
+      <div class="card stat"><div class="n">${health.success_rate==null?"—":health.success_rate+"%"}</div><div class="l">успешно за 7 дней</div></div>
+      <div class="card stat"><div class="n">${health.delivered_7d||0}/${(health.delivered_7d||0)+(health.failed_7d||0)}</div><div class="l">доставлено/всего</div></div>
+      <div class="card stat"><div class="n">${health.admin_channel||0}</div><div class="l">устройств поддержки</div></div>
+    </div>
+    <div class="sec">По платформам</div>
+    <div class="card"><div class="row"><span>iPhone</span><span class="mono">${bp.ios||0}</span></div>
+      <div class="row"><span>Android</span><span class="mono">${bp.android||0}</span></div>
+      <div class="row"><span>Компьютер</span><span class="mono">${bp.desktop||0}</span></div>
+      <div class="row"><span>Не определено</span><span class="mono">${bp.unknown||0}</span></div></div>
+    <div class="sec">Последние ошибки доставки</div>
+    <div class="card">${(health.recent_errors||[]).map(e=>`<div class="row"><span class="mono" style="font-size:12px">${e.kind} · ${e.platform} · код ${e.code||"—"}</span><span class="muted mono" style="font-size:11px">${fmtDT(e.at)}</span></div>`).join("")||'<div class="empty">Ошибок нет</div>'}</div>`;
+}
+
+function b64ToU8(s){ const pad="=".repeat((4-s.length%4)%4); const b=(s+pad).replace(/-/g,"+").replace(/_/g,"/"); const raw=atob(b); const a=new Uint8Array(raw.length); for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i); return a; }
+async function subscribeAdminPush(){
+  const m=document.getElementById("push-sub-msg");
+  try{
+    const vk=await get("/api/push/vapid-key");
+    if(!vk.configured||!vk.key){ m.textContent="Push не настроен на сервере (нет VAPID-ключей)."; return; }
+    if(!("serviceWorker" in navigator)||!("PushManager" in window)){ m.textContent="Браузер не поддерживает push."; return; }
+    const reg=await navigator.serviceWorker.register("/sw.js");
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){ m.textContent="Разрешение не выдано."; return; }
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(vk.key)});
+    const j=sub.toJSON();
+    await post("/api/admin/push/subscribe",{endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth});
+    m.textContent="Устройство подписано на уведомления поддержки.";
+  }catch(e){ m.textContent="Не удалось подписать: "+e.message; }
+}
+async function testAdminPush(){
+  const m=document.getElementById("push-sub-msg");
+  try{ await post("/api/admin/push/test"); m.textContent="Тест отправлен."; }catch(e){ m.textContent="Ошибка теста: "+e.message; }
+}
+
+function chart(daily){
+  if(!daily.length) return '<div class="empty">Пока пусто</div>';
+  const max=Math.max(1,...daily.map(d=>d.ocr+d.stt+d.llm));
+  const W=Math.max(daily.length*22,300), H=140;
+  let bars="";
+  daily.forEach((d,i)=>{
+    const x=i*22+8; let y=H;
+    [["ocr","#2563eb"],["stt","#1e7a52"],["llm","#c98a1b"]].forEach(([k,col])=>{
+      const h=Math.round((d[k]/max)*(H-20));
+      if(h>0){ y-=h; bars+=`<rect x="${x}" y="${y}" width="14" height="${h}" fill="${col}" rx="2"><title>${fmtD(d.date)} ${k}: ${d[k]}</title></rect>`; }
+    });
+  });
+  return `<svg viewBox="0 0 ${W} ${H+16}" style="width:100%;max-width:${W}px">${bars}
+    <text x="8" y="${H+13}" font-size="9" fill="#8b95a3">${fmtD(daily[0].date)}</text>
+    <text x="${W-70}" y="${H+13}" font-size="9" fill="#8b95a3">${fmtD(daily[daily.length-1].date)}</text></svg>
+    <div style="font-size:11px;color:#8b95a3;margin-top:6px"><span style="color:#2563eb">■</span> OCR <span style="color:#1e7a52">■</span> STT <span style="color:#c98a1b">■</span> LLM</div>`;
+}
+
+async function loadAnalytics(){
+  const v=document.getElementById("view-an");
+  try{
+    const ov=await get("/api/admin/analytics/overview");
+    const ts=await get("/api/admin/analytics/timeseries?days=30");
+    const d=await get("/api/admin/analytics/summary");
+    const ev=await get("/api/admin/analytics/events?limit=20");
+    const ins=await get("/api/admin/analytics/insights?days=30");
+    const max=Math.max(1,...Object.values(d.by_event));
+    v.innerHTML=`
+      <div class="grid">
+        <div class="card stat"><div class="n">${ov.doctors}</div><div class="l">врачей</div></div>
+        <div class="card stat"><div class="n">${ov.patients}</div><div class="l">пациентов</div></div>
+        <div class="card stat"><div class="n">${ov.appointments}</div><div class="l">приёмов всего</div></div>
+        <div class="card stat"><div class="n">${ov.appointments_today}</div><div class="l">приёмов сегодня</div></div>
+        <div class="card stat"><div class="n">${ov.notes}</div><div class="l">заметок</div></div>
+        <div class="card stat"><div class="n">${ov.ai_ops}</div><div class="l">ИИ-операций</div></div>
+      </div>
+      <div class="sec">Динамика по дням (30 дней)</div>
+      <div class="card">${lineChart(ts,[["appointments","#2563eb","Приёмы"],["patients","#1e7a52","Пациенты"],["ai","#c98a1b","ИИ-операции"],["events","#8b5cf6","События"]])}</div>
+      <div class="sec">Активность врачей</div>
+      <div class="card">
+        ${barRow("За сутки", ins.doctors.active_24h, ins.doctors.total||1, "#2563eb")}
+        ${barRow("За 7 дней", ins.doctors.active_7d, ins.doctors.total||1, "#2563eb")}
+        ${barRow("За 30 дней", ins.doctors.active_30d, ins.doctors.total||1, "#2563eb")}
+        <div class="muted" style="font-size:12px;margin-top:8px">
+          Всего зарегистрировано врачей: ${ins.doctors.total} · демо-сессий за всё время: ${ins.doctors.demo_sessions}
+          · событий на активного врача: ${ins.engagement.events_per_active_doctor}
+        </div>
+      </div>
+
+      <div class="sec">Путь врача (воронка)</div>
+      <div class="card">
+        ${funnelRow("Зарегистрировались", ins.doctors.total, ins.doctors.total)}
+        ${funnelRow("Завели пациента", ins.doctors.with_patients, ins.doctors.total)}
+        ${funnelRow("Записали приём", ins.doctors.with_appointments, ins.doctors.total)}
+        ${funnelRow("Оплатили подписку", ins.subscriptions.active, ins.doctors.total)}
+        <div class="muted" style="font-size:12px;margin-top:8px">
+          Видно, где врачи «отваливаются»: например, завели карточки, но не дошли до записи приёмов.
+        </div>
+      </div>
+
+      <div class="sec">Расход ИИ по типам (30 дней)</div>
+      <div class="card">
+        ${(() => { const k=ins.ai.by_kind||{}; const tot=Math.max(1, ins.ai.operations);
+          const NAMES={ocr:"Распознавание файлов (OCR)", stt:"Расшифровка речи (STT)", llm:"Команды агента (LLM)"};
+          const COLS={ocr:"#c98a1b", stt:"#1e7a52", llm:"#8b5cf6"};
+          const rows=Object.entries(k).sort((a,b)=>b[1]-a[1]);
+          return rows.length? rows.map(([kind,n])=>barRow(NAMES[kind]||kind, n, tot, COLS[kind]||"#2563eb")).join("")
+                            : '<div class="empty">Пока пусто</div>'; })()}
+        <div class="muted" style="font-size:12px;margin-top:8px">Всего операций: ${ins.ai.operations}</div>
+      </div>
+
+      <div class="sec">Подписки</div>
+      <div class="card">
+        ${(() => { const bp=ins.subscriptions.by_plan||{}; const tot=Math.max(1, ins.subscriptions.active);
+          const NAMES={"1m":"1 месяц","3m":"3 месяца","6m":"6 месяцев","12m":"12 месяцев"};
+          const rows=Object.entries(bp).sort((a,b)=>b[1]-a[1]);
+          return rows.length? rows.map(([pl,n])=>barRow(NAMES[pl]||pl, n, tot, "#1e7a52")).join("")
+                            : '<div class="empty">Активных подписок нет</div>'; })()}
+        <div class="muted" style="font-size:12px;margin-top:8px">Активных подписок: ${ins.subscriptions.active}</div>
+      </div>
+
+      <div class="sec">Использование функций</div>
+      <div class="card">${Object.entries(d.by_event).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k,n])=>`
+        <div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${eventLabel(k)}</span><span class="mono">${n}</span></div>
+        <div class="bar" style="width:${Math.round(n/max*100)}%"></div></div>`).join("")||'<div class="empty">Пока пусто</div>'}</div>
+      <div class="sec">Последние события</div>
+      <div class="card">${ev.map(e=>`<div class="row"><span>${eventLabel(e.event)}</span><span class="muted mono">${fmtDT(e.at)}</span></div>`).join("")||'<div class="empty">Пока пусто</div>'}</div>`;
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}). Проверьте токен и адрес.</div>`; }
+}
+
+function lineChart(rows, series){
+  if(!rows||!rows.length) return '<div class="empty">Пока пусто</div>';
+  const W=Math.max(rows.length*20,320), H=150, P=8;
+  const max=Math.max(1,...rows.flatMap(r=>series.map(([k])=>r[k]||0)));
+  const x=i=>P+i*((W-2*P)/Math.max(1,rows.length-1));
+  const y=val=>H-P-(val/max)*(H-2*P-14);
+  let svg="";
+  series.forEach(([k,col])=>{
+    const pts=rows.map((r,i)=>`${x(i).toFixed(1)},${y(r[k]||0).toFixed(1)}`).join(" ");
+    svg+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>`;
+  });
+  const legend=series.map(([k,col,l])=>`<span style="color:${col};margin-right:12px">■ <span style="color:#8b95a3">${l}</span></span>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H+14}" style="width:100%;max-width:${W}px">${svg}
+    <text x="${P}" y="${H+11}" font-size="9" fill="#8b95a3">${fmtD(rows[0].date)}</text>
+    <text x="${W-60}" y="${H+11}" font-size="9" fill="#8b95a3">${fmtD(rows[rows.length-1].date)}</text></svg>
+    <div style="font-size:11px;margin-top:6px">${legend}</div>`;
+}
+
+async function loadSupport(){
+  const v=document.getElementById("view-sup");
+  v.innerHTML=`<div class="split"><div id="threads"></div><div id="chat" class="msgs"><div class="empty">Выберите обращение слева</div></div></div>`;
+  try{
+    const th=await get("/api/admin/support/threads");
+    document.getElementById("threads").innerHTML = th.length? th.map(t=>`
+      <div class="thread ${curThread===t.id?'on':''}" onclick="openThread(${t.id})">
+        <div class="subj">${t.subject||"(без темы)"} ${t.unread?`<span class="badge">${t.unread}</span>`:""}</div>
+        <div class="meta" style="color:var(--tp)"><span><i class="ti ti-user" style="font-size:12px"></i> ${t.doctor_name||("врач #"+t.doctor_id)}</span></div>
+        <div class="meta"><span>${t.last||""}</span><span class="pill ${t.status}">${t.status==="open"?"открыто":"закрыто"}</span></div>
+      </div>`).join("") : '<div class="empty">Обращений нет</div>';
+    if(curThread) openThread(curThread);
+  }catch(e){ v.innerHTML=`<div class="card empty">Не удалось загрузить (${e.message}).</div>`; }
+}
+
+async function openThread(id){
+  curThread=id;
+  document.querySelectorAll(".thread").forEach(el=>el.classList.remove("on"));
+  const t=await get("/api/admin/support/threads/"+id);
+  const chat=document.getElementById("chat");
+  chat.innerHTML=`
+    <div class="row" style="border-top:none;padding-top:0">
+      <div><span style="font-size:13px;font-weight:500">${t.doctor_name||("врач #"+t.doctor_id)}</span>
+        <span class="muted" style="font-size:12px">${t.doctor_email?(' · '+t.doctor_email):''}</span></div>
+      <button class="btn ghost" style="padding:5px 10px" onclick="show('doc');setTimeout(()=>openDoctor(${t.doctor_id}),150)">Карточка врача</button>
+    </div>
+    <div class="mlist">${t.messages.map(m=>`
+      <div class="msg ${m.from_staff?'staff':'client'}">${m.body}<div class="t">${m.author_name} · ${fmtT(m.created_at)}</div></div>`).join("")}</div>
+    ${t.status==="open"?`
+    <div class="composer"><input id="reply" class="field" placeholder="Ответ поддержки…" onkeydown="if(event.key==='Enter')sendReply()">
+      <button class="btn" onclick="sendReply()">Отправить</button>
+      <button class="btn ghost" onclick="closeThread()">Закрыть</button></div>`
+    :`<div class="muted" style="font-size:12px">Обращение закрыто.</div>`}`;
+  loadSupportListSilently();
+}
+async function sendReply(){
+  const inp=document.getElementById("reply"); const body=inp.value.trim(); if(!body)return;
+  await post(`/api/admin/support/threads/${curThread}/reply`,{body}); openThread(curThread);
+}
+async function closeThread(){ await post(`/api/admin/support/threads/${curThread}/close`); openThread(curThread); }
+async function loadSupportListSilently(){
+  try{ const th=await get("/api/admin/support/threads");
+    document.getElementById("threads").innerHTML=th.map(t=>`
+      <div class="thread ${curThread===t.id?'on':''}" onclick="openThread(${t.id})">
+        <div class="subj">${t.subject||"(без темы)"} ${t.unread?`<span class="badge">${t.unread}</span>`:""}</div>
+        <div class="meta"><span>${t.last||""}</span><span class="pill ${t.status}">${t.status==="open"?"открыто":"закрыто"}</span></div>
+      </div>`).join("");
+  }catch(e){}
+}
+
+loadAnalytics();
+</script>
+</body>
+</html>
