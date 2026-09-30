@@ -28,9 +28,8 @@ body{font-family:'Golos Text',sans-serif;background:var(--s1);color:var(--tp)}
   display:flex;flex-direction:column;overflow-x:hidden;box-shadow:0 0 40px rgba(20,32,44,.06)}
 .scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:14px 18px 24px}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.muted{color:var(--tm)} .warn{color:var(--wn)} .dng{color:var(--dn)} .succ{color:var(--sc)} .acc{color:var(--act)}
+.muted{color:var(--tm)} .warn{color:var(--wn)} .wn{color:var(--wn)} .dng{color:var(--dn)} .succ{color:var(--sc)} .acc{color:var(--act)}
 .rmc{color:var(--rm)}
-.hero{background:linear-gradient(135deg,var(--acbg),var(--rmbg));border-radius:16px;padding:18px;text-align:center;margin-bottom:16px}
 .mic{width:60px;height:60px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 10px;cursor:pointer;border:none}
 .mic.rec{background:var(--dn)}
 .legdot{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ts);margin-right:12px}
@@ -210,8 +209,12 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
 .ob-memo{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}
 .ob-memo-row{font-size:13.5px;line-height:1.4;color:var(--tp)}
 .ob-memo-row b{color:var(--act)}
-.ob-dots{display:flex;gap:6px;justify-content:center;margin:16px 0}
-.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--bd);transition:.15s}
+.ob-dots{display:flex;gap:6px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+/* Точки — кнопки: по ним можно перейти к нужному шагу, не пролистывая всё.
+   Область нажатия делаем больше самой точки, сама точка остаётся мелкой. */
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--bd);transition:.15s;
+  border:0;padding:0;cursor:pointer;box-sizing:content-box;
+  background-clip:content-box;border-width:6px 4px;border-style:solid;border-color:transparent}
 .ob-dot.on{background:var(--ac);transform:scale(1.15)}
 .ob-nav{display:flex;gap:8px;margin-top:6px}
 .ob-nav .btn{flex:1}
@@ -252,7 +255,7 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
 /* ── Единый ассистент: плавающая кнопка + панель (пункт 5) ── */
 .asst-fab{position:fixed;right:16px;bottom:calc(74px + env(safe-area-inset-bottom,0px));
   width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;z-index:850;
-  background:linear-gradient(135deg,var(--ac),var(--rm));color:#fff;font-size:25px;
+  background:var(--ac);color:#fff;font-size:25px;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 6px 20px rgba(37,99,235,.4);transition:transform .12s ease}
 .asst-fab:active{transform:scale(.92)}
@@ -270,7 +273,7 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
 
 /* Освежённая геро-кнопка микрофона на Главной */
 .mic{width:66px;height:66px;box-shadow:0 6px 22px rgba(37,99,235,.35);
-  background:linear-gradient(135deg,var(--ac),var(--rm));transition:transform .12s ease}
+  background:var(--ac);transition:transform .12s ease}
 .mic:active{transform:scale(.94)}
 .mic.rec{background:var(--dn);animation:micPulse 1.2s ease-in-out infinite}
 @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(196,50,43,.5)}50%{box-shadow:0 0 0 12px rgba(196,50,43,0)}}
@@ -383,3 +386,211 @@ details > summary { transition: color .15s ease }
 @media (prefers-reduced-transparency: reduce){
   .chat-compose{background:var(--s2);backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+/* ── Поля с подписями ──────────────────────────────────────────────────────
+   Подпись над полем, а не подсказка внутри: подсказка исчезает, как только
+   начинаешь печатать, и человек забывает, что он заполняет. Плюс пустое поле
+   даты браузер рисует сегодняшним числом — без подписи это читалось как
+   уже заполненное значение. */
+.fld{display:block;margin-bottom:12px}
+.fld > span{display:block;font-size:12px;color:var(--ts);margin-bottom:5px}
+.fld > span .req{font-weight:400;font-size:11px;color:var(--dn)}
+.fld > em{display:block;font-size:11.5px;color:var(--tm);margin-top:5px;font-style:normal;line-height:1.45}
+.fld input[type="date"]{text-align:left}
+
+/* Значок-кнопка: площадь нажатия не меньше подушечки пальца.
+   Голый значок 20×20 в это правило не укладывался вдвое. */
+.icon-btn{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;
+  border:0;background:transparent;color:var(--act);font-size:21px;cursor:pointer;border-radius:12px}
+.icon-btn:active{background:var(--acbg)}
+.add-patient{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;min-height:40px}
+
+/* ── Широкий экран: не растягиваем строки на всю ширину ────────────────────
+   На компьютере приложение занимает всю ширину, и строки вроде «Устройства и
+   входы» растягивались через весь монитор — кнопка «Выйти» уезжала к правому
+   краю, глаз терял связь между текстом и действием. Ограничиваем полосу
+   набора: длинные строки всё равно плохо читаются. */
+@media (min-width: 768px) {
+  .scroll { max-width: 860px; margin-inline: auto; width: 100% }
+}
+
+/* ── Полоска недели на Главной ─────────────────────────────────────────────
+   Месячная сетка занимала полэкрана и утапливала вниз главное действие.
+   Неделя отвечает на вопрос «что на этих днях», месяц живёт в «Календаре». */
+.weekstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
+.wday{display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 0 7px;border:0;background:transparent;border-radius:14px;cursor:pointer;
+  min-height:58px;color:var(--tp)}
+.wday:active{background:var(--s1)}
+.wd-name{font-size:10.5px;color:var(--tm);text-transform:lowercase}
+.wd-num{font-size:15px;font-weight:500;width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.wday.today .wd-num{background:var(--ac);color:#fff}
+.wd-dots{display:flex;gap:3px;height:5px}
+.wd-dots i{width:5px;height:5px;border-radius:50%;display:block}
+
+/* Главное действие экрана — крупно и без прокрутки */
+.start-visit{padding:15px;font-size:15px;margin-bottom:18px;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* ── Шторка ассистента: разговор, а не разовый ответ ───────────────────────
+   Вход в ассистента один на все экраны. Внутри — переписка сверху и строка
+   ввода снизу, как в мессенджере: быстрая команда и разговор живут в одном
+   месте, врачу не надо выбирать заранее. */
+.asst-sheet{display:flex;flex-direction:column;
+  max-height:calc(var(--app-h,100dvh) - 40px)}
+.asst-hint{margin-bottom:10px;flex-shrink:0}
+.asst-log{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;
+  padding-bottom:10px}
+.asst-turn{display:flex;flex-direction:column;gap:6px}
+.asst-mine{align-self:flex-end;max-width:85%;background:var(--ac);color:#fff;
+  border-radius:14px 14px 4px 14px;padding:9px 12px;font-size:13.5px;line-height:1.45}
+.asst-reply{align-self:flex-start;max-width:92%;background:var(--s1);
+  border-radius:14px 14px 14px 4px;padding:10px 12px;font-size:13.5px;line-height:1.5;
+  border-left:3px solid var(--ac)}
+.asst-reply.bad{border-left-color:var(--dn)}
+.asst-act{font-size:12.5px;margin-top:8px;cursor:pointer}
+.asst-wait{padding:2px}
+.asst-compose{display:flex;align-items:center;gap:8px;flex-shrink:0;
+  margin-bottom:calc(var(--kb,0px))}
+.asst-send{width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  background:var(--s1);color:var(--act)}
+.asst-send:disabled{opacity:.4;cursor:default}
+
+/* ══ СТЕКЛО ═══════════════════════════════════════════════════════════════
+   Размытие ставим ТОЛЬКО на слои, которые лежат поверх содержимого и должны
+   показывать, что под ними что-то есть: шторка ассистента, окна, обучение,
+   подсказки. Карточки, поля и списки остаются плотными — мелкий текст
+   (значения анализов, дозировки) должен читаться без усилий.
+
+   Нижнее меню в стекло НЕ переводим: в нашей раскладке оно стоит в потоке и
+   контент под него не подъезжает — размывать там нечего, получился бы просто
+   мутный тон.
+
+   Настоящее преломление краёв, как в Liquid Glass, в браузере недоступно:
+   SVG-фильтры внутри backdrop-filter работают только в Chromium, в Safari на
+   это открытый баг. Делать вторую ветку кода ради эффекта, которого не увидит
+   большая часть врачей, не стали. */
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .asst-sheet, .modal, .ob-card {
+    background: color-mix(in srgb, var(--s2) 78%, transparent);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+  }
+  .tip-pop {
+    background: color-mix(in srgb, var(--tp) 88%, transparent);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+  }
+  /* Тонкая светлая кромка сверху — от неё слой читается как стекло, а не как
+     полупрозрачная заливка. */
+  .asst-sheet, .ob-card { box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 -8px 40px rgba(20,32,44,.28) }
+  .modal { box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 20px 60px rgba(0,0,0,.3) }
+}
+
+/* Человек попросил меньше прозрачности — отдаём плотные поверхности.
+   Для врача с уставшими глазами это важнее эффекта. */
+@media (prefers-reduced-transparency: reduce) {
+  .asst-sheet, .modal, .ob-card, .chat-compose {
+    background: var(--s2) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .tip-pop { background: var(--tp) !important; backdrop-filter: none !important }
+}
+
+/* ══ ДВИЖЕНИЕ ═════════════════════════════════════════════════════════════
+   Анимация объясняет, откуда взялся элемент, и не заставляет ждать.
+   Коротко (0,18–0,26 с), с мягким торможением. В списках пациентов и
+   значений движения нет вовсе — там каждая доля секунды на счету. */
+:root { --ease-out: cubic-bezier(.22,.8,.3,1) }
+
+.asst-ov, .modal-ov, .ob-overlay { animation: fade .16s ease both }
+.asst-sheet, .ob-card { animation: sheet-up .26s var(--ease-out) both }
+.modal { animation: pop-in .18s var(--ease-out) both }
+@keyframes sheet-up { from { transform: translateY(14px); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes pop-in   { from { transform: scale(.97); opacity: 0 } to { transform: none; opacity: 1 } }
+
+/* Отклик на нажатие — мгновенный, это не украшение, а обратная связь */
+.wday:active, .icon-btn:active, .asst-send:active { transform: scale(.94) }
+.wday, .icon-btn, .asst-send { transition: transform .1s ease, background .12s ease }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important }
+}
+
+/* Подсказка к плавающей кнопке. Обёртка берёт координаты кнопки на себя,
+   сама кнопка внутри становится обычной — иначе подсказка встала бы туда,
+   где обёртка оказалась в потоке разметки, то есть мимо. */
+.tip-anchor.tip-fab{position:fixed;right:16px;bottom:calc(74px + env(safe-area-inset-bottom,0px));
+  z-index:860;display:block}
+.tip-fab .asst-fab{position:static}
+.tip-fab .tip-pop{right:0;left:auto}
+.tip-fab .tip-pop .tip-arrow{left:auto;right:22px}
+.kb-open .tip-anchor.tip-fab{bottom:calc(12px + var(--kb,0px))}
+@media(min-width:768px){.tip-anchor.tip-fab{bottom:24px;right:24px}}
+
+/* Период «с — по». На узком экране поля встают друг под друга: поле даты не
+   сжимается меньше своей внутренней ширины и в одну строку не влезает. */
+.daterange{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+.daterange .fld{margin-bottom:0;min-width:0}
+.daterange .input{width:100%;min-width:0}
+@media(min-width:420px){.daterange{grid-template-columns:1fr 1fr}}
+
+/* Пустой день на Главной: отвечает, что делать дальше, а не просто сообщает,
+   что пусто. */
+.emptyday{padding:6px 2px 2px}
+
+/* ── Поиск: лупа, разворачивающаяся в строку ───────────────────────────────
+   Строка занимала верх экрана всегда, хотя нужна не каждый раз. Свёрнутый
+   вид — синяя лупа; по нажатию поле раскрывается и сразу получает фокус. */
+.gsearch-wrap{max-width:44px;transition:max-width .22s var(--ease-out)}
+.gsearch-wrap.wide{max-width:280px}
+.gsearch-btn{width:44px;height:44px;border:0;background:transparent;cursor:pointer;
+  color:var(--ac);font-size:20px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center}
+.gsearch-btn:active{background:var(--acbg)}
+.gsearch-wrap.wide .gsearch{animation:search-open .22s var(--ease-out) backwards}
+@keyframes search-open{from{opacity:0;transform:scaleX(.9);transform-origin:left}
+                       to{opacity:1;transform:none}}
+
+/* ── Сетка на пустых экранах ───────────────────────────────────────────────
+   Отдельным блоком ПОД содержимым, а не фоном за ним. Первая попытка красила
+   фон самого блока — и сетка, во-первых, шла под текстом, а во-вторых,
+   обрывалась жёстким прямоугольным краем по границе блока: выглядело как
+   дефект отрисовки, а не украшение.
+   Теперь это самостоятельный кусок, который заполняет свободное место и
+   гаснет ко всем краям. Статичный, без движения. */
+.gridfill{
+  flex:1;min-height:180px;margin:14px -18px 0;pointer-events:none;
+  background-image:linear-gradient(var(--bd) .5px, transparent .5px),
+                   linear-gradient(90deg, var(--bd) .5px, transparent .5px);
+  background-size:28px 28px;
+  /* Гасим к краям и неровно — чтобы сетка не читалась ни как рамка, ни как обои */
+  -webkit-mask-image:radial-gradient(75% 60% at 38% 22%, #000 0%, transparent 78%),
+                     radial-gradient(55% 45% at 82% 68%, #000 0%, transparent 75%);
+          mask-image:radial-gradient(75% 60% at 38% 22%, #000 0%, transparent 78%),
+                     radial-gradient(55% 45% at 82% 68%, #000 0%, transparent 75%);
+  -webkit-mask-composite:source-over; mask-composite:add;
+  opacity:.65;
+}
+@media (prefers-reduced-transparency: reduce){ .gridfill{display:none} }
+
+/* Подсказка про экран «Домой» — спокойная полоска, не перебивает работу */
+.a2hs{margin-bottom:12px}
+
+/* ── Полоса вкладок: видно, что она продолжается ───────────────────────────
+   Вкладки прокручиваются вбок, но об этом никак не сообщалось: в карте
+   пациента «Визиты» и «Заметки» уходили за край, и врач не догадывался, что
+   они есть. Мягкое затухание у правого края — подсказка, что там ещё есть. */
+.tabs{position:relative;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px), transparent);
+          mask-image:linear-gradient(90deg,#000 calc(100% - 28px), transparent)}
+/* когда прокручено до конца, затухание не нужно */
+.tabs.at-end{-webkit-mask-image:none; mask-image:none}
+
+/* Плавающая кнопка перекрывала низ содержимого: даём прокрутке запас снизу,
+   чтобы под ней ничего не пряталось. */
+.scroll{padding-bottom:84px}

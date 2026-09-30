@@ -19,12 +19,16 @@ export function SkeletonList({ rows = 4 }) {
   );
 }
 
-export function Empty({ icon = "ti-inbox", title = "Пусто", sub }) {
+export function Empty({ icon = "ti-inbox", title = "Пусто", sub, action }) {
+  // action — кнопка прямо здесь. Пустой экран должен предлагать, что делать,
+  // а не отправлять искать кнопку в другом месте.
   return (
     <div className="empty">
       <i className={"ti " + icon} />
       <div style={{ fontSize: 13 }}>{title}</div>
       {sub && <div className="sub" style={{ marginTop: 4 }}>{sub}</div>}
+      {action && <div style={{ marginTop: 14 }}>{action}</div>}
+      <div className="gridfill" aria-hidden="true" />
     </div>
   );
 }

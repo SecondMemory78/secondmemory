@@ -6,12 +6,12 @@ import { useTips } from "../lib/tips";
 //   </Tip>
 // Подсказка появляется, только когда движок сделал active === tipKey.
 // «place» — с какой стороны от элемента показать (top|bottom|left|right).
-export default function Tip({ tipKey, title, text, place = "bottom", children }) {
+export default function Tip({ tipKey, title, text, place = "bottom", className = "", children }) {
   const { active, dismiss } = useTips();
   const open = active === tipKey;
 
   return (
-    <div className="tip-anchor">
+    <div className={"tip-anchor " + className}>
       {children}
       {open && (
         <div className={"tip-pop tip-" + place} role="dialog" aria-label={title || "Подсказка"}>

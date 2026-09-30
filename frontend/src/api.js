@@ -133,15 +133,24 @@ export const api = {
   discardDictation: (did) => j("POST", `/dictation/${did}/discard`),
   createPatient: (b) => j("POST", "/patients", b),
   uploadPhotoBatch: (file, idem) => { const fd = new FormData(); fd.append("file", file); return jForm("/intake/photo-batch", fd, idem); },
-  photoBatch: (bid) => j("GET", `/intake/photo-batch/${bid}`),
-  assignFragment: (bid, fid, patient_id) => j("POST", `/intake/photo-batch/${bid}/fragment/${fid}/assign`, { patient_id }),
-  discardFragment: (bid, fid) => j("POST", `/intake/photo-batch/${bid}/fragment/${fid}/discard`),
-  confirmPhotoBatch: (bid) => j("POST", `/intake/photo-batch/${bid}/confirm`),
-  discardPhotoBatch: (bid) => j("POST", `/intake/photo-batch/${bid}/discard`),
+
   checkIdentity: (b) => j("POST", "/patients/check-identity?mode=manual", b),
   mergePatients: (keep_id, merge_id) => j("POST", "/patients/merge", { keep_id, merge_id }),
   updatePatient: (pid, b) => j("PATCH", `/patients/${pid}`, b),
   timeline: (id) => j("GET", `/patients/${id}/timeline`),
+  // Что стоит поправить до печати памятки (пациенту не показывается)
+  handoutCheck: (pid) => j("GET", `/patients/${pid}/handout-check`),
+  // Памятка пациенту на руки — отдельный документ, не выписка для карты.
+  async handoutPdf(pid) {
+    const r = await fetch(`${BASE}/patients/${pid}/handout.pdf`, { headers: authHeaders() });
+    if (!r.ok) throw new Error("Не удалось сформировать памятку");
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `pamyatka_${pid}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
   async exportPdf(pid, opts = {}) {
     const q = new URLSearchParams();
     if (opts.sections?.length) q.set("sections", opts.sections.join(","));
@@ -283,6 +292,7 @@ export const api = {
   startEncounter: (pid, reason = "") => j("POST", `/patients/${pid}/encounters`, { reason }),
   activeEncounter: (pid) => j("GET", `/patients/${pid}/encounters/active`),
   encounters: (pid) => j("GET", `/patients/${pid}/encounters`),
+  patientAppointments: (pid) => j("GET", `/patients/${pid}/appointments`),
   encounter: (eid) => j("GET", `/encounters/${eid}`),
   closeEncounter: (eid) => j("POST", `/encounters/${eid}/close`),
   createEpisode: (pid, body) => j("POST", `/patients/${pid}/episodes`, body),
@@ -339,7 +349,11 @@ export const api = {
 
   // онбординг и точечные подсказки
   onboardingProgress: () => j("GET", "/onboarding/progress"),
-  tipSeen: (key) => j("POST", "/onboarding/tips/seen", { key }).catch(() => {}),
+  tipSeen: (key) => j("POST", "/onboarding/tips/seen", { key }).catch((e) => {
+    // Раньше отказ глотался молча, и подсказка вылезала при каждой загрузке,
+    // а причина была не видна. Теперь хотя бы остаётся след в консоли.
+    console.warn("Не удалось отметить подсказку", key, e?.message || e);
+  }),
   sandboxStart: () => j("POST", "/onboarding/sandbox/start"),
   sandboxFinish: (completed = true) => j("POST", "/onboarding/sandbox/finish", { completed }),
 

@@ -9,6 +9,7 @@ export default function HeaderSearch() {
   const [notes, setNotes] = useState([]);      // заметки по пациентам
   const [myNotes, setMyNotes] = useState([]);  // мои личные заметки
   const [open, setOpen] = useState(false);
+  const [wide, setWide] = useState(false);   // свёрнут в лупу или развёрнут в строку
   const box = useRef(null);
 
   useEffect(() => {
@@ -24,27 +25,52 @@ export default function HeaderSearch() {
   }, [q]);
 
   useEffect(() => {
-    const onDoc = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e) => {
+      if (box.current && !box.current.contains(e.target)) {
+        setOpen(false);
+        setQ((cur) => { if (!cur) setWide(false); return cur; });   // пустой поиск сворачиваем обратно
+      }
+    };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  function goPatient(id) { setOpen(false); setQ(""); nav(`/patients/${id}`); }
-  function goNotes() { setOpen(false); setQ(""); nav("/notes"); }
+  function goPatient(id) { setOpen(false); setQ(""); setWide(false); nav(`/patients/${id}`); }
+  function goNotes() { setOpen(false); setQ(""); setWide(false); nav("/notes"); }
   function advanced() { setOpen(false); nav(`/search?q=${encodeURIComponent(q)}`); }
 
+  // Свёрнутый вид — синяя лупа: строка поиска занимала верх экрана всегда,
+  // хотя нужна не каждый раз. По нажатию разворачивается в поле и сразу
+  // получает фокус, чтобы не тратить лишнее касание.
+  const input = useRef(null);
+  function expand() {
+    setWide(true);
+    requestAnimationFrame(() => input.current?.focus());
+  }
+  function collapse() {
+    setQ(""); setOpen(false); setWide(false);
+  }
+
   return (
-    <div className="gsearch-wrap" ref={box}>
-      <div className="gsearch">
-        <i className="ti ti-search" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onFocus={() => q && setOpen(true)}
-          placeholder="Поиск: пациенты, диагнозы, заметки…"
-        />
-        {q && <i className="ti ti-x" style={{ cursor: "pointer" }} onClick={() => { setQ(""); setOpen(false); }} />}
-      </div>
+    <div className={"gsearch-wrap" + (wide ? " wide" : "")} ref={box}>
+      {!wide ? (
+        <button className="gsearch-btn" onClick={expand} aria-label="Поиск" title="Поиск">
+          <i className="ti ti-search" />
+        </button>
+      ) : (
+        <div className="gsearch">
+          <i className="ti ti-search acc" />
+          <input
+            ref={input}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onFocus={() => q && setOpen(true)}
+            onKeyDown={(e) => e.key === "Escape" && collapse()}
+            placeholder="Пациенты, диагнозы, заметки…"
+          />
+          <i className="ti ti-x" style={{ cursor: "pointer" }} onClick={collapse} />
+        </div>
+      )}
 
       {open && (
         <div className="gsearch-drop">

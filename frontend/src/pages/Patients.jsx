@@ -6,10 +6,12 @@ import Button from "../components/Button";
 import Tip from "../components/Tip";
 import { useTips } from "../lib/tips";
 
+const EMPTY_FORM = { last_name: "", first_name: "", middle_name: "", birth_date: "", phone: "" };
+const TODAY = new Date().toISOString().slice(0, 10);   // дата рождения не может быть в будущем
+
 export default function Patients() {
   const nav = useNavigate();
   const { show } = useTips();
-  const [q, setQ] = useState("");
   const [list, setList] = useState(null);   // null = грузится
   const [form, setForm] = useState(null);   // null | {last_name,...}
   const [dupes, setDupes] = useState(null); // предупреждение о похожих
@@ -20,10 +22,6 @@ export default function Patients() {
     api.patients(query).then(setList).catch(() => setList([]));
   }
   useEffect(() => { load(""); }, []);
-  useEffect(() => {
-    const t = setTimeout(() => load(q), 200);
-    return () => clearTimeout(t);
-  }, [q]);
 
   async function save() {
     if (!form.last_name.trim()) return;
@@ -49,8 +47,9 @@ export default function Patients() {
     <>
       <div className="hd">
         <div className="ttl" style={{flex:1}}>Пациенты</div>
-        <i className="ti ti-users-group act" title="Список отделения (много пациентов)" onClick={()=>nav("/photo-batch")} />
-        <i className="ti ti-plus act" onClick={() => setForm({ last_name: "", first_name: "", middle_name: "", birth_date: "", phone: "" })} />
+        <button className="btn pri sm add-patient" onClick={() => setForm(EMPTY_FORM)}>
+          <i className="ti ti-plus" /> Добавить
+        </button>
       </div>
 
       {dupes && (
@@ -85,11 +84,36 @@ export default function Patients() {
       {form && (
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="sec-label" style={{ marginTop: 0 }}>Новый пациент</div>
-          <input className="input" placeholder="Фамилия*" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} style={{ marginBottom: 8 }} />
-          <input className="input" placeholder="Имя" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} style={{ marginBottom: 8 }} />
-          <input className="input" placeholder="Отчество" value={form.middle_name} onChange={(e) => setForm({ ...form, middle_name: e.target.value })} style={{ marginBottom: 8 }} />
-          <input className="input" type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} style={{ marginBottom: 8 }} />
-          <input className="input" placeholder="Телефон" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} style={{ marginBottom: 8 }} />
+
+          <label className="fld">
+            <span>Фамилия <b className="req">обязательно</b></span>
+            <input className="input" autoFocus value={form.last_name}
+                   onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
+          </label>
+          <label className="fld">
+            <span>Имя</span>
+            <input className="input" value={form.first_name}
+                   onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
+          </label>
+          <label className="fld">
+            <span>Отчество</span>
+            <input className="input" value={form.middle_name}
+                   onChange={(e) => setForm({ ...form, middle_name: e.target.value })} />
+          </label>
+          {/* Дата рождения без подписи читалась как уже заполненная: браузер
+              показывает в пустом поле сегодняшнее число. Подпись и пояснение
+              снимают вопрос, что сюда ставить. */}
+          <label className="fld">
+            <span>Дата рождения</span>
+            <input className="input" type="date" max={TODAY} value={form.birth_date}
+                   onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+            <em>Помогает не перепутать тёзок. Можно заполнить позже.</em>
+          </label>
+          <label className="fld">
+            <span>Телефон</span>
+            <input className="input" type="tel" inputMode="tel" value={form.phone}
+                   onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          </label>
           <div className="btnrow">
             <button className="btn sm" style={{ flex: 1 }} onClick={() => setForm(null)}>Отмена</button>
             <Button className="btn pri sm" style={{ flex: 1 }} disabled={!form.last_name.trim()} onClick={save}>Создать</Button>
@@ -97,20 +121,13 @@ export default function Patients() {
         </div>
       )}
 
-      <div className="input" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <i className="ti ti-search muted" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Имя, диагноз (напр. ДГПЖ)…"
-          style={{ border: 0, background: "transparent", outline: "none", flex: 1, font: "inherit", color: "var(--tp)" }}
-        />
-      </div>
-
       {list === null && <SkeletonList rows={5} />}
       {list !== null && list.length === 0 && (
-        q ? <Empty icon="ti-search-off" title="Ничего не найдено" sub="Попробуйте изменить запрос" />
-          : <Empty icon="ti-users" title="Пациентов пока нет" sub="Добавьте первого пациента кнопкой ниже" />
+        <Empty icon="ti-users" title="Пациентов пока нет"
+               sub="Здесь появятся карточки. Поиск по всей базе — в строке сверху."
+               action={<button className="btn pri" onClick={() => setForm(EMPTY_FORM)}>
+                         <i className="ti ti-plus" /> Добавить пациента
+                       </button>} />
       )}
       {(list || []).map((p) => (
         <div key={p.id} className="row" style={{ cursor: "pointer" }} onClick={() => nav(`/patients/${p.id}`)}>

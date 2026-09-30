@@ -22,7 +22,6 @@ import Reminders from "./pages/Reminders";
 import More from "./pages/More";
 import StartVisit from "./pages/StartVisit";
 import Billing from "./pages/Billing";
-import PhotoBatch from "./pages/PhotoBatch";
 import Dictation from "./pages/Dictation";
 import NotifySettings from "./pages/NotifySettings";
 import Toast from "./components/Toast";
@@ -122,7 +121,6 @@ export default function App() {
           <Route path="/help" element={<Help />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/billing" element={<Billing onSubChange={refreshSub} />} />
-          <Route path="/photo-batch" element={<PhotoBatch />} />
           <Route path="/dictation" element={<Dictation />} />
           <Route path="/notify-settings" element={<NotifySettings />} />
           <Route path="/patients" element={<Patients />} />

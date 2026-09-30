@@ -49,6 +49,21 @@ export default function PatientDetail() {
     const s = new Set(pdf.sections); s.has(k) ? s.delete(k) : s.add(k);
     setPdf({ ...pdf, sections: s });
   }
+  // Проверка перед печатью: у активного устройства может не быть срока
+  // замены — врач должен увидеть это до того, как отдаст бумагу пациенту.
+  useEffect(() => {
+    if (!pdf || pdf.warnings) return;
+    api.handoutCheck(id).then((r) => setPdf((p) => p && ({ ...p, warnings: r.warnings || [] })))
+       .catch(() => setPdf((p) => p && ({ ...p, warnings: [] })));
+  }, [pdf, id]);
+
+  async function downloadHandout() {
+    setPdf((p) => ({ ...p, handoutBusy: true }));
+    try { await api.handoutPdf(id); }
+    catch (e) { toast(e.message || "Не удалось сформировать памятку", "error"); }
+    finally { setPdf((p) => p && ({ ...p, handoutBusy: false })); }
+  }
+
   async function downloadPdf() {
     setPdf({ ...pdf, busy: true });
     try {
@@ -147,6 +162,10 @@ export default function PatientDetail() {
 
   useEffect(() => { if (id) api.activeEncounter(id).then(setActiveEnc).catch(() => {}); }, [id]);
   useEffect(() => { if (id && tab === "v") api.encounters(id).then(setEncs).catch(() => setEncs([])); }, [id, tab]);
+  // Записи из календаря — рядом с эпизодами: врач открывает «Визиты» и ждёт
+  // увидеть историю посещений целиком, а не только заведённое вручную.
+  const [appts, setAppts] = useState([]);
+  useEffect(() => { if (id && tab === "v") api.patientAppointments(id).then(setAppts).catch(() => setAppts([])); }, [id, tab]);
 
   async function closeVisit() {
     if (!activeEnc) return;
@@ -434,16 +453,45 @@ export default function PatientDetail() {
               </span>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
-            <span className="sub">период:</span>
-            <input className="input" type="date" value={pdf.from} onChange={(e) => setPdf({ ...pdf, from: e.target.value })} style={{ flex: 1 }} />
-            <span className="sub">—</span>
-            <input className="input" type="date" value={pdf.to} onChange={(e) => setPdf({ ...pdf, to: e.target.value })} style={{ flex: 1 }} />
+          {/* Поля даты не ужимаются меньше своей внутренней ширины: браузер
+              рисует «дд.мм.гггг» со значком календаря. В одну строку на узком
+              экране они не влезали и уезжали за правый край. */}
+          <div className="daterange">
+            <label className="fld">
+              <span>период с</span>
+              <input className="input" type="date" value={pdf.from}
+                     onChange={(e) => setPdf({ ...pdf, from: e.target.value })} />
+            </label>
+            <label className="fld">
+              <span>по</span>
+              <input className="input" type="date" value={pdf.to}
+                     onChange={(e) => setPdf({ ...pdf, to: e.target.value })} />
+            </label>
           </div>
           <div className="btnrow">
             <button className="btn sm" style={{ flex: 1 }} onClick={() => setPdf(null)}>Отмена</button>
             <button className="btn pri sm" style={{ flex: 1 }} disabled={pdf.busy || pdf.sections.size === 0} onClick={downloadPdf}>
               {pdf.busy ? "Формирую…" : "Скачать PDF"}
+            </button>
+          </div>
+
+          {/* Памятка — другой документ: короткая бумага пациенту на руки.
+              Собирается из подтверждённых данных, разделы выбирать не нужно. */}
+          <div style={{ borderTop: ".5px solid var(--bd)", marginTop: 14, paddingTop: 12 }}>
+            <div className="sub" style={{ marginBottom: 8 }}>
+              Памятка пациенту: что изменилось, что принимать, что сделать и когда прийти.
+              Непроверенные значения в неё не попадают.
+            </div>
+            {(pdf.warnings || []).length > 0 && (
+              <div className="banner b-wn" style={{ marginBottom: 10, display: "block" }}>
+                <b>Перед печатью стоит поправить:</b>
+                <div style={{ marginTop: 4 }}>
+                  {pdf.warnings.map((w, i) => <div key={i}>· {w}</div>)}
+                </div>
+              </div>
+            )}
+            <button className="btn sm block" disabled={pdf.handoutBusy} onClick={downloadHandout}>
+              <i className="ti ti-file-text" /> {pdf.handoutBusy ? "Формирую…" : "Памятка пациенту"}
             </button>
           </div>
         </div>
@@ -545,6 +593,25 @@ export default function PatientDetail() {
 
       {tab === "v" && (
         <>
+          {appts.length > 0 && (
+            <>
+              <div className="sec-label" style={{ marginTop: 0 }}>Записи на приём</div>
+              {appts.map((a) => (
+                <div key={"ap" + a.id} className="row">
+                  <div style={{ display: "flex", gap: 10, alignItems: "baseline", minWidth: 0 }}>
+                    <span className="mono acc" style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>{fmtDateTime(a.starts_at)}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5 }}>{a.kind_label}{a.reason ? ` · ${a.reason}` : ""}</div>
+                      <div className={"sub" + (a.status === "no_show" ? " dng" : "")}>
+                        {a.past ? a.status_label : "запланирован"}{a.rescheduled ? " · переносился" : ""}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="sec-label">Эпизоды</div>
+            </>
+          )}
           <button className="btn sm" style={{ width: "100%", marginBottom: 10, opacity: consentOk ? 1 : 0.5 }}
             disabled={!consentOk} onClick={() => consentOk && setEpForm({ type: "hospitalization", reason: "", ward: "", admission: "", diagnosis_code: "", diagnosis_text: "" })}>
             <i className="ti ti-plus" /> Новый эпизод (госпитализация/приём)

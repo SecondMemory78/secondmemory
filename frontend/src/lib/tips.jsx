@@ -10,8 +10,9 @@ const TipsCtx = createContext(null);
 
 export function TipsProvider({ enabled = true, children }) {
   const [seen, setSeen] = useState(null);        // null = ещё не загружено; Set<string> после
-  const [active, setActive] = useState(null);    // ключ показываемой сейчас подсказки (одна за раз)
+  const [queue, setQueue] = useState([]);        // очередь подсказок; показываем первую
   const requested = useRef(new Set());           // какие show() уже запрашивались в этой сессии
+  const active = queue[0] || null;
 
   useEffect(() => {
     if (!enabled) return;
@@ -27,13 +28,16 @@ export function TipsProvider({ enabled = true, children }) {
     if (!enabled || !seen) return;               // ещё не загрузились — попробуют снова при перерисовке
     if (seen.has(key) || requested.current.has(key)) return;
     requested.current.add(key);
-    setActive((cur) => cur || key);              // не перебиваем уже открытую подсказку
+    // Встаём в очередь, а не перебиваем открытую. Раньше вторая подсказка,
+    // запрошенная при той же перерисовке, терялась навсегда — экран уже
+    // отметил её как запрошенную, а показать было некому.
+    setQueue((q) => (q.includes(key) ? q : [...q, key]));
   }, [enabled, seen]);
 
   // Погасить: пометить увиденной локально и на бэке.
   const dismiss = useCallback((key) => {
     setSeen((s) => { const n = new Set(s); n.add(key); return n; });
-    setActive((cur) => (cur === key ? null : cur));
+    setQueue((q) => q.filter((k) => k !== key));   // следующая из очереди покажется сама
     api.tipSeen(key);                            // .catch внутри api — не роняет UI
   }, []);
 

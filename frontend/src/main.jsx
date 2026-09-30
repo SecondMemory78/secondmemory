@@ -6,7 +6,9 @@ import "@fontsource/golos-text/500.css";
 import "@fontsource/golos-text/600.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/500.css";
-import "@tabler/icons-webfont/dist/tabler-icons.min.css";
+// Иконки: подмножество из 105 значков вместо полного шрифта на 825 КБ.
+// Пересобрать после добавления новых: node scripts/build-icons.mjs
+import "./icons.css";
 import "./theme.css";
 import { startViewportWatch, keepFocusVisible } from "./lib/viewport";
 

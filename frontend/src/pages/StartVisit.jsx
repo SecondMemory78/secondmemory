@@ -81,7 +81,9 @@ export default function StartVisit() {
       <div className="hd">
         <i className="ti ti-arrow-left back" onClick={() => nav(-1)} />
         <div className="ttl" style={{ flex: 1 }}>Начать приём</div>
-        <i className="ti ti-user-plus act" title="Новый пациент" onClick={() => openForm()} />
+        <button className="btn pri sm add-patient" onClick={() => openForm()}>
+          <i className="ti ti-user-plus" /> Добавить
+        </button>
       </div>
 
       {session?.active && (

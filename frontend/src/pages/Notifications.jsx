@@ -25,7 +25,7 @@ export default function Notifications() {
       overdue: "/tasks", reminder: "/tasks",
       limit: "/billing", billing: "/billing",
       security: "/more", support: "/support",
-      ocr: "/photo-batch",
+      ocr: "/patients",
       trigger: "/triggers",
       digest: "/", recap: "/",
     };
@@ -38,7 +38,10 @@ export default function Notifications() {
   return (
     <>
       <div className="hd">
-        <div className="ttl">Уведомления</div>
+        {/* Экран открывается колокольчиком с любого места и вкладкой не является —
+            без кнопки назад отсюда можно было выйти только через нижнее меню. */}
+        <i className="ti ti-arrow-left back" onClick={() => nav(-1)} />
+        <div className="ttl" style={{ flex: 1 }}>Уведомления</div>
         {(items || []).some((n) => !n.read) && <span className="acc" style={{ fontSize: 12, cursor: "pointer" }} onClick={readAll}>прочитать всё</span>}
       </div>
 

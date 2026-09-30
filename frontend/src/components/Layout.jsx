@@ -61,7 +61,9 @@ export default function Layout() {
           )}
           <Outlet />
         </div>
-        {loc.pathname !== "/" && loc.pathname !== "/more" && <AssistantFab />}
+        {/* Ассистент есть и на Главной: раньше там был отдельный большой микрофон,
+            теперь вход в ассистента один и в одном месте на всех экранах. */}
+        {loc.pathname !== "/more" && <AssistantFab />}
         <OutboxBadge />
         <nav className="tabbar">
           {TABS.map((t) => (

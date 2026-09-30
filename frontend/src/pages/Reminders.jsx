@@ -5,6 +5,7 @@ import { confirmAction } from "../lib/confirm";
 import { toast } from "../lib/toast";
 import { onDataChanged } from "../lib/bus";
 import VoiceButton from "../components/VoiceButton";
+import AddToHomeHint, { shouldShowAddToHome } from "../components/AddToHomeHint";
 
 const PRI = { 1: "var(--dn)", 2: "var(--wn)", 3: "var(--ac)", 4: "var(--tm)" };
 // цвет по типу: приём-контроль — синий, обычная задача/звонок — фиолетовый (как напоминание)
@@ -24,13 +25,19 @@ export default function Reminders() {
   useEffect(() => { load(); }, [tab]);
   useEffect(() => onDataChanged((d) => { if (d.scope === "tasks") load(); }), []);
 
+  const [a2hs, setA2hs] = useState(false);
+
   async function quickAdd() {
     if (!text.trim()) return;
     await api.quickReminder(text.trim(), null);
     setText(""); load();
+    // Момент, когда совет про экран «Домой» становится к месту: напоминание
+    // создано, и врач вправе ждать, что оно придёт на телефон.
+    if (shouldShowAddToHome()) setA2hs(true);
   }
   async function voiceAdd(blob) {
     setBusy("Расшифровываю…"); await api.voiceReminder(null, blob); setBusy(""); load();
+    if (shouldShowAddToHome()) setA2hs(true);
   }
   async function done(id) {
     setFading((f) => ({ ...f, [id]: true }));   // зачёркиваем и плавно убираем
@@ -91,6 +98,8 @@ export default function Reminders() {
   return (
     <>
       <div className="hd"><div className="ttl">Задачи</div></div>
+
+      {a2hs && <AddToHomeHint onClose={() => setA2hs(false)} />}
 
       <div className="tabs" style={{ marginBottom: 10 }}>
         <div className={"t" + (tab === "active" ? " on" : "")} onClick={() => setTab("active")}>Активные</div>

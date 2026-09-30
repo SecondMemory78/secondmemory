@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { notifyAssistantResult } from "../lib/bus";
-import { WD, monthMatrix, monthRange, monthLabel, todayISO, weekOffsetOfISO, fmtDay, iso as isoOf } from "../lib/dates";
+import { WD, monthMatrix, monthRange, todayISO, weekOffsetOfISO, fmtDay, iso as isoOf } from "../lib/dates";
+import { plural } from "../lib/plural";
 import Tip from "../components/Tip";
 import { useTips } from "../lib/tips";
 
@@ -14,8 +15,6 @@ export default function Home() {
   const [dash, setDash] = useState(null);
   const [appts, setAppts] = useState([]);
   const [rems, setRems] = useState([]);
-  const [text, setText] = useState("");
-  const [note, setNote] = useState("");
   const [sub, setSub] = useState(null);
   const [attn, setAttn] = useState(null);
   const [attnOpen, setAttnOpen] = useState(false);
@@ -24,39 +23,45 @@ export default function Home() {
     api.dashboard().then(setDash).catch(() => {});
     api.attention().then(setAttn).catch(() => {});
     api.billingStatus().then(setSub).catch(() => {});
-    const [from, to] = monthRange(Y, M);
+    // Берём месяц плюс полтора месяца вперёд: точки на неделе рисуются из
+    // текущего месяца, а «ближайший приём» иначе не видел записи, попавшие
+    // в следующий месяц — а это самый обычный случай в конце месяца.
+    const [from] = monthRange(Y, M);
+    const ahead = new Date(); ahead.setDate(ahead.getDate() + 45);
+    const to = isoOf(ahead.getFullYear(), ahead.getMonth() + 1, ahead.getDate());
     api.appointments(from, to).then(setAppts).catch(() => {});
     api.reminders("open").then(setRems).catch(() => {});
   }
   useEffect(() => { load(); }, []);
   useEffect(() => { if (attn && attn.count > 0) show("tip:attention"); }, [attn, show]);
+  // Новая раскладка: объясняем главную кнопку и вход в ассистента.
+  // Показываются по очереди, одна за другой, и только при первом заходе.
+  useEffect(() => { show("tip:start-visit"); show("tip:assistant"); }, [show]);
 
   const TODAY = todayISO();
   const dotDays = new Set(appts.map((a) => a.day));
   const remDays = new Set(rems.filter((r) => r.due_at).map((r) => {
     const d = new Date(r.due_at); return isoOf(d.getFullYear(), d.getMonth() + 1, d.getDate());
   }));
+  // Ближайший приём — то, что нужно знать, когда сегодня никого: свободен ли
+  // врач до вторника или на завтра уже кто-то записан. Данные уже загружены,
+  // новых запросов к серверу не нужно.
+  const nextAppt = appts
+    .filter((a) => a.day > TODAY || (a.day === TODAY && a.time >= new Date().toTimeString().slice(0, 5)))
+    .sort((x, y) => (x.day + x.time).localeCompare(y.day + y.time))[0];
+
   const weeks = monthMatrix(Y, M);
+  // На Главной показываем НЕДЕЛЮ, а не месяц: месячная сетка занимала полэкрана
+  // и утапливала вниз то, ради чего врач открыл приложение. Месяц остался
+  // отдельной страницей «Календарь».
+  const week = weeks.find((row) => row.some((c) => c.iso === TODAY)) || weeks[0];
   const todayAppts = appts.filter((a) => a.day === TODAY);
   const todayRems = rems.filter((r) => r.due_at && new Date(r.due_at) <= new Date());
 
-  async function voiceCapture(blob) {
-    setNote("Распознаю и разбираю…");
-    const res = await api.assistantVoice(blob);
-    notifyAssistantResult(res);
-    setNote(res.message || "Готово");
-    load();
-  }
-  async function quickAdd() {
-    if (!text.trim()) return;
-    const res = await api.assistantCommand(text.trim());
-    notifyAssistantResult(res);
-    setText(""); setNote(res.message || "Готово"); load();
-  }
 
   return (
     <>
-      <div className="hd"><div className="ttl">Главная</div></div>
+      <div className="hd"><div className="ttl">Сегодня</div></div>
 
       {sub && sub.active && !sub.is_demo && sub.days_left <= 5 && (
         <div className="banner b-dn" style={{ marginBottom: 12 }} onClick={() => nav("/billing")}>
@@ -64,33 +69,33 @@ export default function Home() {
         </div>
       )}
 
-      {/* умный диктофон — центральный захват */}
-      <div className="hero">
-        <VoiceButtonHero onResult={voiceCapture} />
-        <div style={{ fontSize: 13.5, fontWeight: 500 }}>Записать голосом</div>
-        <div className="acc" style={{ fontSize: 12, marginTop: 6, cursor: "pointer" }} onClick={() => nav("/dictation")}>Несколько дел разом →</div>
-        <div className="sub" style={{ marginTop: 2 }}>приём, задача, заметка или запись в карту — разберём сами</div>
-        {note && <div className="sub acc" style={{ marginTop: 8 }}>{note}</div>}
+      {/* Неделя. Месяц — на отдельной странице «Календарь»: месячная сетка
+          занимала полэкрана и утапливала вниз главное. */}
+      <div className="weekstrip">
+        {week.map((c) => {
+          const isToday = c.iso === TODAY;
+          return (
+            <button key={c.iso} className={"wday" + (isToday ? " today" : "")}
+                    onClick={() => nav(`/week/${weekOffsetOfISO(c.iso)}`)}>
+              <span className="wd-name">{WD[(new Date(c.iso).getDay() + 6) % 7]}</span>
+              <span className="wd-num">{c.day}</span>
+              <span className="wd-dots">
+                {dotDays.has(c.iso) && <i style={{ background: "var(--ac)" }} />}
+                {remDays.has(c.iso) && <i style={{ background: "var(--rm)" }} />}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="input" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <i className="ti ti-sparkles muted" />
-        <input value={text} onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && quickAdd()}
-          placeholder="«запиши Иванова на среду 15:00» / «заехать в магазин вечером»"
-          style={{ border: 0, background: "transparent", outline: "none", flex: 1, font: "inherit", color: "var(--tp)" }} />
-      </div>
-
-      {/* сводка дня */}
-      {dash && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <Stat n={dash.today_appointments} label="приёма" color="var(--ac)" />
-          {/* просрочка — красным: фиолетовый уже занят задачами в календаре */}
-          <Stat n={dash.overdue_reminders} label="просрочено"
-                color={dash.overdue_reminders > 0 ? "var(--dn)" : "var(--tm)"} />
-          <Stat n={dash.pending_observations} label="на проверке" color="var(--wn)" />
-        </div>
-      )}
+      {/* Главное действие — сразу, без прокрутки. Врач жаловался, что кнопку
+          приёма приходилось искать в самом низу. */}
+      <Tip tipKey="tip:start-visit" place="bottom" title="Отсюда начинается приём"
+           text="Открывает карту пациента и заводит визит. Всё, что внесёте при открытом визите — заметки, показатели, назначения, документы, — привяжется именно к нему.">
+        <button className="btn pri block start-visit" onClick={() => nav("/start-visit")}>
+          <i className="ti ti-player-play" /> Начать приём
+        </button>
+      </Tip>
 
       {/* требуют внимания — компактная плитка, подробности в окне (чтобы не захламлять) */}
       {attn && attn.count > 0 && (
@@ -141,55 +146,9 @@ export default function Home() {
         </div>
       ))}
 
-      {/* недельная сводка */}
-      {dash?.weekly && (
-        <div className="card" style={{ marginTop: 6 }}>
-          <div className="sub" style={{ fontWeight: 500, marginBottom: 8 }}>На этой неделе</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <WeekStat n={dash.weekly.appointments} label="приёмов" />
-            <WeekStat n={dash.weekly.controls} label="контролей" />
-            <WeekStat n={dash.weekly.overdue} label="просрочено" danger={dash.weekly.overdue > 0} />
-          </div>
-        </div>
-      )}
-
-      {/* календарь на главной */}
-      <div className="sec-label">{monthLabel(Y, M)}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 6 }}>
-        {WD.map((d) => (
-          <div key={d} style={{ textAlign: "center", fontSize: 11, color: "var(--tm)" }}>{d}</div>
-        ))}
-      </div>
-      {weeks.map((row, wi) => (
-        <div key={wi} onClick={() => nav(`/week/${weekOffsetOfISO(row.find((c) => c.cur).iso)}`)}
-          style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", borderRadius: 12, cursor: "pointer" }}>
-          {row.map((c, i) => {
-            const isToday = c.iso === TODAY;
-            const hasA = c.cur && dotDays.has(c.iso);
-            const hasR = c.cur && remDays.has(c.iso);
-            return (
-              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 0" }}>
-                {isToday ? (
-                  <div style={{ width: 27, height: 27, borderRadius: "50%", background: "var(--ac)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>{c.day}</div>
-                ) : (
-                  <div style={{ fontSize: 13, color: c.cur ? "var(--tp)" : "var(--tm)", opacity: c.cur ? 1 : 0.5 }}>{c.day}</div>
-                )}
-                <div style={{ display: "flex", gap: 2, height: 5 }}>
-                  {hasA && <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--ac)" }} />}
-                  {hasR && <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--rm)" }} />}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-      <div style={{ marginTop: 8 }}>
-        <span className="legdot"><span style={{ background: "var(--ac)" }} /> приём</span>
-        <span className="legdot"><span style={{ background: "var(--rm)" }} /> напоминание</span>
-      </div>
-
-      {/* сегодня */}
-      <div className="sec-label">Сегодня, {fmtDay(TODAY)}</div>
+      {/* Список дня: приёмы и дела вместе, по времени. Это и есть ответ на
+          вопрос «что у меня сегодня» — вместо шести счётчиков с нулями. */}
+      <div className="sec-label">{fmtDay(TODAY)}</div>
       {todayAppts.map((a) => (
         <div key={"a" + a.id} className="row" style={{ cursor: "pointer" }} onClick={() => nav(`/patients/${a.patient_id}`)}>
           <div style={{ display: "flex", gap: 12 }}>
@@ -213,58 +172,53 @@ export default function Home() {
           </div>
         </div>
       ))}
+      {todayAppts.length === 0 && todayRems.length === 0 && (
+        /* Пустой день должен отвечать на вопрос «раз сегодня никого — что дальше?»,
+           а не просто сообщать, что пусто. */
+        <div className="emptyday">
+          <div className="sub">На сегодня ничего не запланировано.</div>
 
-      <button className="btn pri block" style={{ marginTop: 18, padding: 14 }} onClick={() => nav("/start-visit")}>
-        <i className="ti ti-player-play" /> Начать приём
-      </button>
+          {nextAppt && (
+            <div className="row" style={{ cursor: "pointer", marginTop: 8 }}
+                 onClick={() => nav(`/patients/${nextAppt.patient_id}`)}>
+              <div style={{ display: "flex", gap: 12, alignItems: "baseline", minWidth: 0 }}>
+                <i className="ti ti-calendar-event acc" />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5 }}>Ближайший приём — {fmtDay(nextAppt.day)}, {nextAppt.time}</div>
+                  <div className="sub">{nextAppt.patient_name}</div>
+                </div>
+              </div>
+              <i className="ti ti-chevron-right muted" />
+            </div>
+          )}
+
+          {dash?.weekly && (dash.weekly.appointments > 0 || dash.weekly.controls > 0) && (
+            <div className="sub" style={{ marginTop: 10 }}>
+              На этой неделе: {dash.weekly.appointments} {plural(dash.weekly.appointments, "приём", "приёма", "приёмов")}
+              {dash.weekly.controls > 0 && `, ${dash.weekly.controls} ${plural(dash.weekly.controls, "контроль", "контроля", "контролей")}`}.
+            </div>
+          )}
+
+          {!nextAppt && (
+            <div className="btnrow" style={{ marginTop: 14 }}>
+              <button className="btn sm" style={{ flex: 1 }} onClick={() => nav("/calendar")}>
+                <i className="ti ti-calendar-plus" /> Запланировать
+              </button>
+              <button className="btn sm" style={{ flex: 1 }} onClick={() => nav("/patients")}>
+                <i className="ti ti-user-plus" /> Добавить пациента
+              </button>
+            </div>
+          )}
+          <div className="gridfill" aria-hidden="true" />
+        </div>
+      )}
+
     </>
   );
 }
 
-function Stat({ n, label, color }) {
-  return (
-    <div className="card" style={{ flex: 1, textAlign: "center", padding: "12px 6px" }}>
-      <div style={{ fontSize: 22, fontWeight: 600, color }}>{n}</div>
-      <div className="sub" style={{ marginTop: 2 }}>{label}</div>
-    </div>
-  );
-}
 
-function WeekStat({ n, label, danger }) {
-  return (
-    <div style={{ flex: 1, textAlign: "center" }}>
-      <div style={{ fontSize: 20, fontWeight: 600, color: danger ? "var(--dn)" : "var(--tp)" }}>{n}</div>
-      <div className="sub" style={{ marginTop: 2 }}>{label}</div>
-    </div>
-  );
-}
 
-// большой круг микрофона для главной
-function VoiceButtonHero({ onResult }) {
-  const [rec, setRec] = useState(false);
-  let mr = null;
-  const chunks = [];
-  async function toggle() {
-    if (rec && window.__mr) { window.__mr.stop(); return; }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mr = new MediaRecorder(stream);
-      window.__mr = mr;
-      mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-      mr.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        setRec(false);
-        onResult(new Blob(chunks, { type: "audio/webm" }));
-      };
-      mr.start(); setRec(true);
-    } catch (e) { onResult(null); }
-  }
-  return (
-    <button className={"mic" + (rec ? " rec" : "")} onClick={toggle}>
-      <i className={"ti " + (rec ? "ti-player-stop rec" : "ti-microphone")} />
-    </button>
-  );
-}
 
 // Короткая сводка для плитки: что именно требует внимания, без списка пациентов
 function attnSummary(items) {

@@ -11,7 +11,7 @@ const ACTION_RU = { removed: "удалён", replaced: "заменён" };
 export default function DevicesTab({ id, disabled }) {
   const [items, setItems] = useState(null);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ kind: "stent", device_label: "", due_at: "" });
+  const [form, setForm] = useState({ kind: "stent", side: "", device_label: "", due_at: "" });
   const [replaceOf, setReplaceOf] = useState(null);   // id заменяемого
   const [rform, setRform] = useState({ device_label: "", due_at: "" });
 
@@ -19,11 +19,11 @@ export default function DevicesTab({ id, disabled }) {
   useEffect(() => { load(); }, [id]);
 
   async function add() {
-    const body = { kind: form.kind, device_label: form.device_label.trim(),
+    const body = { kind: form.kind, side: form.side, device_label: form.device_label.trim(),
                    due_at: form.due_at || null };
     const r = await api.addDevice(id, body).catch(() => null);
     if (!r) return toast("Не удалось добавить устройство", "error");
-    setAdding(false); setForm({ kind: "stent", device_label: "", due_at: "" });
+    setAdding(false); setForm({ kind: "stent", side: "", device_label: "", due_at: "" });
     load();
   }
 
@@ -64,7 +64,20 @@ export default function DevicesTab({ id, disabled }) {
             <option value="catheter">Катетер</option>
             <option value="nephrostomy">Нефростома</option>
           </select>
-          <input className="input" placeholder="Метка (напр. «стент справа»)" value={form.device_label}
+          {/* Сторона отдельным полем, а не текстом в метке: перепутать бок —
+              самая дорогая ошибка здесь, и в памятку сторона должна попадать
+              как данные, а не как часть подписи. */}
+          <label className="fld">
+            <span>Сторона</span>
+            <select className="input" value={form.side}
+                    onChange={(e) => setForm({ ...form, side: e.target.value })}>
+              <option value="">не применимо</option>
+              <option value="left">слева</option>
+              <option value="right">справа</option>
+              <option value="both">с обеих сторон</option>
+            </select>
+          </label>
+          <input className="input" placeholder="Метка: номер, партия (необязательно)" value={form.device_label}
                  style={{ marginBottom: 8 }} onChange={(e) => setForm({ ...form, device_label: e.target.value })} />
           <div className="sub" style={{ marginBottom: 4 }}>Плановая замена/удаление (можно не указывать)</div>
           <input className="input" type="date" value={form.due_at} style={{ marginBottom: 8 }}
@@ -81,7 +94,7 @@ export default function DevicesTab({ id, disabled }) {
       {active.map((d) => (
         <div key={d.id} className="card" style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 13.5, fontWeight: 500 }}>
-            {KIND_RU[d.kind] || d.kind}{d.device_label ? ` · ${d.device_label}` : ""}
+            {KIND_RU[d.kind] || d.kind}{d.side_label ? ` ${d.side_label}` : ""}{d.device_label ? ` · ${d.device_label}` : ""}
           </div>
           <div className="sub" style={{ marginTop: 2 }}>
             {d.due_at ? `Замена/удаление до ${fmtDate(d.due_at)}` : "Срок не задан"}
