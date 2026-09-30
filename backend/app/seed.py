@@ -1,7 +1,7 @@
 """Демо-данные для разработки: один врач и несколько пациентов с историей."""
 from datetime import date, datetime, timedelta
 from sqlmodel import Session, select
-from .db import engine, init_db
+from .db import engine, init_db, AppSession
 from . import clock
 from .security import hash_password
 from .models import (Doctor, Patient, Observation, SafetyItem, Reminder, Appointment,
@@ -11,7 +11,7 @@ from .models import (Doctor, Patient, Observation, SafetyItem, Reminder, Appoint
 def run():
     """Демо-данные для разработки: общий демо-врач, если база пуста."""
     init_db()
-    with Session(engine) as s:
+    with AppSession() as s:
         if s.exec(select(Doctor)).first():
             print("Данные уже есть — пропускаю seed.")
             return

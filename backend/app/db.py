@@ -15,6 +15,24 @@ engine = create_engine(
 )
 
 
+class AppSession(Session):
+    """Сессия, которая не «протухает» после commit.
+
+    По умолчанию SQLAlchemy после commit помечает все объекты устаревшими, и
+    следующее же обращение к любому полю лезет в базу заново. Это ловушка,
+    которая в проекте срабатывала уже четыре раза (заметки, приёмы, показатели,
+    поддержка): после commit читаем t.id — и получаем либо пустой ответ, либо
+    ObjectDeletedError, если повторный запрос ничего не вернул.
+
+    Нам обновление после commit не нужно: запрос короткий, данные в нём свои.
+    Поэтому expire_on_commit выключен для всех сессий приложения разом.
+    """
+
+    def __init__(self, bind=None, **kw):
+        kw.setdefault("expire_on_commit", False)
+        super().__init__(bind if bind is not None else engine, **kw)
+
+
 def init_db() -> None:
     """Dev/тесты на SQLite — создаём таблицы автоматически.
     На Postgres схему ведёт Alembic (иначе новые колонки не добавятся →
@@ -24,7 +42,7 @@ def init_db() -> None:
 
 
 def get_session():
-    with Session(engine) as session:
+    with AppSession() as session:
         # RLS-scope: врач видит только своих (второй слой к коду). No-op на SQLite.
         try:
             from .services.rls import set_session_scope

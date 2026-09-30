@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .db import init_db
+from .db import init_db, AppSession
 from .deps import set_current_doctor_id, resolve_doctor_id_from_token, AUTH_OPTIONAL
 
 
@@ -95,7 +95,7 @@ class SubscriptionGateMiddleware:
             did = current_doctor_id()
         except Exception:
             return await self.app(scope, receive, send)   # неавторизован — пусть роутер сам вернёт 401
-        with Session(engine) as s:
+        with AppSession() as s:
             ok = subscription_ok(s, did)
         if ok:
             return await self.app(scope, receive, send)
@@ -161,7 +161,7 @@ def verify_encryption_key():
     from .models import SystemMeta
     from .crypto import key_fingerprint
     fp = key_fingerprint()
-    with Session(engine) as s:
+    with AppSession() as s:
         row = s.get(SystemMeta, "field_key_fp")
         if row is None:
             s.add(SystemMeta(key="field_key_fp", value=fp)); s.commit()
@@ -244,7 +244,7 @@ def _startup():
         from .db import engine
         from .models import Patient
         from .services.identity import name_index_for
-        with Session(engine) as s:
+        with AppSession() as s:
             missing = s.exec(select(Patient).where(Patient.name_index == "")).all()
             for p in missing:
                 p.name_index = name_index_for(p.last_name, p.first_name); s.add(p)

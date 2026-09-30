@@ -11,12 +11,15 @@
   • распознавание (STT/OCR) — Yandex SpeechKit + Vision OCR;
   • агент команд (NLU) — YandexGPT (function calling), альтернатива — GigaChat Pro.
 """
+import logging
 import os
 from datetime import datetime
 
 from .. import clock
 
 _WD_RU = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"]
+
+_log = logging.getLogger("secondmemory.ai")
 
 PROVIDER = os.getenv("AI_PROVIDER", "stub").lower()
 
@@ -70,7 +73,13 @@ def transcribe(audio_bytes: bytes, audio_format: str = "") -> str:
 
 
 def _explain(e: Exception, what: str) -> str:
-    """Короткое понятное объяснение для врача (без ключей и внутренностей)."""
+    """Короткое понятное объяснение для врача (без ключей и внутренностей).
+
+    Заодно пишем причину в журнал сервера. Без этого отказ провайдера уходил
+    наверх как безликая «ошибка сервера», и разбираться приходилось вслепую:
+    именно так случилось с распознаванием речи на iPhone, где Яндекс отклонял
+    формат звука, а в логе была только строка «502».
+    """
     detail = ""
     resp = getattr(e, "response", None)
     if resp is not None:
@@ -78,6 +87,7 @@ def _explain(e: Exception, what: str) -> str:
             detail = f" (код {resp.status_code}: {resp.text[:160]})"
         except Exception:
             detail = ""
+    _log.warning("ИИ: не удалось %s%s [%s: %s]", what, detail, type(e).__name__, e)
     return f"Не удалось {what}{detail}"
 
 

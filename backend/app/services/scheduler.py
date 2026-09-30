@@ -13,7 +13,7 @@
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import Session
-from ..db import engine
+from ..db import engine, AppSession
 from .. import clock
 
 log = logging.getLogger("scheduler")
@@ -44,7 +44,7 @@ def _tick():
     from .alerts import due_alerts, due_escalations, get_or_create_prefs
     from . import push as push_svc
     try:
-        with Session(engine) as s:
+        with AppSession() as s:
             for a in due_alerts(s):
                 text = _alert_text(s, a)
                 s.add(Notification(doctor_id=a.doctor_id, kind="reminder", level="info",
@@ -107,7 +107,7 @@ def _digest_tick():
     from ..models import NotificationPreference, Notification, Doctor
     from ..routers.dashboard import attention as _attention_fn  # переиспользуем «Требуют внимания»
     try:
-        with Session(engine) as s:
+        with AppSession() as s:
             # Час совпадения проверяем в ТАЙМЗОНЕ ВРАЧА, поэтому нельзя фильтровать
             # одним now_hour в SQL — берём всех с включённым дайджестом и сверяем в Python.
             prefs = s.exec(select(NotificationPreference).where(
@@ -146,7 +146,7 @@ def _recap_tick():
     from ..models import NotificationPreference, Notification, Reminder, Doctor
     from datetime import timedelta
     try:
-        with Session(engine) as s:
+        with AppSession() as s:
             prefs = s.exec(select(NotificationPreference).where(
                 NotificationPreference.recap_mode != "off")).all()
             for p in prefs:
@@ -188,7 +188,7 @@ def _training_sweep_tick():
     """Страховочная зачистка «зависших» учебных пациентов (прерванный онбординг)."""
     from .onboarding import sweep_stale_training
     try:
-        with Session(engine) as s:
+        with AppSession() as s:
             n = sweep_stale_training(s)
             if n:
                 s.commit()
@@ -201,7 +201,7 @@ def _photo_queue_tick():
     """Страховочная обработка застрявших в очереди фото-пакетов (рестарт и т.п.)."""
     from .photo_pipeline import process_queued
     try:
-        with Session(engine) as s:
+        with AppSession() as s:
             n = process_queued(s)
             if n:
                 log.info("photo queue: обработано пакетов: %d", n)
