@@ -6,6 +6,9 @@ alembic==1.13.2
 pytest
 cryptography==43.0.1
 requests==2.32.3
+# Запросы к Yandex Cloud (распознавание речи, разбор текста) идут через httpx.
+# Без него services/ai.py падает на импорте, и голос отвечает 502.
+httpx==0.28.1
 reportlab==4.4.10
 apscheduler==3.10.4
 pywebpush==2.0.0
