@@ -102,7 +102,7 @@ export default function SupportChat() {
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+          <div className="chat-msgs">
             {messages.map((m) => (
               <div key={m.id} style={{
                 maxWidth: "82%", padding: "9px 12px", borderRadius: 14, fontSize: 13, lineHeight: 1.5,
@@ -126,7 +126,7 @@ export default function SupportChat() {
           )}
 
           {!readOnly && (
-            <div className="input" style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+            <div className="input chat-compose">
               <textarea value={text} onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
                 rows={1} placeholder="Сообщение…"
