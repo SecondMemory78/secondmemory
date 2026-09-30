@@ -32,10 +32,26 @@ PATIENT_CHILD_TABLES = [
     "patientconsent", "patientdiagnosis", "sourcedocument", "patientexternalid",
 ]
 
-_DOCTOR_MATCH = ("doctor_id = current_setting('app.current_doctor_id', true)::int "
+# NULLIF здесь обязателен, и вот почему.
+#
+# current_setting('app.current_doctor_id', true) возвращает NULL, только если
+# параметр в этом подключении НИКОГДА не задавался. Если он задавался, а потом
+# транзакция откатилась (любой упавший запрос), параметр возвращается к
+# значению на начало транзакции — а это ПУСТАЯ СТРОКА, не NULL. И тогда
+# ''::int падает с «invalid input syntax for type integer: ""».
+#
+# Отсюда и загадочная непостоянность на сервере: подключения берутся из пула,
+# и запрос падал ровно на тех, где до этого что-то откатывалось. На SQLite не
+# воспроизводилось, потому что там политик изоляции нет вовсе.
+#
+# NULLIF превращает пустую строку в NULL: сравнение даёт NULL → строка просто
+# не видна, что для политики изоляции и есть правильное поведение.
+_CUR_DOCTOR = "NULLIF(current_setting('app.current_doctor_id', true), '')::int"
+
+_DOCTOR_MATCH = (f"doctor_id = {_CUR_DOCTOR} "
                  "OR current_setting('app.bypass_rls', true) = 'on'")
 _CHILD_MATCH = ("patient_id IN (SELECT id FROM patient WHERE "
-                "doctor_id = current_setting('app.current_doctor_id', true)::int) "
+                f"doctor_id = {_CUR_DOCTOR}) "
                 "OR current_setting('app.bypass_rls', true) = 'on'")
 
 
@@ -63,7 +79,13 @@ def set_session_scope(session, doctor_id, bypass: bool = False) -> None:
     запроса; get_session перезаписывает его в начале каждого запроса."""
     if not is_postgres(session.get_bind()):
         return
+    # Значение всегда строкой целого числа: пустая строка тут недопустима —
+    # политика приводит её к int и падает.
+    try:
+        did = int(doctor_id)
+    except (TypeError, ValueError):
+        did = -1                       # «врач не определён» — не видно ничего
     session.execute(text("SELECT set_config('app.current_doctor_id', :d, false)"),
-                    {"d": str(doctor_id if doctor_id is not None else -1)})
+                    {"d": str(did)})
     session.execute(text("SELECT set_config('app.bypass_rls', :b, false)"),
                     {"b": "on" if bypass else "off"})
