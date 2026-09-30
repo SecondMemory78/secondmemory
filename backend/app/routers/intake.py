@@ -53,7 +53,8 @@ async def upload_document(pid: int, file: UploadFile = File(None),
                             value_num=v.get("value_num"), value_text=v.get("value_text"),
                             unit=v.get("unit", ""),
                             effective_date=_d(v.get("effective_date")),
-                            source_document_id=doc.id, status="pending")
+                            source_document_id=doc.id, status="pending",
+                            provenance="document", machine_extracted=True)
             s.add(o); pending.append(v)
         s.commit()
 

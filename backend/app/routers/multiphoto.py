@@ -142,7 +142,8 @@ def confirm_batch(bid: int, s: Session = Depends(get_session)):
             if v.get("parameter_code"):
                 s.add(Observation(patient_id=pid, encounter_id=eid,
                                   parameter_code=v["parameter_code"], value_num=v.get("value_num"),
-                                  unit=v.get("unit", ""), status="pending"))
+                                  unit=v.get("unit", ""), status="pending",
+                                  provenance="document", machine_extracted=True))
         f.status = "committed"; s.add(f)
         committed.append({"fragment_id": f.id, "patient_id": pid})
     # изображение больше не нужно — удаляем (минимизация)

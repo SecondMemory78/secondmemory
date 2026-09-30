@@ -188,6 +188,73 @@ def export_patient_pdf(pid: int, sections: str = "", date_from: str = "",
     return Response(content=pdf, media_type="application/pdf", headers=headers)
 
 
+@router.get("/{pid}/handout-check")
+def patient_handout_check(pid: int, s: Session = Depends(get_session)):
+    """Что стоит поправить ДО печати памятки. Пациенту это не показывается.
+
+    По ТЗ: предупредить врача, если у активного устройства не указан срок
+    замены или удаления.
+    """
+    from ..services.pdf_export import handout_warnings
+    from ..models import Device
+    get_owned_patient(s, pid)
+    devices = [{"kind": d.kind, "device_label": d.device_label, "active": d.active,
+                "side": d.side, "location": d.location,
+                "installed_at": d.installed_at, "due_at": d.due_at}
+               for d in s.exec(select(Device).where(Device.patient_id == pid,
+                                                    Device.active == True)).all()]   # noqa: E712
+    from ..services.integrity import conflicting_observations
+    warnings = handout_warnings({"devices": devices})
+    for code in sorted(conflicting_observations(s, pid)):
+        warnings.append(f"{code}: есть противоречащие значения — показатель в памятку не попадёт")
+    return {"warnings": warnings}
+
+
+@router.get("/{pid}/handout.pdf")
+def patient_handout_pdf(pid: int, s: Session = Depends(get_session)):
+    """Памятка пациенту на руки: что изменилось, что принимать, что сдать,
+    когда прийти. Не медицинский документ и не выписной эпикриз — те собираются
+    иначе. Непроверенные значения сюда не попадают, пустые разделы не печатаются.
+    """
+    from fastapi.responses import Response
+    from ..services.pdf_export import build_patient_handout
+    from ..reference_data import label_map
+
+    data = export_patient(pid, s)              # тот же сбор данных, что и для выписки
+
+    # Устройства в общую выгрузку не входят, а для уролога это обязательный
+    # блок памятки — добираем отдельно.
+    from ..models import Device
+    data["devices"] = [
+        {"kind": d.kind, "device_label": d.device_label, "active": d.active,
+         "side": d.side, "location": d.location,
+         "installed_at": d.installed_at, "due_at": d.due_at}
+        for d in s.exec(select(Device).where(Device.patient_id == pid,
+                                             Device.active == True)).all()   # noqa: E712
+    ]
+
+    # Показатели с неразрешённым противоречием в памятку не идут
+    from ..services.integrity import conflicting_observations
+    data["conflicts"] = sorted(conflicting_observations(s, pid))
+
+    labels = label_map()
+    for o in data.get("observations") or []:   # человеческие названия показателей
+        o["label"] = labels.get(o.get("parameter_code"), o.get("parameter_code"))
+
+    pat = get_owned_patient(s, pid)
+    fio = " ".join(x for x in [pat.last_name or "", pat.first_name or "",
+                               pat.middle_name or ""] if x).strip()
+    doc = s.get(Doctor, current_doctor_id())
+    pdf = build_patient_handout(
+        data,
+        doctor={"full_name": doc.full_name if doc else "", "specialty": (doc.specialty if doc else "") or ""},
+        patient_name=fio,
+    )
+    _log(s, pid, "handout_pdf"); s.commit()
+    headers = {"Content-Disposition": f'attachment; filename="pamyatka_{pid}.pdf"'}
+    return Response(content=pdf, media_type="application/pdf", headers=headers)
+
+
 @router.get("/{pid}/export")
 def export_patient(pid: int, s: Session = Depends(get_session)):
     """Полный экспорт данных пациента (право субъекта на доступ к своим ПДн)."""

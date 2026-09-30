@@ -8,13 +8,15 @@
 процедуру /forgot (письмо со ссылкой уходит врачу на его почту). Так админ
 никогда не знает и не устанавливает пароль врача.
 """
+import secrets
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..db import get_session
 from ..deps import require_admin
 from .. import clock
-from ..models import Doctor, AuthSession, PasswordReset
+from pydantic import BaseModel
+from ..models import Doctor, AuthSession, PasswordReset, Subscription
 from ..services.billing import active_subscription
 from ..services.email import send_email, email_configured
 from ..security import new_token, sha256_hex
@@ -92,3 +94,57 @@ def trigger_password_reset(doctor_id: int, s: Session = Depends(get_session)):
     if AUTH_OPTIONAL and not email_configured():
         resp["dev_token"] = token       # в деве почты нет — отдаём токен, чтобы протестировать
     return resp
+
+
+# ── Доступ вручную ──────────────────────────────────────────────────────────
+# Пока оплата не подключена, а пробного периода нет, доступ выдаётся руками:
+# тестировщику, врачу-партнёру, первым пилотным врачам, при возврате денег.
+# Раньше это делалось вставкой в базу через psql — не та операция, которую
+# стоит выполнять руками на живом сервере.
+
+class GrantIn(BaseModel):
+    days: int = 30
+    note: str = ""
+
+
+@router.post("/{doctor_id}/subscription")
+def grant_access(doctor_id: int, body: GrantIn, s: Session = Depends(get_session)):
+    """Выдать или продлить доступ на N дней. Отражается в журнале администрации."""
+    doc = s.get(Doctor, doctor_id)
+    if not doc:
+        raise HTTPException(404, "Врач не найден")
+    if not 1 <= body.days <= 3650:
+        raise HTTPException(400, "Срок должен быть от 1 до 3650 дней")
+
+    current = active_subscription(s, doctor_id)
+    base = current.period_end if current else clock.now()
+    if current:
+        current.status = "cancelled"          # старую закрываем, новую открываем на продлённый срок
+        s.add(current)
+    sub = Subscription(
+        doctor_id=doctor_id, plan="manual", status="active",
+        period_start=clock.now(), period_end=base + timedelta(days=body.days),
+        amount=0, auto_renew=False,
+        # Номер платежа уникален в базе, поэтому одной метки времени мало:
+        # два доступа, выданных в одну секунду, упирались бы в ограничение.
+        payment_id=(f"manual:{doctor_id}:{clock.now():%Y%m%d%H%M%S}:{secrets.token_hex(3)}"
+                    + (f":{body.note[:40]}" if body.note else "")),
+    )
+    s.add(sub); s.commit(); s.refresh(sub)
+    return {"ok": True, "until": sub.period_end.isoformat(),
+            "days": body.days, "extended": bool(current)}
+
+
+@router.delete("/{doctor_id}/subscription")
+def revoke_access(doctor_id: int, s: Session = Depends(get_session)):
+    """Отозвать доступ: врач остаётся в системе, но работает только на просмотр."""
+    doc = s.get(Doctor, doctor_id)
+    if not doc:
+        raise HTTPException(404, "Врач не найден")
+    sub = active_subscription(s, doctor_id)
+    if not sub:
+        return {"ok": True, "changed": False}
+    sub.status = "cancelled"
+    sub.period_end = clock.now()
+    s.add(sub); s.commit()
+    return {"ok": True, "changed": True}

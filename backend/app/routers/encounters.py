@@ -8,7 +8,7 @@ from ..deps import current_doctor_id, get_owned_patient, get_owned_encounter
 from ..serialization import dump, dump_all
 from ..services.consent import consent_ok
 from ..services.visits import day_of_stay, open_encounters
-from ..models import (Encounter, Patient, Observation, Note, Prescription,
+from ..models import (Appointment, Encounter, Patient, Observation, Note, Prescription,
                       SourceDocument, VisitProtocol, SickLeave)
 from .. import clock
 
@@ -211,3 +211,33 @@ def update_sick_leave(sid: int, body: SickLeavePatch, s: Session = Depends(get_s
     sl.version += 1
     s.add(sl); s.commit(); s.refresh(sl)
     return dump(sl)
+
+
+@router.get("/patients/{pid}/appointments")
+def patient_appointments(pid: int, s: Session = Depends(get_session)):
+    """Записи на приём конкретного пациента — для вкладки «Визиты» в его карте.
+
+    Во вкладке раньше были только эпизоды (госпитализации и приёмы, заведённые
+    вручную), а записи из календаря туда не попадали. Врач открывает «Визиты»
+    и ждёт увидеть историю посещений целиком, а не половину.
+    """
+    get_owned_patient(s, pid)                    # чужой или несуществующий → 404
+    rows = s.exec(
+        select(Appointment)
+        .where(Appointment.patient_id == pid,
+               Appointment.doctor_id == current_doctor_id())
+        .order_by(Appointment.starts_at.desc())
+    ).all()
+    now = clock.now()
+    return [{
+        "id": a.id,
+        "starts_at": a.starts_at.isoformat(),
+        "kind": a.kind,
+        "kind_label": "первичный" if a.kind == "primary" else "повторный",
+        "reason": a.reason,
+        "status": a.status,
+        "status_label": {"planned": "запланирован", "done": "состоялся",
+                         "no_show": "не пришёл", "cancelled": "отменён"}.get(a.status, a.status),
+        "past": a.starts_at < now,
+        "rescheduled": a.reschedule_count > 0,
+    } for a in rows]

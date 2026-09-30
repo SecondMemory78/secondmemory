@@ -90,7 +90,12 @@ def attention(s: Session = Depends(get_session)):
 @router.get("")
 def dashboard(s: Session = Depends(get_session)):
     # приёмы на сегодня
-    appts = s.exec(select(Appointment).where(Appointment.doctor_id == current_doctor_id())).all()
+    # Отменённые приёмы в счётчики НЕ идут: список приёмов их не показывает
+    # (см. routers/appointments), и врач видел «на этой неделе 8 приёмов» при
+    # одном живом — остальные были отменены во время правок расписания.
+    appts = [a for a in s.exec(
+        select(Appointment).where(Appointment.doctor_id == current_doctor_id())).all()
+        if a.status != "cancelled"]
     TODAY = clock.today()
     today_appts = [a for a in appts if a.starts_at.date() == TODAY]
 

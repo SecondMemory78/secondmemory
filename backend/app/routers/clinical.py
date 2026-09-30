@@ -54,7 +54,13 @@ def _owned_observation(s: Session, oid: int) -> Observation:
 @router.post("/observations/{oid}/confirm")
 def confirm_observation(oid: int, s: Session = Depends(get_session)):
     o = _owned_observation(s, oid)
-    o.status = "confirmed"; s.add(o)
+    # Кто и когда подтвердил — отдельно от самого факта подтверждения:
+    # одного слова «confirmed» на вопрос «кто это внёс и на основании чего»
+    # не хватает.
+    o.status = "confirmed"
+    o.confirmed_by = current_doctor_id()
+    o.confirmed_at = clock.now()
+    s.add(o)
     s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="observation", entity_id=o.id,
                      action="confirm", detail="врач подтвердил извлечённое значение"))
     s.commit(); s.refresh(o)

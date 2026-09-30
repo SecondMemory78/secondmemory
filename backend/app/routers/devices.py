@@ -14,9 +14,17 @@ router = APIRouter(prefix="/api/patients", tags=["devices"])
 KINDS = {"catheter", "stent", "nephrostomy", "implant"}
 
 
+SIDES = {"", "left", "right", "both"}
+SIDE_LABELS = {"left": "слева", "right": "справа", "both": "с обеих сторон"}
+
+
 class DeviceIn(BaseModel):
     kind: str
     device_label: str = ""
+    side: str = ""                           # left | right | both | "" (не применимо)
+    location: str = ""
+    size: str = ""
+    indication: str = ""
     installed_at: Optional[date] = None
     due_at: Optional[date] = None            # None → «срок не задан»
     note: str = ""
@@ -25,6 +33,9 @@ class DeviceIn(BaseModel):
 def _dump(d: Device) -> dict:
     return {
         "id": d.id, "kind": d.kind, "device_label": d.device_label, "active": d.active,
+        "side": d.side, "side_label": SIDE_LABELS.get(d.side, ""),
+        "location": d.location, "size": d.size, "indication": d.indication,
+        "state": d.state,
         "installed_at": d.installed_at.isoformat() if d.installed_at else None,
         "due_at": d.due_at.isoformat() if d.due_at else None,
         "closed_at": d.closed_at.isoformat() if d.closed_at else None,
@@ -47,9 +58,12 @@ def add_device(pid: int, body: DeviceIn, s: Session = Depends(get_session)):
     get_owned_patient(s, pid)                 # чужой/несуществующий пациент → 404
     if body.kind not in KINDS:
         raise HTTPException(400, "Неизвестный тип устройства")
+    if body.side not in SIDES:
+        raise HTTPException(400, "Сторона: left, right, both или пусто")
     d = Device(doctor_id=current_doctor_id(), patient_id=pid, kind=body.kind,
-               device_label=body.device_label, installed_at=body.installed_at,
-               due_at=body.due_at, note=body.note)
+               device_label=body.device_label, side=body.side, location=body.location,
+               size=body.size, indication=body.indication,
+               installed_at=body.installed_at, due_at=body.due_at, note=body.note)
     s.add(d); s.commit(); s.refresh(d)
     return _dump(d)
 
@@ -74,6 +88,10 @@ class ReplaceIn(BaseModel):
     # параметры НОВОГО устройства (того же пациента):
     kind: Optional[str] = None               # по умолчанию — тот же тип
     device_label: str = ""
+    side: Optional[str] = None               # по умолчанию — та же сторона
+    location: Optional[str] = None
+    size: str = ""
+    indication: str = ""
     installed_at: Optional[date] = None
     due_at: Optional[date] = None
     note: str = ""
@@ -95,6 +113,7 @@ def close_device(pid: int, did: int, body: CloseIn = CloseIn(), s: Session = Dep
         raise HTTPException(400, "Недопустимое действие")
     d.active = False
     d.closed_action = body.action
+    d.state = "removed" if body.action == "removed" else "replaced"
     d.closed_at = body.closed_at or clock.today()
     d.version += 1
     s.add(d); s.commit(); s.refresh(d)
@@ -124,8 +143,16 @@ def replace_device(pid: int, did: int, body: ReplaceIn, s: Session = Depends(get
     old.version += 1
     s.add(old)
     # завести новое
+    # Сторона по умолчанию наследуется от заменяемого устройства: замена стента
+    # справа на стент слева — почти наверняка ошибка ввода, а не замысел.
+    new_side = body.side if body.side is not None else old.side
+    if new_side not in SIDES:
+        raise HTTPException(400, "Сторона: left, right, both или пусто")
     new = Device(doctor_id=current_doctor_id(), patient_id=pid, kind=new_kind,
-                 device_label=body.device_label, installed_at=body.installed_at or clock.today(),
+                 device_label=body.device_label, side=new_side,
+                 location=body.location if body.location is not None else old.location,
+                 size=body.size or old.size, indication=body.indication or old.indication,
+                 installed_at=body.installed_at or clock.today(),
                  due_at=body.due_at, note=body.note)
     s.add(new); s.commit(); s.refresh(new); s.refresh(old)
     return {"closed": _dump(old), "new": _dump(new)}
