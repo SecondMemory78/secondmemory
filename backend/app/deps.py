@@ -27,6 +27,16 @@ _is_demo = contextvars.ContextVar("is_demo", default=False)
 
 
 def set_current_doctor_id(value, is_demo: bool = False):
+    """Кладёт врача в контекст запроса.
+
+    Значение приводится к целому: пустая строка и прочий мусор превращаются в
+    None. Иначе такое значение уезжает в WHERE и в политику изоляции, где
+    Postgres отклоняет его как невалидный integer.
+    """
+    try:
+        value = int(value) if value is not None and value != "" else None
+    except (TypeError, ValueError):
+        value = None
     _doctor_id.set(value)
     _is_demo.set(bool(is_demo))
 
@@ -38,7 +48,7 @@ def current_is_demo() -> bool:
 def current_doctor_id() -> int:
     v = _doctor_id.get()
     if v is not None:
-        return v
+        return int(v)         # на всякий случай: в запрос должно уходить число
     if AUTH_OPTIONAL:
         with AppSession() as s:
             d = s.exec(select(Doctor)).first()
