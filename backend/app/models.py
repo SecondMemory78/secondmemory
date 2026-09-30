@@ -187,7 +187,20 @@ class Observation(SQLModel, table=True):
     unit: str = ""
     effective_date: Optional[date] = None
     source_document_id: Optional[int] = Field(default=None, foreign_key="sourcedocument.id")
-    status: str = "confirmed"                 # confirmed | pending  (juридический щит)
+    status: str = "confirmed"                 # confirmed | pending  (юридический щит)
+
+    # Происхождение факта. Раньше всё это было слито в одно поле status, и на
+    # вопрос «кто внёс значение и на основании чего» ответить было нечем.
+    provenance: str = "doctor"                # doctor | document | patient_words | ai_extracted | import
+    machine_extracted: bool = False           # извлечено машиной, а не введено руками
+    confidence: Optional[float] = None        # уверенность модели; НЕ заменяет подтверждение
+    confirmed_by: Optional[int] = None        # какой врач подтвердил
+    confirmed_at: Optional[datetime] = None   # когда подтвердил
+
+    # Врач отметил показатель как значимый для памятки/выписки — одно из
+    # условий ТЗ, по которым печатается динамика.
+    for_handout: bool = False
+
     created_at: datetime = Field(default_factory=now)
 
 
@@ -402,7 +415,20 @@ class Device(SQLModel, table=True):
     doctor_id: int = Field(foreign_key="doctor.id", index=True)
     patient_id: int = Field(foreign_key="patient.id", index=True)
     kind: str = Field(index=True)             # catheter | stent | nephrostomy
-    device_label: str = ""                    # метка конкретного изделия (напр. «стент справа», номер)
+    device_label: str = ""                    # метка конкретного изделия (номер, партия)
+
+    # Сторона и локализация. Для урологии существенно: «стент справа» и «стент
+    # слева» — разные устройства и разные действия. Раньше это можно было
+    # записать только текстом в метку.
+    side: str = ""                            # left | right | both | "" (не применимо)
+    location: str = ""                        # свободно: «нижняя треть мочеточника» и т. п.
+    size: str = ""                            # 6 Fr / 26 см и т. п.
+    indication: str = ""                      # зачем поставлено
+
+    # Состояние устройства. active/closed недостаточно: ТЗ различает удалено,
+    # заменено и «не функционирует» — последнее требует действий врача, хотя
+    # устройство всё ещё стоит.
+    state: str = "active"                     # active | removed | replaced | malfunction | unknown
     active: bool = Field(default=True, index=True)
     installed_at: Optional[date] = None
     due_at: Optional[date] = None             # плановая замена/удаление; None = срок не задан

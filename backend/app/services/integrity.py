@@ -19,7 +19,7 @@
 """
 from datetime import date
 from sqlmodel import Session, select
-from ..models import Patient, Observation, Encounter, Prescription
+from ..models import Patient, Observation, Encounter, Prescription, Device
 from .. import clock
 
 # Параметры, для которых отрицательное значение бессмысленно (лабораторные/измерения).
@@ -118,7 +118,77 @@ def check_patient(s: Session, pid: int) -> list[dict]:
                                    {"drug": r.drug_name, "group": conflict.get("group", ""),
                                     "cross_rule": conflict.get("cross_rule", "")}))
 
+    findings.extend(find_conflicts(s, pid))
     return findings
+
+
+# ── Конфликты ───────────────────────────────────────────────────────────────
+# ТЗ: противоречащие значения не перезаписываются молча — они сохраняются
+# параллельно, показываются врачу и НЕ разрешаются автоматически. Пока конфликт
+# не снят, такие данные не должны попадать в документы для пациента.
+
+def conflicting_observations(s: Session, pid: int) -> set:
+    """Коды показателей, по которым есть противоречие.
+
+    Противоречие — это два подтверждённых ЧИСЛОВЫХ значения одного показателя
+    на одну и ту же дату, различающиеся больше чем на округление. Разные даты
+    конфликтом не считаются: это нормальная динамика.
+    """
+    rows = s.exec(select(Observation).where(Observation.patient_id == pid)).all()
+    seen: dict = {}
+    bad = set()
+    for o in rows:
+        if o.status == "pending" or o.value_num is None or not o.effective_date:
+            continue
+        key = (o.parameter_code, o.effective_date)
+        prev = seen.get(key)
+        if prev is None:
+            seen[key] = o.value_num
+        elif abs(prev - o.value_num) > 1e-9:
+            bad.add(o.parameter_code)
+    return bad
+
+
+def find_conflicts(s: Session, pid: int) -> list[dict]:
+    out = []
+
+    # C01 — два разных значения одного показателя на одну дату
+    rows = s.exec(select(Observation).where(Observation.patient_id == pid)).all()
+    groups: dict = {}
+    for o in rows:
+        if o.status == "pending" or o.value_num is None or not o.effective_date:
+            continue
+        groups.setdefault((o.parameter_code, o.effective_date), []).append(o)
+    for (code, day), items in groups.items():
+        values = {round(x.value_num, 6) for x in items}
+        if len(values) > 1:
+            out.append(_f("C01", "C",
+                          f"Разные значения «{code}» на {day:%d.%m.%Y}: "
+                          + ", ".join(str(v) for v in sorted(values))
+                          + ". Оставьте верное — до этого показатель не попадёт в памятку.",
+                          {"parameter_code": code, "date": day.isoformat(),
+                           "ids": [x.id for x in items]}))
+
+    # C02 — два активных одинаковых устройства с одной стороны: скорее всего
+    # старое забыли закрыть при замене
+    devs = s.exec(select(Device).where(Device.patient_id == pid, Device.active == True)).all()  # noqa: E712
+    pairs: dict = {}
+    for d in devs:
+        pairs.setdefault((d.kind, d.side or ""), []).append(d)
+    for (kind, side), items in pairs.items():
+        if len(items) > 1:
+            out.append(_f("C02", "C",
+                          f"Два активных устройства одного типа с одной стороны ({kind}"
+                          + (f", {side}" if side else "") + "). Возможно, старое не закрыли при замене.",
+                          {"kind": kind, "side": side, "ids": [x.id for x in items]}))
+
+    # C03 — устройство установлено позже планового срока замены
+    for d in devs:
+        if d.installed_at and d.due_at and d.due_at < d.installed_at:
+            out.append(_f("C03", "C",
+                          "Срок замены устройства раньше даты установки — проверьте даты.",
+                          {"device_id": d.id}))
+    return out
 
 
 def _f(rule: str, level: str, message: str, refs: dict) -> dict:

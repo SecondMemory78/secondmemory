@@ -6,6 +6,7 @@ JSON-выгрузка (право субъекта), поэтому выписк
 import io
 import os
 from datetime import datetime, date
+from .. import clock
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
@@ -302,3 +303,273 @@ def build_schedule_pdf(days: list, doctor_name: str = "", title: str = "Расп
 
     doc.build(story)
     return buf.getvalue()
+
+
+# ── Памятка пациенту ────────────────────────────────────────────────────────
+# Отдаётся человеку на руки: что изменилось, что принимать, что сдать, когда
+# прийти. Это НЕ медицинский документ и не выписной эпикриз — врачебные
+# документы описаны отдельно и собираются иначе.
+#
+# Правила, которых держимся (из ТЗ, раздел «Основные принципы»):
+#   • не выдумывать отсутствующее: пустой раздел не печатается вовсе, вместо
+#     него не появляется «без особенностей» или «состояние удовлетворительное»;
+#   • только подтверждённое врачом: значения со статусом «ожидает проверки»
+#     в памятку не попадают ни при каких условиях;
+#   • у каждого факта дата — пациент должен видеть, к какому числу относится
+#     значение.
+
+# Насколько должно измениться значение, чтобы попасть в памятку.
+# ТЗ запрещает печатать динамику подряд по всем показателям: она выводится,
+# когда показатель связан с диагнозом, существенно изменился, определяет
+# тактику или отмечен врачом. Связь с диагнозом и «определяет тактику» мы
+# сейчас из данных не выводим, поэтому работает одно условие — существенное
+# изменение. Порог вынесен сюда: цифру должен утвердить врач.
+SIGNIFICANT_CHANGE = 0.20          # 20% от прежнего значения
+
+
+def _worth_showing(prev: float, last: float, obs: dict) -> bool:
+    if obs.get("for_handout"):     # врач отметил показатель сам — печатаем всегда
+        return True
+    if prev == 0:
+        return last != 0
+    return abs(last - prev) / abs(prev) >= SIGNIFICANT_CHANGE
+
+
+def handout_sections(data: dict, when: date | None = None) -> list[dict]:
+    """ЧТО попадает в памятку — отдельно от того, КАК это рисуется.
+
+    Отбор здесь и есть правило, которое нужно проверять, поэтому он вынесен из
+    отрисовки: текст внутри PDF закодирован подмножеством шрифта и словами по
+    нему не проверяется.
+
+    Каждый раздел: {"key", "title", "head", "rows"} либо {"key", "title", "text"}.
+    Пустые разделы не возвращаются вовсе — документ не дополняется типовыми
+    фразами там, где данных нет.
+    """
+    today = when or clock.now().date()
+    out: list[dict] = []
+
+    def iso(v):
+        return v.isoformat() if hasattr(v, "isoformat") else (v or "")
+
+    # ── что изменилось: только подтверждённое и только где есть «было» ──────
+    # Конфликтующие показатели исключаем: ТЗ прямо запрещает печатать данные,
+    # по которым есть противоречие, до его разрешения врачом.
+    conflicted = set(data.get("conflicts") or [])
+    obs = [o for o in (data.get("observations") or [])
+           if o.get("status") != "pending" and o.get("parameter_code") not in conflicted]
+    by_code: dict[str, list] = {}
+    for o in obs:
+        by_code.setdefault(o.get("parameter_code") or o.get("label") or "", []).append(o)
+
+    rows = []
+    for code, items in by_code.items():
+        items = sorted(items, key=lambda x: iso(x.get("effective_date")))
+        if len(items) < 2:
+            continue                      # одного значения для «было → стало» мало
+        prev, last = items[-2], items[-1]
+        if prev.get("value_num") is None or last.get("value_num") is None:
+            continue
+        if not _worth_showing(prev["value_num"], last["value_num"], last):
+            continue                      # незначимое колебание пациенту не нужно
+        rows.append([last.get("label") or code,
+                     f"{_num(prev['value_num'])} \u2192 {_num(last['value_num'])} {last.get('unit', '')}".strip(),
+                     _ru_date(iso(last.get("effective_date")))])
+    if rows:
+        out.append({"key": "changes", "title": "Что изменилось",
+                    "head": ["Показатель", "Было \u2192 стало", "Дата"], "rows": rows})
+
+    # ── назначения. Задачи врача СЮДА НЕ ИДУТ: «снять катетер» — дело врача,
+    #    пациент прочитает это как указание себе, а в заголовке задачи может
+    #    стоять фамилия другого человека.
+    rx = [r for r in (data.get("prescriptions") or [])
+          if r.get("status") == "active" and r.get("confirmed", True)]
+    def cat(r):
+        return r.get("category") or "drug"
+
+    meds = [r for r in rx if cat(r) in ("drug", "fluid")]
+    # Что сделать — обследования, процедуры, консультации, повторный приём.
+    todo = [r for r in rx if cat(r) in ("lab", "imaging", "procedure", "followup")]
+    # Рекомендации — режим, питание, уход за устройством, самоконтроль,
+    # ограничения. ТЗ выделяет их отдельным разделом.
+    recs = [r for r in rx if cat(r) in ("diet", "activity", "care", "selfcontrol", "restriction", "other")]
+
+    if meds:
+        rows = []
+        for r in meds:
+            how = ", ".join(x for x in [r.get("dose", ""), r.get("frequency", ""), r.get("route", "")] if x)
+            how = how or r.get("instruction", "") or r.get("regimen", "") or "по назначению врача"
+            rows.append([r.get("drug_name") or "\u2014", how, r.get("duration", "") or "\u2014"])
+        out.append({"key": "meds", "title": "Что принимать",
+                    "head": ["Что", "Как принимать", "Сколько"], "rows": rows})
+
+    if todo:
+        rows = []
+        for r in todo:
+            when_s = _ru_date(iso(r.get("control_date"))) or r.get("duration", "") or "срок не задан"
+            rows.append([r.get("instruction") or r.get("drug_name") or "\u2014",
+                         r.get("indication", "") or "\u2014", when_s])
+        out.append({"key": "todo", "title": "Что сделать до следующего визита",
+                    "head": ["Что сделать", "Зачем", "К какому сроку"], "rows": rows})
+
+    if recs:
+        out.append({"key": "recs", "title": "Рекомендации",
+                    "bullets": [
+                        ((r.get("instruction") or r.get("drug_name") or "").strip()
+                         + (f" — {r['indication']}" if r.get("indication") else ""))
+                        for r in recs if (r.get("instruction") or r.get("drug_name"))
+                    ]})
+
+    # ── активные устройства ─────────────────────────────────────────────────
+    # По ТЗ для уролога это обязательный блок: если устройство остаётся с
+    # пациентом, оно должно быть в документе, а отсутствие срока удаления —
+    # повод предупредить врача (см. handout_warnings).
+    devices = [d for d in (data.get("devices") or []) if d.get("active")]
+    if devices:
+        rows = []
+        for d in devices:
+            rows.append([_device_label(d),
+                         _ru_date(iso(d.get("installed_at"))) or "дата не указана",
+                         _ru_date(iso(d.get("due_at"))) or "срок не назначен"])
+        out.append({"key": "devices", "title": "Установленные устройства",
+                    "head": ["Что стоит", "Установлено", "Замена / удаление"],
+                    "rows": rows})
+
+    # ── когда обращаться срочно ─────────────────────────────────────────────
+    # Только по тем устройствам, что реально стоят: универсальный список всем
+    # пациентам ТЗ запрещает.
+    signs = _urgent_signs([d.get("kind") for d in devices])
+    if signs:
+        out.append({"key": "urgent", "title": "Когда обратиться, не дожидаясь срока",
+                    "bullets": signs})
+
+    # ── ближайший приём ─────────────────────────────────────────────────────
+    appts = [a for a in (data.get("appointments") or [])
+             if iso(a.get("starts_at"))[:10] >= today.isoformat()]
+    if appts:
+        nearest = sorted(appts, key=lambda a: iso(a.get("starts_at")))[0]
+        out.append({"key": "visit", "title": "Когда прийти",
+                    "text": _ru_datetime(iso(nearest.get("starts_at")))})
+    return out
+
+
+def handout_warnings(data: dict) -> list[str]:
+    """Что сказать ВРАЧУ перед печатью. В памятку это не попадает.
+
+    ТЗ: предупредить, если у активного устройства не указан срок контроля.
+    """
+    out = []
+    for d in (data.get("devices") or []):
+        if not d.get("active"):
+            continue
+        name = _device_label(d)
+        if not d.get("due_at"):
+            out.append(f"{name}: не указан срок замены или удаления")
+        if not d.get("installed_at"):
+            out.append(f"{name}: не указана дата установки")
+    return out
+
+
+_DEVICE_NAMES = {"catheter": "Уретральный катетер", "nephrostomy": "Нефростома",
+                 "stent": "Мочеточниковый стент"}
+
+
+_SIDE_WORDS = {"left": "слева", "right": "справа", "both": "с обеих сторон"}
+
+
+def _device_label(d: dict) -> str:
+    """Название устройства для пациента. Сторона обязательна, если задана:
+    перепутать бок — самая дорогая ошибка в этом блоке."""
+    base = _DEVICE_NAMES.get(d.get("kind"), d.get("kind") or "Устройство")
+    parts = [base]
+    side = _SIDE_WORDS.get(d.get("side") or "")
+    if side:
+        parts.append(side)
+    if (d.get("location") or "").strip():
+        parts.append(d["location"].strip())
+    mark = (d.get("device_label") or "").strip()
+    out = " ".join(parts)
+    return f"{out} ({mark})" if mark else out
+
+
+def _urgent_signs(kinds) -> list[str]:
+    """Признаки срочного обращения по установленным устройствам.
+
+    Список лежит в reference/urgent_signs.json и должен быть утверждён врачом:
+    пока reviewed_by_doctor = false, он используется, но это отмечено в файле.
+    Ничего не выдумываем на лету — только то, что в справочнике.
+    """
+    import json
+    import os
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "reference", "urgent_signs.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            ref = json.load(f)
+    except Exception:
+        return []
+    seen, out = set(), []
+    for k in kinds:
+        for sign in (ref.get("by_device", {}).get(k, {}) or {}).get("signs", []):
+            if sign not in seen:
+                seen.add(sign); out.append(sign)
+    return out
+
+
+def build_patient_handout(data: dict, doctor: dict, patient_name: str = "",
+                          when: date | None = None) -> bytes:
+    """Памятка пациенту на руки. Не медицинский документ и не выписной эпикриз."""
+    _ensure_fonts()
+    base, h1, h2, small = _styles()
+    lead = ParagraphStyle("lead", parent=base, fontSize=10, leading=15)
+    note = ParagraphStyle("note", parent=small, fontSize=8, leading=11)
+    today = when or clock.now().date()
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=18 * mm, bottomMargin=16 * mm,
+                            leftMargin=18 * mm, rightMargin=18 * mm, title="Памятка пациенту")
+    story = [Paragraph("Памятка пациенту", h1)]
+    doctor_line = ", ".join(x for x in [doctor.get("full_name", ""), doctor.get("specialty", "")] if x)
+    if doctor_line:
+        story.append(Paragraph(doctor_line, small))
+    story.append(Paragraph(f"{patient_name.strip() or 'Пациент'} \u00b7 {_ru_date(today.isoformat())}", small))
+    story.append(Spacer(1, 8))
+
+    widths = {"changes": [70 * mm, 60 * mm, 40 * mm],
+              "meds": [60 * mm, 70 * mm, 40 * mm],
+              "todo": [80 * mm, 50 * mm, 40 * mm],
+              "devices": [78 * mm, 45 * mm, 47 * mm]}
+
+    sections = handout_sections(data, when=today)
+    for sec in sections:
+        story.append(Paragraph(sec["title"], h2))
+        if "text" in sec:
+            story.append(Paragraph(sec["text"], lead))
+        elif "bullets" in sec:
+            for b in sec["bullets"]:
+                story.append(Paragraph("\u2022 " + b, base))
+        else:
+            rows = [sec["head"]] + [[Paragraph(str(c), base) for c in r] for r in sec["rows"]]
+            story.append(_table(rows, widths.get(sec["key"], [60 * mm, 60 * mm, 50 * mm]), base))
+
+    if not sections:
+        story.append(Paragraph("На эту дату сведений для памятки нет.", lead))
+
+    story.append(Spacer(1, 16))
+    story.append(Paragraph("Врач ______________________ / подпись /", base))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(
+        "Памятка составлена лечащим врачом по данным приёма. Это не медицинский документ "
+        "и не заменяет консультацию. При ухудшении самочувствия обратитесь к врачу, "
+        "не дожидаясь назначенного срока.", note))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+def _num(v) -> str:
+    """Число по-русски: 4,82 вместо 4.82; целое — без хвоста."""
+    if v is None:
+        return "—"
+    s = f"{v:.2f}".rstrip("0").rstrip(".")
+    return s.replace(".", ",")

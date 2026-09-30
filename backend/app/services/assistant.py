@@ -219,7 +219,8 @@ def _route_command(text: str, s: Session) -> dict:
                                       encounter_id=active_encounter_id(s, p.id),
                                       parameter_code=v["parameter_code"],
                                       value_num=v.get("value_num"), unit=v.get("unit", ""),
-                                      status="pending"))
+                                      status="pending",
+                                      provenance="ai_extracted", machine_extracted=True))
                 s.commit()
                 names = ", ".join(v["parameter_code"] for v in vals)
                 return {"intent": "observation", "patient_id": p.id,
