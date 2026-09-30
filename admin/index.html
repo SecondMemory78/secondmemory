@@ -75,6 +75,8 @@ select.field{appearance:none;cursor:pointer;padding-right:32px;
 .btn.danger{background:var(--s2);color:var(--dn);border:.5px solid var(--bd)}
 .btn.danger:hover{background:#fdf2f1;border-color:var(--dn)}
 .btn:disabled{opacity:.5;cursor:default}
+.grant{border-top:.5px solid var(--bd);margin-top:14px;padding-top:12px}
+.grant-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px}
 .formfoot{display:flex;align-items:center;gap:12px;border-top:.5px solid var(--bd);padding-top:14px;margin-top:2px}
 
 /* ── карточки объявлений ── */
@@ -100,8 +102,9 @@ select.field{appearance:none;cursor:pointer;padding-right:32px;
   <div class="top">
     <h1><i class="ti ti-shield-lock"></i> Админ-панель</h1>
     <input id="base" class="field" style="width:200px" value="http://localhost:8000">
-    <input id="token" class="field" style="width:200px" placeholder="admin-токен" value="dev-admin-token">
+    <input id="token" class="field" type="password" autocomplete="off" style="width:200px" placeholder="admin-токен" value="dev-admin-token">
     <button class="btn" onclick="connect()">Подключить</button>
+    <button class="btn ghost sm" onclick="forgetAdminSettings()" title="Забыть адрес и токен на этом устройстве">Забыть</button>
   </div>
 
   <div class="tabs">
@@ -131,14 +134,40 @@ function H(){ return { "X-Admin-Token": TOKEN, "Content-Type": "application/json
 async function get(p){ const r = await fetch(BASE+p, {headers:H()}); if(!r.ok) throw new Error(r.status); return r.json(); }
 async function post(p,b){ const r = await fetch(BASE+p, {method:"POST",headers:H(),body:JSON.stringify(b||{})}); return r.json(); }
 
-function connect(){ BASE=document.getElementById("base").value.replace(/\/$/,""); TOKEN=document.getElementById("token").value; show(curTab); }
+// Адрес и токен запоминаются в браузере: раньше поля при каждой загрузке
+// сбрасывались на значения для разработки, и всё приходилось вводить заново.
+// Токен здесь не секретнее самого входа в админку, а в статику его зашивать
+// нельзя — файл отдаётся браузеру как есть.
+const LS = { base: "sm_admin_base", token: "sm_admin_token" };
+
+function restoreAdminSettings(){
+  const b = localStorage.getItem(LS.base);
+  const t = localStorage.getItem(LS.token);
+  if (b) document.getElementById("base").value = b;
+  if (t) document.getElementById("token").value = t;
+  if (b && t) connect();                 // сразу подключаемся, если уже вводили
+}
+
+function forgetAdminSettings(){
+  localStorage.removeItem(LS.base);
+  localStorage.removeItem(LS.token);
+  location.reload();
+}
+
+function connect(){
+  BASE=document.getElementById("base").value.replace(/\/$/,"");
+  TOKEN=document.getElementById("token").value;
+  if (BASE) localStorage.setItem(LS.base, BASE);
+  if (TOKEN) localStorage.setItem(LS.token, TOKEN);
+  show(curTab);
+}
 function show(t){ curTab=t;
   for(const k of ["an","doc","use","sup","aud","ann","push"]){
     document.getElementById("tab-"+k).className="tab"+(t===k?" on":"");
     document.getElementById("view-"+k).style.display=t===k?"":"none";
   }
   t==="an"?loadAnalytics():t==="doc"?loadDoctors():t==="use"?loadUsage():t==="aud"?loadAudit():
-  t==="ann"?loadAnnouncements():t==="push"?loadPush():loadSupport();
+  t==="ann"?loadAnnouncements():t==="push"?loadPush():(loadSupport(), startSupportPolling());
 }
 
 let usePeriod="day";
@@ -220,7 +249,8 @@ async function openDoctor(id){
   box.innerHTML=`<div class="muted" style="font-size:12px">Загрузка…</div>`;
   try{
     const d=await get("/api/admin/doctors/"+id);
-    const sub=d.subscription.active?`активна · ${d.subscription.plan} · до ${fmtD(d.subscription.until)}`:'нет активной подписки';
+    const planName = d.subscription.plan === "manual" ? "выдана вручную" : d.subscription.plan;
+    const sub=d.subscription.active?`активна · ${planName} · до ${fmtD(d.subscription.until)}`:'нет активной подписки';
     box.innerHTML=`
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -231,7 +261,20 @@ async function openDoctor(id){
           </div>
           <button class="btn ghost" onclick="resetPwd(${d.id})">Сбросить пароль</button>
         </div>
-        <div class="row"><span class="muted">Подписка</span><span>${sub}</span></div>
+        <div class="row"><span class="muted">Подписка</span><span id="sub-state">${sub}</span></div>
+
+        <!-- Выдача доступа вручную: оплата пока не подключена, пробного периода
+             нет, а тестировщикам и пилотным врачам доступ нужен. Раньше это
+             делали вставкой в базу через psql прямо на сервере. -->
+        <div class="grant">
+          <span class="lbl" style="margin:0">Выдать доступ</span>
+          <div class="grant-row">
+            ${[7, 30, 90, 365].map(n => `<button class="btn ghost sm" onclick="grantAccess(${d.id}, ${n})">${n} дн.</button>`).join("")}
+            ${d.subscription.active ? `<button class="btn danger sm" onclick="revokeAccess(${d.id})">Отозвать</button>` : ""}
+          </div>
+          <div class="hint">Повторная выдача продлевает от текущего конца, остаток не сгорает. Действие пишется в журнал.</div>
+          <div id="grant-msg" class="hint"></div>
+        </div>
         <div class="row"><span class="muted">2FA (вход по коду)</span><span>${d.totp_enabled?'включена':'выключена'}</span></div>
         <div class="row"><span class="muted">Активных сессий</span><span>${d.active_sessions}</span></div>
         <div class="row"><span class="muted">Регистрация</span><span>${fmtDT(d.created_at)}</span></div>
@@ -240,6 +283,34 @@ async function openDoctor(id){
         ${(d.devices||[]).map(dv=>`<div class="row"><span style="font-size:12px">${esc(dv.user_agent)||'устройство'} ${dv.remembered?'· запомнено':''}</span><span class="muted mono" style="font-size:11px">${dv.active?'активна':'истекла'} · ${fmtD(dv.created_at)}</span></div>`).join("")||'<div class="muted" style="font-size:12px;padding:6px 0">Нет записей о входах</div>'}
       </div>`;
   }catch(e){ box.innerHTML=`<div class="card empty">Не удалось (${e.message}).</div>`; }
+}
+
+async function grantAccess(id, days){
+  const m = document.getElementById("grant-msg");
+  if (!confirm(`Выдать врачу доступ на ${days} дн.?`)) return;
+  m.style.color = "var(--tm)"; m.textContent = "Выдаю…";
+  try{
+    const r = await post(`/api/admin/doctors/${id}/subscription`, { days });
+    // Список перерисовывается целиком и стирает открытую карточку врача,
+    // поэтому после обновления списка открываем её заново.
+    const msg = `${r.extended ? "Продлено" : "Выдано"} — доступ до ${fmtD(r.until)}`;
+    await loadDoctors();
+    await openDoctor(id);
+    const after = document.getElementById("grant-msg");
+    if (after) { after.style.color = "var(--sc)"; after.textContent = msg; }
+  }catch(e){ m.style.color = "var(--dn)"; m.textContent = "Не получилось: " + e.message; }
+}
+
+async function revokeAccess(id){
+  const m = document.getElementById("grant-msg");
+  if (!confirm("Отозвать доступ? Врач останется в системе, но сможет только просматривать.")) return;
+  try{
+    await fetch(BASE + "/api/admin/doctors/" + id + "/subscription", { method: "DELETE", headers: H() });
+    await loadDoctors();
+    await openDoctor(id);
+    const after = document.getElementById("grant-msg");
+    if (after) { after.style.color = "var(--tm)"; after.textContent = "Доступ отозван"; }
+  }catch(e){ m.style.color = "var(--dn)"; m.textContent = "Не получилось: " + e.message; }
 }
 
 async function resetPwd(id){
@@ -512,7 +583,13 @@ async function subscribeAdminPush(){
     const vk=await get("/api/push/vapid-key");
     if(!vk.configured||!vk.key){ m.textContent="Push не настроен на сервере (нет VAPID-ключей)."; return; }
     if(!("serviceWorker" in navigator)||!("PushManager" in window)){ m.textContent="Браузер не поддерживает push."; return; }
-    const reg=await navigator.serviceWorker.register("/sw.js");
+    // Свой воркер из папки админки: область видимости получается /admin/,
+    // и клик по уведомлению открывает админку, а не витрину в корне.
+    await navigator.serviceWorker.register("sw.js");
+    // Ждём, пока воркер станет активным. Без этого подписка с первого раза
+    // падала с «no active Service Worker», а со второго проходила.
+    const reg = await navigator.serviceWorker.ready;
+
     const perm=await Notification.requestPermission();
     if(perm!=="granted"){ m.textContent="Разрешение не выдано."; return; }
     const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(vk.key)});
@@ -660,18 +737,70 @@ async function openThread(id){
         <span class="muted" style="font-size:12px">${t.doctor_email?(' · '+t.doctor_email):''}</span></div>
       <button class="btn ghost" style="padding:5px 10px" onclick="show('doc');setTimeout(()=>openDoctor(${t.doctor_id}),150)">Карточка врача</button>
     </div>
-    <div class="mlist">${t.messages.map(m=>`
-      <div class="msg ${m.from_staff?'staff':'client'}">${m.body}<div class="t">${m.author_name} · ${fmtT(m.created_at)}</div></div>`).join("")}</div>
+    <div class="mlist" id="mlist">${msgsHtml(t)}</div>
     ${t.status==="open"?`
     <div class="composer"><input id="reply" class="field" placeholder="Ответ поддержки…" onkeydown="if(event.key==='Enter')sendReply()">
       <button class="btn" onclick="sendReply()">Отправить</button>
       <button class="btn ghost" onclick="closeThread()">Закрыть</button></div>`
     :`<div class="muted" style="font-size:12px">Обращение закрыто.</div>`}`;
+  lastSig = threadSig(t);
+  scrollMsgs();
   loadSupportListSilently();
 }
+
+// ── Обновление переписки без перезагрузки страницы ──────────────────────────
+// Раньше админка читала обращение один раз при открытии. Уведомление о новом
+// сообщении приходило вовремя, а самого сообщения не было видно, пока не
+// откроешь вкладку заново. У врача это давно работает — там опрос раз в 20 с.
+let supportTimer = null;
+let lastSig = "";
+
+function msgsHtml(t){
+  return t.messages.map(m=>`
+      <div class="msg ${m.from_staff?'staff':'client'}">${m.body}<div class="t">${m.author_name} · ${fmtT(m.created_at)}</div></div>`).join("");
+}
+function threadSig(t){
+  return t.status + ":" + t.messages.length + ":" + (t.messages.at(-1)?.created_at || "");
+}
+function scrollMsgs(){
+  const l = document.getElementById("mlist");
+  if (l) l.scrollTop = l.scrollHeight;     // новые сообщения внизу — показываем их
+}
+
+async function refreshThread(){
+  if (curTab !== "sup" || !curThread || document.hidden) return;
+  try{
+    const t = await get("/api/admin/support/threads/" + curThread);
+    const sig = threadSig(t);
+    if (sig === lastSig) return;            // ничего не изменилось — не трогаем разметку
+    lastSig = sig;
+    const l = document.getElementById("mlist");
+    if (!l) { openThread(curThread); return; }
+    // Меняем ТОЛЬКО список сообщений: поле ответа с набранным текстом не
+    // перерисовывается, иначе ответ пропадал бы на полуслове.
+    const atBottom = l.scrollHeight - l.scrollTop - l.clientHeight < 40;
+    l.innerHTML = msgsHtml(t);
+    if (atBottom) scrollMsgs();
+    loadSupportListSilently();
+  }catch(e){ /* сеть моргнула — попробуем на следующем круге */ }
+}
+
+function startSupportPolling(){
+  if (supportTimer) return;
+  supportTimer = setInterval(refreshThread, 10000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshThread(); });
+  window.addEventListener("focus", refreshThread);
+}
+
 async function sendReply(){
   const inp=document.getElementById("reply"); const body=inp.value.trim(); if(!body)return;
-  await post(`/api/admin/support/threads/${curThread}/reply`,{body}); openThread(curThread);
+  inp.value = ""; inp.disabled = true;
+  try{
+    await post(`/api/admin/support/threads/${curThread}/reply`,{body});
+    lastSig = "";                  // заставляем обновиться немедленно
+    await refreshThread();
+  }catch(e){ inp.value = body; }   // не отправилось — возвращаем текст, а не теряем
+  finally{ inp.disabled = false; inp.focus(); }
 }
 async function closeThread(){ await post(`/api/admin/support/threads/${curThread}/close`); openThread(curThread); }
 async function loadSupportListSilently(){
@@ -685,6 +814,7 @@ async function loadSupportListSilently(){
 }
 
 loadAnalytics();
+restoreAdminSettings();
 </script>
 </body>
 </html>
