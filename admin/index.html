@@ -95,6 +95,21 @@ select.field{appearance:none;cursor:pointer;padding-right:32px;
 .kind.news{background:var(--acbg);color:var(--act)}
 .kind.off{background:var(--bd);color:var(--tm)}
 @media(max-width:720px){.frow{grid-template-columns:1fr}.ann{flex-direction:column}}
+
+/* Производственный календарь в админке: двенадцать месяцев сразу — ошибиться
+   труднее, чем в простыне дат, и видно весь год целиком. */
+.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.cal-month{background:var(--s0);border:1px solid var(--bd);border-radius:12px;padding:8px}
+.cal-title{font-size:12px;color:var(--ts);margin-bottom:6px}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-day{display:flex;align-items:center;justify-content:center;height:24px;
+  border-radius:6px;font-size:12px;cursor:pointer;user-select:none}
+.cal-day:hover{background:var(--s1)}
+.cal-day.wknd{color:var(--tm)}
+.cal-day.hol{background:#FBEAE9;color:#C4322B;font-weight:600}
+.cal-day.work{background:#E8F5EE;color:#1E7A52;font-weight:600}
+.cal-day.short{background:#FFF6E5;color:#9A6A00;font-weight:600}
+.cal-empty{height:24px}
 </style>
 </head>
 <body>
@@ -115,6 +130,7 @@ select.field{appearance:none;cursor:pointer;padding-right:32px;
     <div class="tab" id="tab-aud" onclick="show('aud')">Журнал</div>
     <div class="tab" id="tab-ann" onclick="show('ann')">Объявления</div>
     <div class="tab" id="tab-push" onclick="show('push')">Push</div>
+    <div class="tab" id="tab-cal" onclick="show('cal')">Календарь</div>
   </div>
 
   <div id="view-an"></div>
@@ -123,6 +139,7 @@ select.field{appearance:none;cursor:pointer;padding-right:32px;
   <div id="view-sup" style="display:none"></div>
   <div id="view-aud" style="display:none"></div>
   <div id="view-ann" style="display:none"></div>
+  <div id="view-cal" style="display:none"></div>
   <div id="view-push" style="display:none"></div>
 </div>
 
@@ -133,6 +150,11 @@ let curThread = null;
 function H(){ return { "X-Admin-Token": TOKEN, "Content-Type": "application/json" }; }
 async function get(p){ const r = await fetch(BASE+p, {headers:H()}); if(!r.ok) throw new Error(r.status); return r.json(); }
 async function post(p,b){ const r = await fetch(BASE+p, {method:"POST",headers:H(),body:JSON.stringify(b||{})}); return r.json(); }
+async function put(p,b){
+  const r = await fetch(BASE+p, {method:"PUT",headers:H(),body:JSON.stringify(b||{})});
+  if(!r.ok){ let d=""; try{ d=(await r.json()).detail||""; }catch(e){} throw new Error(d||r.status); }
+  return r.json();
+}
 
 // Адрес и токен запоминаются в браузере: раньше поля при каждой загрузке
 // сбрасывались на значения для разработки, и всё приходилось вводить заново.
@@ -162,12 +184,13 @@ function connect(){
   show(curTab);
 }
 function show(t){ curTab=t;
-  for(const k of ["an","doc","use","sup","aud","ann","push"]){
+  for(const k of ["an","doc","use","sup","aud","ann","push","cal"]){
     document.getElementById("tab-"+k).className="tab"+(t===k?" on":"");
     document.getElementById("view-"+k).style.display=t===k?"":"none";
   }
   t==="an"?loadAnalytics():t==="doc"?loadDoctors():t==="use"?loadUsage():t==="aud"?loadAudit():
-  t==="ann"?loadAnnouncements():t==="push"?loadPush():(loadSupport(), startSupportPolling());
+  t==="ann"?loadAnnouncements():t==="push"?loadPush():
+  t==="cal"?loadCalendar():(loadSupport(), startSupportPolling());
 }
 
 let usePeriod="day";
@@ -621,14 +644,132 @@ function chart(daily){
     <div style="font-size:11px;color:#8b95a3;margin-top:6px"><span style="color:#2563eb">■</span> OCR <span style="color:#1e7a52">■</span> STT <span style="color:#c98a1b">■</span> LLM</div>`;
 }
 
+// Период графиков. Запоминается на время сессии: админ обычно смотрит
+// один и тот же срез.
+let chartDays = 30;
+function setChartDays(n){ chartDays = n; loadAnalytics(); }
+
+// ── Производственный календарь ─────────────────────────────────────────────
+// Праздники и переносы каждый год утверждает постановление правительства —
+// вычислить их нельзя. Поэтому даты проставляет человек, а приложение без них
+// показывает только субботы и воскресенья и не делает вид, что знает больше.
+let calYear = new Date().getFullYear();
+let calDays = new Map();          // "ГГГГ-ММ-ДД" → {kind, label}
+
+const MONTHS_RU = ["Январь","Февраль","Март","Апрель","Май","Июнь",
+                   "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+
+function calSetYear(y){ calYear = y; loadCalendar(); }
+
+async function loadCalendar(){
+  const v = document.getElementById("view-cal");
+  try{
+    const r = await get(`/api/admin/work-calendar/${calYear}`);
+    calDays = new Map((r.days||[]).map(d => [d.day, d]));
+    renderCalendar(r.known);
+  }catch(e){ v.innerHTML = `<div class="card">Не удалось загрузить: ${e.message}</div>`; }
+}
+
+function calToggle(iso){
+  // Три состояния по кругу: обычный → праздник → рабочий перенос → обычный.
+  // Сокращённые дни редки, их ставим из поля ниже.
+  const cur = calDays.get(iso);
+  if(!cur) calDays.set(iso, {day:iso, kind:"holiday", label:""});
+  else if(cur.kind === "holiday") calDays.set(iso, {day:iso, kind:"working", label:cur.label||""});
+  else calDays.delete(iso);
+  renderCalendar(true);
+}
+
+function renderCalendar(known){
+  const v = document.getElementById("view-cal");
+  let html = `
+    <div class="grant-row" style="margin-bottom:10px;align-items:center">
+      <button class="btn ghost sm" onclick="calSetYear(${calYear-1})">←</button>
+      <b style="font-size:16px">${calYear}</b>
+      <button class="btn ghost sm" onclick="calSetYear(${calYear+1})">→</button>
+      <span class="muted" style="margin-left:8px">
+        ${known ? `задано дат: ${calDays.size}`
+                : "год не заполнен — приложение показывает только субботы и воскресенья"}
+      </span>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <b>Как это работает.</b> Нажатие по дате: обычный → <span style="color:#C4322B">праздник</span>
+      → <span style="color:#1E7A52">рабочий перенос</span> → обычный.
+      Субботы и воскресенья вносить не нужно — приложение считает их само.
+      Сохранение заменяет год целиком.
+    </div>
+    <div class="cal-grid">`;
+
+  for(let m=0; m<12; m++){
+    const first = new Date(calYear, m, 1);
+    const shift = (first.getDay()+6)%7;           // понедельник первым
+    const last = new Date(calYear, m+1, 0).getDate();
+    html += `<div class="cal-month"><div class="cal-title">${MONTHS_RU[m]}</div><div class="cal-days">`;
+    for(let i=0;i<shift;i++) html += `<span class="cal-empty"></span>`;
+    for(let d=1; d<=last; d++){
+      const iso = `${calYear}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const rec = calDays.get(iso);
+      const wd = (new Date(calYear,m,d).getDay()+6)%7;
+      const cls = rec ? (rec.kind==="holiday" ? "hol" : rec.kind==="working" ? "work" : "short")
+                      : (wd>=5 ? "wknd" : "");
+      html += `<span class="cal-day ${cls}" title="${rec&&rec.label?rec.label:''}"
+                     onclick="calToggle('${iso}')">${d}</span>`;
+    }
+    html += `</div></div>`;
+  }
+
+  html += `</div>
+    <div class="card" style="margin-top:12px">
+      <div class="lbl">Вставить списком</div>
+      <div class="muted" style="margin-bottom:6px">
+        Даты через запятую или с новой строки: 2027-01-01, 2027-01-02. Добавятся как праздники.
+      </div>
+      <textarea id="cal-paste" class="field" style="width:100%;height:70px"></textarea>
+      <button class="btn ghost sm" style="margin-top:6px" onclick="calPaste()">Добавить к выбранным</button>
+    </div>
+    <div class="grant-row" style="margin-top:12px">
+      <button class="btn" onclick="calSave()">Сохранить ${calYear}</button>
+      <button class="btn ghost sm" onclick="loadCalendar()">Отменить правки</button>
+    </div>`;
+  v.innerHTML = html;
+}
+
+function calPaste(){
+  const raw = document.getElementById("cal-paste").value || "";
+  let added = 0, bad = 0;
+  for(const part of raw.split(/[\s,;]+/)){
+    const t = part.trim();
+    if(!t) continue;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(t) || !t.startsWith(String(calYear))){ bad++; continue; }
+    calDays.set(t, {day:t, kind:"holiday", label:""}); added++;
+  }
+  renderCalendar(true);
+  alert(`Добавлено: ${added}` + (bad ? `, пропущено (не дата или другой год): ${bad}` : ""));
+}
+
+async function calSave(){
+  // Показываем, что именно сохраняем: затереть год пустотой по ошибке дороже,
+  // чем лишнее подтверждение раз в год.
+  const days = [...calDays.values()];
+  const hol = days.filter(d=>d.kind==="holiday").length;
+  const work = days.filter(d=>d.kind==="working").length;
+  if(!confirm(`Сохранить ${calYear}?\nПраздников: ${hol}, рабочих переносов: ${work}.\n` +
+              `Прежние даты этого года будут заменены.`)) return;
+  try{
+    await put(`/api/admin/work-calendar/${calYear}`, {days});
+    alert("Сохранено");
+    loadCalendar();
+  }catch(e){ alert("Не сохранилось: " + e.message); }
+}
+
 async function loadAnalytics(){
   const v=document.getElementById("view-an");
   try{
     const ov=await get("/api/admin/analytics/overview");
-    const ts=await get("/api/admin/analytics/timeseries?days=30");
+    const ts=await get(`/api/admin/analytics/timeseries?days=${chartDays}`);
     const d=await get("/api/admin/analytics/summary");
     const ev=await get("/api/admin/analytics/events?limit=20");
-    const ins=await get("/api/admin/analytics/insights?days=30");
+    const ins=await get(`/api/admin/analytics/insights?days=${chartDays}`);
     const max=Math.max(1,...Object.values(d.by_event));
     v.innerHTML=`
       <div class="grid">
@@ -639,7 +780,11 @@ async function loadAnalytics(){
         <div class="card stat"><div class="n">${ov.notes}</div><div class="l">заметок</div></div>
         <div class="card stat"><div class="n">${ov.ai_ops}</div><div class="l">ИИ-операций</div></div>
       </div>
-      <div class="sec">Динамика по дням (30 дней)</div>
+      <div class="sec">Динамика по дням</div>
+      <div class="grant-row" style="margin-bottom:8px">
+        ${[7,30,90].map(n=>`<button class="btn ghost sm" onclick="setChartDays(${n})"
+             style="${chartDays===n?'border-color:var(--ac);color:var(--ac)':''}">${n} дн.</button>`).join("")}
+      </div>
       <div class="card">${lineChart(ts,[["appointments","#2563eb","Приёмы"],["patients","#1e7a52","Пациенты"],["ai","#c98a1b","ИИ-операции"],["events","#8b5cf6","События"]])}</div>
       <div class="sec">Активность врачей</div>
       <div class="card">
@@ -695,7 +840,10 @@ async function loadAnalytics(){
 
 function lineChart(rows, series){
   if(!rows||!rows.length) return '<div class="empty">Пока пусто</div>';
-  const W=Math.max(rows.length*20,320), H=150, P=8;
+  // Ширина холста постоянная, а не от числа точек: раньше на коротком периоде
+  // график занимал треть карточки, а растягивание через preserveAspectRatio
+  // искажало подписи дат.
+  const W=560, H=150, P=8;
   const max=Math.max(1,...rows.flatMap(r=>series.map(([k])=>r[k]||0)));
   const x=i=>P+i*((W-2*P)/Math.max(1,rows.length-1));
   const y=val=>H-P-(val/max)*(H-2*P-14);
@@ -705,7 +853,9 @@ function lineChart(rows, series){
     svg+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>`;
   });
   const legend=series.map(([k,col,l])=>`<span style="color:${col};margin-right:12px">■ <span style="color:#8b95a3">${l}</span></span>`).join("");
-  return `<svg viewBox="0 0 ${W} ${H+14}" style="width:100%;max-width:${W}px">${svg}
+  // Без max-width: на коротком периоде график занимал треть ширины карточки,
+  // потому что ширина считалась от числа точек. viewBox и так тянет его.
+  return `<svg viewBox="0 0 ${W} ${H+14}" style="width:100%">${svg}
     <text x="${P}" y="${H+11}" font-size="9" fill="#8b95a3">${fmtD(rows[0].date)}</text>
     <text x="${W-60}" y="${H+11}" font-size="9" fill="#8b95a3">${fmtD(rows[rows.length-1].date)}</text></svg>
     <div style="font-size:11px;margin-top:6px">${legend}</div>`;
