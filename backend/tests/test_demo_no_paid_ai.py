@@ -67,7 +67,11 @@ def test_в_демо_видно_что_это_пример(paid):
     pid = c.get("/api/patients", headers=H).json()[0]["id"]
     r = c.post(f"/api/patients/{pid}/documents", headers=H,
                files={"file": ("a.png", PNG, "image/png")})
-    assert "ПРИМЕР РАСПОЗНАВАНИЯ" in r.json()["recognized_text"]
+    # Распознавание идёт фоном: ответ приходит сразу, текст забираем следом.
+    doc_id = r.json()["document_id"]
+    got = c.get(f"/api/patients/{pid}/documents/{doc_id}", headers=H).json()
+    assert got["ocr_status"] == "done"
+    assert "ПРИМЕР РАСПОЗНАВАНИЯ" in got["recognized_text"]
 
 
 def test_обычный_врач_платный_ии_использует(paid):

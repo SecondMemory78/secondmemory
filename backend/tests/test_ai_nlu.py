@@ -67,7 +67,9 @@ def test_unknown_creates_nothing_and_explains(monkeypatch):
                         "datetime_hint": "", "confidence": 0.95})
     with Session(engine) as s:
         before = len(s.exec(select(Reminder)).all())
-    r = c.post("/api/assistant/command", json={"text": "поставь Иванову диагноз C61"}).json()
+    # Фраза должна оставаться непонятной: раньше здесь был пример про диагноз,
+    # но диагнозы ассистент теперь разбирает, и тест проверял бы не то.
+    r = c.post("/api/assistant/command", json={"text": "сделай мне красиво"}).json()
     assert r["intent"] == "unknown" and r["ok"] is False
     assert "не понял" in r["message"].lower()
     with Session(engine) as s:
