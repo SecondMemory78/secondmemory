@@ -26,8 +26,9 @@ export default function Notifications() {
       limit: "/billing", billing: "/billing",
       security: "/more", support: "/support",
       ocr: "/patients",
+      digest: "/digest",
+      recap: "/digest",
       trigger: "/triggers",
-      digest: "/", recap: "/",
     };
     const dest = byKind[n.kind];
     if (dest) nav(dest);

@@ -6,14 +6,13 @@ import { fmtDateTime, fmtDate } from "../lib/dates";
 import { confirmAction } from "../lib/confirm";
 import { toast } from "../lib/toast";
 
-export default function Notes() {
+export default function Notes({ embedded = false }) {
   const nav = useNavigate();
   const [tab, setTab] = useState("my");        // my | all
   const [q, setQ] = useState("");
   const [mine, setMine] = useState(null);
   const [all, setAll] = useState(null);
   const [draft, setDraft] = useState("");
-  const [editing, setEditing] = useState(null); // {id, text}
   const [busy, setBusy] = useState(false);
 
   function loadMine(query = q) {
@@ -39,14 +38,7 @@ export default function Notes() {
     finally { setBusy(false); }
   }
 
-  async function saveEdit() {
-    const text = editing.text.trim();
-    if (!text) return;
-    try {
-      await api.updateMyNote(editing.id, text, editing.pinned);
-      setEditing(null); loadMine();
-    } catch { toast("Не удалось изменить", "error"); }
-  }
+
 
   async function togglePin(n) {
     await api.pinMyNote(n.id).catch(() => {});
@@ -66,10 +58,12 @@ export default function Notes() {
 
   return (
     <>
+      {!embedded && (
       <div className="hd">
         <i className="ti ti-arrow-left back" onClick={() => nav("/more")} />
         <div className="ttl">Заметки</div>
       </div>
+      )}
 
       <div className="tabs">
         <div className={"t" + (tab === "my" ? " on" : "")} onClick={() => setTab("my")}>Мои заметки</div>
@@ -89,9 +83,15 @@ export default function Notes() {
             <textarea className="input" rows={3} value={draft} onChange={(e) => setDraft(e.target.value)}
               placeholder="Новая заметка — мысль, напоминание себе, что уточнить"
               style={{ resize: "vertical", marginBottom: 8 }} />
-            <button className="btn pri block" disabled={!draft.trim() || busy} onClick={add}>
-              <i className="ti ti-plus" /> Добавить
-            </button>
+            <div className="btnrow">
+              <button className="btn pri" style={{ flex: 1 }} disabled={!draft.trim() || busy} onClick={add}>
+                <i className="ti ti-plus" /> Быстро добавить
+              </button>
+              {/* Полный вид — с названием, списком и папкой */}
+              <button className="btn" style={{ flex: 1 }} onClick={() => nav("/notes/new")}>
+                <i className="ti ti-edit" /> Развёрнуто
+              </button>
+            </div>
           </div>
 
           {mine === null && <SkeletonList rows={4} />}
@@ -101,36 +101,40 @@ export default function Notes() {
           )}
 
           {(mine || []).map((n) => (
-            <div key={n.id} className="card" style={{ marginBottom: 8 }}>
-              {editing?.id === n.id ? (
-                <>
-                  <textarea className="input" rows={3} value={editing.text}
-                    onChange={(e) => setEditing({ ...editing, text: e.target.value })}
-                    style={{ resize: "vertical", marginBottom: 8 }} />
-                  <div className="btnrow">
-                    <button className="btn sm" style={{ flex: 1 }} onClick={() => setEditing(null)}>Отмена</button>
-                    <button className="btn pri sm" style={{ flex: 1 }} onClick={saveEdit}>Сохранить</button>
+            <div key={n.id} className="card note-card" style={{ marginBottom: 8 }}>
+              <>
+                  <div className="note-acts">
+                    <i className={"ti " + (n.pinned ? "ti-pin-filled acc" : "ti-pin muted")}
+                       title={n.pinned ? "Открепить" : "Закрепить"}
+                       onClick={(e) => { e.stopPropagation(); togglePin(n); }} />
+                    <i className="ti ti-trash muted" title="Удалить"
+                       onClick={(e) => { e.stopPropagation(); remove(n); }} />
                   </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 13.5, whiteSpace: "pre-wrap" }}>
-                    {n.pinned && <i className="ti ti-pin acc" style={{ marginRight: 5 }} />}
-                    {n.text}
+                  <div onClick={() => nav(`/notes/${n.id}`)} style={{ cursor: "pointer" }}>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>
+                      {n.pinned && <i className="ti ti-pin acc" style={{ marginRight: 5 }} />}
+                      {n.title}
+                    </div>
+                    {/* Текст показываем в две строки: список должен листаться,
+                        а не превращаться в простыню. */}
+                    {n.text && (
+                      <div className="sub note-preview" style={{ marginTop: 3 }}>{n.text}</div>
+                    )}
+                    <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
+                      {n.folder && <span className="chip-sm">{n.folder}</span>}
+                      {n.checklist_total > 0 && (
+                        <span className="chip-sm">
+                          <i className="ti ti-checkbox" /> {n.checklist_done} из {n.checklist_total}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                    <span className="sub">{fmtDateTime(n.updated_at)}</span>
-                    <span style={{ display: "flex", gap: 12 }}>
-                      <span className="acc" style={{ fontSize: 12, cursor: "pointer" }} onClick={() => togglePin(n)}>
-                        {n.pinned ? "открепить" : "закрепить"}
-                      </span>
-                      <span className="acc" style={{ fontSize: 12, cursor: "pointer" }}
-                            onClick={() => setEditing({ id: n.id, text: n.text, pinned: n.pinned })}>изменить</span>
-                      <span className="dng" style={{ fontSize: 12, cursor: "pointer" }} onClick={() => remove(n)}>удалить</span>
-                    </span>
-                  </div>
-                </>
-              )}
+                  {/* «Изменить» отсюда убрано: та правка на месте не знала ни
+                      про заголовок, ни про список, и заметка после неё
+                      становилась «Без названия». Правка теперь одна — на своём
+                      экране, по нажатию на карточку. */}
+                  <div className="sub" style={{ marginTop: 8 }}>{fmtDateTime(n.updated_at)}</div>
+              </>
             </div>
           ))}
         </>

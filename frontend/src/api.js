@@ -95,6 +95,20 @@ export const api = {
   health: () => j("GET", "/health"),
   dashboard: () => j("GET", "/dashboard"),
   attention: () => j("GET", "/dashboard/attention"),
+  digest: () => j("GET", "/dashboard/digest"),
+  // Производственный календарь: known=false — праздники на этот год не заданы
+  workCalendar: (year) => j("GET", `/work-calendar/${year}`),
+  // Снимок направления → предложение задачи или записи (создаётся только после
+  // подтверждения врача)
+  async captureUpload(file, contextPatientId) {
+    const fd = new FormData();
+    fd.append("file", file);
+    // Какая карта открыта — подсказка для разбора, не решение
+    if (contextPatientId) fd.append("context_patient_id", String(contextPatientId));
+    return jForm("/capture", fd);
+  },
+  captureResult: (id) => j("GET", `/capture/${id}`),
+  captureAccept: (id, body) => j("POST", `/capture/${id}/accept`, body),
   announcements: () => j("GET", "/announcements"),
   dismissAnnouncement: (id) => j("POST", `/announcements/${id}/dismiss`),
   myStats: (days = 90) => j("GET", `/dashboard/my-stats?days=${days}`),
@@ -138,6 +152,10 @@ export const api = {
   mergePatients: (keep_id, merge_id) => j("POST", "/patients/merge", { keep_id, merge_id }),
   updatePatient: (pid, b) => j("PATCH", `/patients/${pid}`, b),
   timeline: (id) => j("GET", `/patients/${id}/timeline`),
+  // Откуда взялось значение и что с ним было дальше
+  confirmDiagnosis: (pid, did) => j("POST", `/patients/${pid}/diagnoses/${did}/confirm`),
+  editObs: (oid, body) => j("PATCH", `/observations/${oid}`, body),
+  observationOrigin: (oid) => j("GET", `/observations/${oid}/origin`),
   // Что стоит поправить до печати памятки (пациенту не показывается)
   handoutCheck: (pid) => j("GET", `/patients/${pid}/handout-check`),
   // Памятка пациенту на руки — отдельный документ, не выписка для карты.
@@ -198,6 +216,14 @@ export const api = {
   sourceLookup: (q) => j("GET", `/reference/sources/lookup?q=${encodeURIComponent(q)}`),
   trustedSources: () => j("GET", "/reference/sources"),
   myNotes: (q = "") => j("GET", `/notes/my${q ? "?q=" + encodeURIComponent(q) : ""}`),
+  noteItemToTask: (nid, index, due_at) =>
+    j("POST", `/notes/my/${nid}/checklist/to-task`, { index, due_at }),
+  noteToPatient: (nid, patient_id) => j("POST", `/notes/my/${nid}/to-patient`, { patient_id }),
+  noteToAssistant: (nid) => j("POST", `/notes/my/${nid}/to-assistant`),
+  myNote: (nid) => j("GET", `/notes/my/${nid}`),
+  noteFolders: () => j("GET", "/notes/my/folders"),
+  createMyNoteFull: (body) => j("POST", "/notes/my", body),
+  updateMyNoteFull: (nid, body) => j("PATCH", `/notes/my/${nid}`, body),
   createMyNote: (text) => j("POST", "/notes/my", { text }),
   updateMyNote: (id, text, pinned = false) => j("PATCH", `/notes/my/${id}`, { text, pinned }),
   pinMyNote: (id) => j("POST", `/notes/my/${id}/pin`),
@@ -257,6 +283,8 @@ export const api = {
     if (format) fd.append("audio_format", format);
     return jForm(`/patients/${patient_id}/transcribe`, fd);
   },
+  // Распознавание идёт фоном: проверяем готовность отдельным запросом
+  documentStatus: (pid, docId) => j("GET", `/patients/${pid}/documents/${docId}`),
   async uploadDocument(patient_id, file) {
     const fd = new FormData();
     if (file) fd.append("file", file);
@@ -293,6 +321,17 @@ export const api = {
   activeEncounter: (pid) => j("GET", `/patients/${pid}/encounters/active`),
   encounters: (pid) => j("GET", `/patients/${pid}/encounters`),
   patientAppointments: (pid) => j("GET", `/patients/${pid}/appointments`),
+  procedures: (pid) => j("GET", `/patients/${pid}/procedures`),
+  // Выписка: черновик → правка → подпись. Подписанная неизменяема.
+  dischargeDraft: (eid) => j("POST", `/encounters/${eid}/discharge`),
+  discharge: (did) => j("GET", `/discharge/${did}`),
+  dischargeEdit: (did, sections) => j("PATCH", `/discharge/${did}`, { sections }),
+  dischargeFinalize: (did) => j("POST", `/discharge/${did}/finalize`),
+  dischargeRevise: (did) => j("POST", `/discharge/${did}/revise`),
+  discharges: (pid) => j("GET", `/patients/${pid}/discharges`),
+  addProcedure: (pid, body) => j("POST", `/patients/${pid}/procedures`, body),
+  confirmProcedure: (pid, id) => j("POST", `/patients/${pid}/procedures/${id}/confirm`),
+  removeProcedure: (pid, id) => j("POST", `/patients/${pid}/procedures/${id}/remove`),
   encounter: (eid) => j("GET", `/encounters/${eid}`),
   closeEncounter: (eid) => j("POST", `/encounters/${eid}/close`),
   createEpisode: (pid, body) => j("POST", `/patients/${pid}/episodes`, body),

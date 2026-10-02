@@ -11,11 +11,18 @@ import { Spinner } from "../components/Loading";
 import Button from "../components/Button";
 import { confirmAction } from "../lib/confirm";
 import { toast } from "../lib/toast";
+import { findSpan } from "../lib/docmatch";
 import SourceAnswer from "../components/SourceAnswer";
 import { onDataChanged } from "../lib/bus";
 import { loadLabels, plabel } from "../lib/params";
 import Tip from "../components/Tip";
 import { useTips } from "../lib/tips";
+
+const ORIGIN_RU = { doctor: "внесено врачом", document: "распознано из документа",
+                    patient_words: "со слов пациента", ai_extracted: "разобрано ассистентом",
+                    import: "импорт" };
+const OUTCOME_RU = { confirmed: "врач подтвердил", edited: "врач исправил",
+                     rejected: "врач отклонил" };
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -56,6 +63,40 @@ export default function PatientDetail() {
     api.handoutCheck(id).then((r) => setPdf((p) => p && ({ ...p, warnings: r.warnings || [] })))
        .catch(() => setPdf((p) => p && ({ ...p, warnings: [] })));
   }, [pdf, id]);
+
+  const [origin, setOrigin] = useState(null);
+
+  // Какая фраза исходника сейчас подсвечена
+  const [docSpan, setDocSpan] = useState("");
+  const docTextRef = useRef(null);
+
+  function showSpan(span) {
+    setDocSpan(span || "");
+    // Прокручиваем к подсветке: без этого врач нажимает и ничего не видит,
+    // потому что фраза ниже видимой части.
+    setTimeout(() => {
+      const el = docTextRef.current?.querySelector("mark");
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 40);
+  }
+
+
+  async function editObsValue(code, x) {
+    const raw = window.prompt(`Исправить значение (${x.unit || ""})`,
+                              String(x.value_num ?? ""));
+    if (raw === null) return;
+    const value = Number(String(raw).replace(",", "."));
+    if (!isFinite(value)) { toast("Нужно число", "error"); return; }
+    const r = await api.editObs(x.id, { value_num: value });
+    if (r._error) { toast(r.detail || "Не удалось исправить", "error"); return; }
+    setTl(await api.timeline(id));
+    toast("Значение исправлено", "success");
+  }
+
+  async function showOrigin(oid) {
+    try { setOrigin(await api.observationOrigin(oid)); }
+    catch { toast("Не удалось узнать происхождение", "error"); }
+  }
 
   async function downloadHandout() {
     setPdf((p) => ({ ...p, handoutBusy: true }));
@@ -116,6 +157,15 @@ export default function PatientDetail() {
   }
   const [notes, setNotes] = useState([]);
   const [tab, setTab] = useState("s");
+
+  // Выбранная вкладка подъезжает в видимую часть. Эффект обязан стоять ПОСЛЕ
+  // объявления tab: иначе обращение к переменной до инициализации, и вся карта
+  // пациента падает в белый экран.
+  const tabsRef = useRef(null);
+  useEffect(() => {
+    const el = tabsRef.current?.querySelector(".t.on");
+    el?.scrollIntoView({ inline: "nearest", block: "nearest" });
+  }, [tab]);
   const [busy, setBusy] = useState("");
   const [showS, setShowS] = useState(false);
   const [lq, setLq] = useState("");
@@ -138,6 +188,15 @@ export default function PatientDetail() {
     await api.updatePatient(id, patEdit);
     setPatEdit(null); setP(await api.patient(id));
   }
+  // Нажали галочку — сохраняем сразу: отдельная кнопка здесь была бы лишним
+  // шагом, а потеря отметки раздражает сильнее, чем лишний запрос.
+  async function toggleNoteItem(n, nextText) {
+    try {
+      await api.editNote(id, n.id, nextText);
+      setTl(await api.timeline(id));
+    } catch { toast("Не удалось сохранить отметку", "error"); }
+  }
+
   async function saveNoteEdit() {
     await api.editNote(id, noteEdit.id, noteEdit.text);
     setNoteEdit(null); setNotes(await api.notes(id));
@@ -166,6 +225,19 @@ export default function PatientDetail() {
   // увидеть историю посещений целиком, а не только заведённое вручную.
   const [appts, setAppts] = useState([]);
   useEffect(() => { if (id && tab === "v") api.patientAppointments(id).then(setAppts).catch(() => setAppts([])); }, [id, tab]);
+
+  // Операции: раньше их не было как записи вовсе — терялись в заметках.
+  const [procs, setProcs] = useState([]);
+  const [procForm, setProcForm] = useState(null);
+  function loadProcs() { api.procedures(id).then((r) => setProcs(r.items || [])).catch(() => setProcs([])); }
+  useEffect(() => { if (id && tab === "v") loadProcs(); }, [id, tab]);
+
+  async function saveProc() {
+    if (!procForm?.name?.trim()) return;
+    const r = await api.addProcedure(id, procForm);
+    if (r._error) { toast(r.detail || "Не удалось записать операцию", "error"); return; }
+    setProcForm(null); loadProcs();
+  }
 
   async function closeVisit() {
     if (!activeEnc) return;
@@ -205,7 +277,7 @@ export default function PatientDetail() {
   );
 
   const [inviting, setInviting] = useState(false);
-  const [invited, setInvited] = useState("");
+  const [invited, setInvited] = useState([]);   // созданные контроли, их бывает несколько
   const [inviteDate, setInviteDate] = useState("");
   const [inviteTime, setInviteTime] = useState("10:00");
 
@@ -213,16 +285,19 @@ export default function PatientDetail() {
   // (контроль ПСА через 3/6/12). Время по умолчанию 10:00, врач потом поправит.
   async function inviteIn(months) {
     if (inviting) return;
-    setInviting(true); setInvited("");
+    setInviting(true);
     try {
       const d = new Date();
       d.setMonth(d.getMonth() + months);
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      await api.createAppointment({
+      const created = await api.createAppointment({
         patient_id: Number(id), starts_at: `${iso}T10:00:00`,
         kind: "repeat", reason: "контроль",
       });
-      setInvited(fmtDate(iso));
+      // Список, а не одна строка: контролей бывает несколько (через 3, 6 и 12),
+      // а прежнее сообщение показывало только последний — и выглядело так,
+      // будто новый контроль ЗАМЕНИЛ предыдущий. Врач так и понял.
+      setInvited((prev) => [...prev, { date: iso, id: created?.id }]);
     } catch { toast("Не удалось создать приём", "error"); }
     finally { setInviting(false); }
   }
@@ -249,15 +324,22 @@ export default function PatientDetail() {
   }
 
   // приглашение на свою дату
+  async function cancelInvited(appointmentId, index) {
+    try { await api.cancelAppointment(appointmentId); }
+    catch { toast("Не удалось отменить приём", "error"); return; }
+    setInvited((prev) => prev.filter((_, k) => k !== index));
+  }
+
   async function inviteOn(dateIso, time) {
     if (!dateIso || inviting) return;
-    setInviting(true); setInvited("");
+    setInviting(true);
     try {
-      await api.createAppointment({
+      const created = await api.createAppointment({
         patient_id: Number(id), starts_at: `${dateIso}T${time || "10:00"}:00`,
         kind: "repeat", reason: "контроль",
       });
-      setInvited(fmtDate(dateIso)); setInviteDate("");
+      setInvited((prev) => [...prev, { date: dateIso, id: created?.id }]);
+      setInviteDate("");
     } catch { toast("Не удалось создать приём", "error"); }
     finally { setInviting(false); }
   }
@@ -276,17 +358,37 @@ export default function PatientDetail() {
 
   async function uploadDoc(e) {
     const file = e.target.files?.[0] || null;
-    setBusy("Распознаю…");
+    e.target.value = "";
+    setBusy("Отправляю фото…");
     const r = await api.uploadDocument(id, file);
     setBusy("");
-    e.target.value = "";
     if (r._error) {
-      alert(r._status === 429 ? r.detail : "Не удалось распознать документ. " + (r.detail || ""));
+      alert(r._status === 429 ? r.detail : "Не удалось отправить документ. " + (r.detail || ""));
       return;
     }
-    // показываем, что система прочитала и что из этого узнала — без всплывашек
-    setDocResult(r);
-    if (r.match_status === "ok") setTl(await api.timeline(id));
+
+    // Распознавание идёт на сервере. Врач не ждёт его с телефоном в руке при
+    // пациенте: фото принято, можно продолжать приём. Значения появятся сами.
+    setDocResult({ ocr_status: "queued", document_id: r.document_id });
+    waitForDoc(r.document_id);
+  }
+
+  async function waitForDoc(docId, tries = 0) {
+    if (tries > 40) {                     // примерно две минуты — дальше не ждём
+      setDocResult((d) => d && ({ ...d, ocr_status: "slow" }));
+      return;
+    }
+    try {
+      const got = await api.documentStatus(id, docId);
+      if (got.ocr_status === "queued") {
+        setTimeout(() => waitForDoc(docId, tries + 1), 3000);
+        return;
+      }
+      setDocResult(got);
+      if (got.match_status === "ok") setTl(await api.timeline(id));
+    } catch {
+      setTimeout(() => waitForDoc(docId, tries + 1), 3000);
+    }
   }
 
   async function confirmObs(oid) {
@@ -497,6 +599,41 @@ export default function PatientDetail() {
         </div>
       )}
 
+      {origin && (
+        <div className="modal-ov" onClick={() => setOrigin(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sec-label" style={{ marginTop: 0 }}>Откуда это значение</div>
+            <div className="mono" style={{ fontSize: 15, marginBottom: 8 }}>
+              {origin.parameter_code} {origin.value} {origin.unit}
+            </div>
+            <div className="sub" style={{ lineHeight: 1.7 }}>
+              Источник: {ORIGIN_RU[origin.provenance] || origin.provenance}
+              {origin.machine_extracted ? " · извлечено машиной" : " · внесено врачом"}
+              {origin.confidence != null && ` · уверенность ${Math.round(origin.confidence * 100)}%`}
+              <br />
+              {origin.confirmed_by
+                ? `Подтвердил: ${origin.confirmed_by}, ${fmtDateTime(origin.confirmed_at)}`
+                : "Ещё не подтверждено врачом"}
+            </div>
+            {origin.assistant?.length > 0 && (
+              <>
+                <div className="sec-label">Как это попало в карту</div>
+                {origin.assistant.map((a, i) => (
+                  <div key={i} className="sub" style={{ lineHeight: 1.6, marginBottom: 6 }}>
+                    {fmtDateTime(a.at)} · {a.channel === "voice" ? "голосом" : "текстом"}:
+                    «{a.said}»<br />
+                    разобрано {a.engine === "model" ? "моделью" : "правилами"} ({a.engine_version})
+                    {a.outcome && ` · ${OUTCOME_RU[a.outcome] || a.outcome}`}
+                  </div>
+                ))}
+              </>
+            )}
+            <button className="btn block" style={{ marginTop: 12 }}
+                    onClick={() => setOrigin(null)}>Закрыть</button>
+          </div>
+        </div>
+      )}
+
       {integrity && integrity.count > 0 && (
         <div className="card" style={{ marginBottom: 10, borderLeft: "3px solid var(--wn)" }}>
           <Tip tipKey="tip:integrity" place="bottom" title="Система только подсказывает"
@@ -576,7 +713,10 @@ export default function PatientDetail() {
         </div>
       )}
 
-      <div className="tabs">
+      {/* Шесть вкладок не влезают на телефон: полоса прокручивается, а
+          выбранная сама подъезжает в видимую часть — иначе врач нажимает
+          «Заметки» и не видит, что выбрал. */}
+      <div className="tabs tabs-scroll" ref={tabsRef}>
         <div className={"t" + (tab === "s" ? " on" : "")} onClick={() => setTab("s")}>Сводка</div>
         <div className={"t" + (tab === "p" ? " on" : "")} onClick={() => setTab("p")}>Протокол</div>
         <div className={"t" + (tab === "d" ? " on" : "")} onClick={() => setTab("d")}>Устройства</div>
@@ -593,6 +733,69 @@ export default function PatientDetail() {
 
       {tab === "v" && (
         <>
+          {/* Операции и процедуры: отдельный раздел, потому что в выписке это
+              самостоятельная часть, а в заметках они терялись. */}
+          <div className="sec-label" style={{ marginTop: 0 }}>Операции и процедуры</div>
+          {procs.filter((p) => p.status !== "cancelled").length === 0 && (
+            <div className="sub">Не записаны.</div>
+          )}
+          {procs.filter((p) => p.status !== "cancelled").map((p) => (
+            <div key={"pr" + p.id} className="row">
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5 }}>{p.title || p.name}</div>
+                <div className="sub">
+                  {p.performed_at ? fmtDate(p.performed_at) : "дата не указана"}
+                  {p.surgeon ? ` · ${p.surgeon}` : ""}
+                  {p.confirmed === false ? " · предложено ассистентом" : ""}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {p.confirmed === false && (
+                  <button className="btn pri sm"
+                          onClick={async () => { await api.confirmProcedure(id, p.id); loadProcs(); }}>
+                    Подтвердить
+                  </button>
+                )}
+                <i className="ti ti-x muted" style={{ cursor: "pointer" }}
+                   onClick={async () => { await api.removeProcedure(id, p.id); loadProcs(); }} />
+              </div>
+            </div>
+          ))}
+
+          {procForm ? (
+            <div className="card" style={{ marginTop: 10 }}>
+              <label className="fld">
+                <span>Что сделано</span>
+                <input className="input" autoFocus value={procForm.name}
+                       onChange={(e) => setProcForm({ ...procForm, name: e.target.value })} />
+              </label>
+              <label className="fld">
+                <span>Сторона</span>
+                <select className="input" value={procForm.side}
+                        onChange={(e) => setProcForm({ ...procForm, side: e.target.value })}>
+                  <option value="">не применимо</option>
+                  <option value="left">слева</option>
+                  <option value="right">справа</option>
+                  <option value="both">с обеих сторон</option>
+                </select>
+              </label>
+              <label className="fld">
+                <span>Когда</span>
+                <input className="input" type="date" value={procForm.performed_at}
+                       onChange={(e) => setProcForm({ ...procForm, performed_at: e.target.value })} />
+              </label>
+              <div className="btnrow">
+                <button className="btn sm" style={{ flex: 1 }} onClick={() => setProcForm(null)}>Отмена</button>
+                <button className="btn pri sm" style={{ flex: 1 }} onClick={saveProc}>Записать</button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn sm block" style={{ marginBottom: 10 }}
+                    onClick={() => setProcForm({ name: "", side: "", performed_at: "" })}>
+              <i className="ti ti-plus" /> Записать операцию
+            </button>
+          )}
+
           {appts.length > 0 && (
             <>
               <div className="sec-label" style={{ marginTop: 0 }}>Записи на приём</div>
@@ -652,7 +855,15 @@ export default function PatientDetail() {
                     {[e.ward && "палата " + e.ward, e.diagnosis_text || e.reason, summaryText(e.summary)].filter(Boolean).join(" · ")}
                   </div>
                 </div>
-                <i className={"ti " + (openEnc?.id === e.id ? "ti-chevron-down" : "ti-chevron-right") + " muted"} />
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  {/* Выписка собирается по эпизоду, поэтому вход отсюда, а не
+                      из общего меню карты. */}
+                  <span className="acc" style={{ fontSize: 12.5 }}
+                        onClick={(ev) => { ev.stopPropagation(); nav(`/encounters/${e.id}/discharge`); }}>
+                    выписка
+                  </span>
+                  <i className={"ti " + (openEnc?.id === e.id ? "ti-chevron-down" : "ti-chevron-right") + " muted"} />
+                </div>
               </div>
               {openEnc?.id === e.id && (
                 <div className="card" style={{ marginBottom: 8 }}>
@@ -697,7 +908,75 @@ export default function PatientDetail() {
                 <div style={{ fontSize: 13.5, fontWeight: 500 }}>Распознавание документа</div>
                 <i className="ti ti-x muted" style={{ cursor: "pointer" }} onClick={() => setDocResult(null)} />
               </div>
-              {docResult.match_status !== "ok" ? (
+              {docResult.ocr_status === "queued" ? (
+                /* Фото принято, распознавание идёт на сервере. Врач может
+                   продолжать приём — результат догонит сам. */
+                <div className="sub" style={{ marginTop: 4 }}>
+                  <i className="ti ti-loader" /> Фото принято, распознаю.
+                  Можно продолжать приём — значения появятся здесь сами.
+                </div>
+              ) : docResult.ocr_status === "slow" ? (
+                <div className="sub wn" style={{ marginTop: 4 }}>
+                  Распознавание затянулось. Значения появятся в очереди
+                  подтверждения, когда оно закончится.
+                </div>
+              ) : docResult.ocr_status === "failed" ? (
+                <div className="sub dng" style={{ marginTop: 4 }}>
+                  Не удалось распознать. Попробуйте переснять: важно, чтобы
+                  текст был в фокусе и целиком в кадре.
+                </div>
+              ) : docResult.findings?.length > 0 ? (
+                /* Находки из заключения: орган → находка → свойства. Это не
+                   показатели, в динамику они не идут — поэтому показываем
+                   списком, а не графиком. */
+                <>
+                  <div className="sub" style={{ marginTop: 4 }}>
+                    Из заключения: {docResult.findings.length}
+                  </div>
+                  {docResult.findings.map((f, i) => (
+                    <div key={i} className="finding-row"
+                         style={{ fontSize: 13, lineHeight: 1.6, marginTop: 4 }}
+                         onClick={() => showSpan(f.source_span)}>
+                      · {f.line}
+                      <i className="ti ti-quote sub" title="Показать в документе" />
+                    </div>
+                  ))}
+                  {/* Шкалы — классификации, не числа. Нечитаемое значение
+                      показываем с сомнением, а не подгоняем под ближайшее. */}
+                  {docResult.scales?.map((sc, i) => (
+                    <div key={"sc" + i} className="finding-row" style={{ fontSize: 13, marginTop: 4 }}
+                         onClick={() => showSpan(sc.source_span)}>
+                      · {sc.title}: <b>{sc.value}</b>
+                      {sc.doubt && <span className="sub dng"> — {sc.doubt}</span>}
+                    </div>
+                  ))}
+                  {docResult.rejected?.length > 0 && (
+                    <div className="sub" style={{ marginTop: 8 }}>
+                      Не прошло проверку: {docResult.rejected.length} —{" "}
+                      {docResult.rejected[0].why}
+                    </div>
+                  )}
+                </>
+              ) : docResult.rejected?.length > 0 && docResult.mapped?.length === 0 ? (
+                /* Ничего не узнали, но что-то отбросили — объясняем почему.
+                   Пустой экран без объяснения врач воспримет как поломку. */
+                <>
+                  <div className="sub" style={{ marginTop: 4 }}>
+                    Показателей не узнал. Текст документа сохранён целиком —
+                    он ниже.
+                  </div>
+                  <div className="sub" style={{ marginTop: 6 }}>
+                    Не прошло проверку: {docResult.rejected.length}
+                  </div>
+                  {docResult.rejected.slice(0, 5).map((r, i) => (
+                    <div key={i} className="sub" style={{ lineHeight: 1.55 }}>
+                      <span className="finding-row" onClick={() => showSpan(r.source_span)}>
+                        · {r.parameter_code} {r.value_num} — {r.why}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              ) : docResult.match_status !== "ok" ? (
                 <div className="sub wn" style={{ marginTop: 4 }}>
                   Данные не совпали с картой ({docResult.match_status}). В документе:
                   {" "}{docResult.extracted_name} {docResult.extracted_dob}. Документ не приложен.
@@ -718,9 +997,11 @@ export default function PatientDetail() {
               {docResult.recognized_text ? (
                 <>
                   <div className="sec-label" style={{ marginBottom: 4 }}>Текст документа</div>
-                  <div className="card" style={{ background: "var(--s1)", fontSize: 11.5,
-                       whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto" }}>
-                    {docResult.recognized_text}
+                  {/* Подсветка фразы-основания. Врач нажимает на находку и
+                      сразу видит, из чего она сделана: проверять по памяти
+                      медицинский документ нельзя. */}
+                  <div className="card doc-text" ref={docTextRef}>
+                    <DocText text={docResult.recognized_text} span={docSpan} />
                   </div>
                   <div className="sub" style={{ marginTop: 4 }}>
                     Это то, что система прочитала. Показатель не узнан — добавьте вручную
@@ -780,10 +1061,28 @@ export default function PatientDetail() {
                     <div key={x.id} className="row">
                       <div>
                         <div className="mono" style={{ fontSize: 13 }}>{x.value_num} {x.unit || ""}</div>
-                        <div className="sub">{fmtDate(x.date)}</div>
+                        <div className="sub">
+                          {fmtDate(x.date)}
+                          {/* «Со слов пациента» — не измерение, а анамнез.
+                              Без пометки через месяц никто не отличит. */}
+                          {x.provenance === "patient_words" && (
+                            <span className="wn"> · со слов пациента</span>
+                          )}
+                        </div>
                       </div>
-                      <span className="dng" style={{ fontSize: 12, cursor: "pointer" }}
-                            onClick={() => deleteObs(code, x)}>удалить</span>
+                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                        {/* Откуда значение — ответ на вопрос «почему в карте
+                            именно это». Нужен и врачу, и при разборе спора. */}
+                        <span className="acc" style={{ fontSize: 12, cursor: "pointer" }}
+                              onClick={() => showOrigin(x.id)}>откуда</span>
+                        {/* Исправление, а не «удалить и внести заново»: так
+                            сохраняется история и видно, что врач поправил
+                            именно предложение ассистента. */}
+                        <span className="acc" style={{ fontSize: 12, cursor: "pointer" }}
+                              onClick={() => editObsValue(code, x)}>исправить</span>
+                        <span className="dng" style={{ fontSize: 12, cursor: "pointer" }}
+                              onClick={() => deleteObs(code, x)}>удалить</span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -838,19 +1137,38 @@ export default function PatientDetail() {
             ))}
           </div>
           {/* свой срок: 3/6/12 закрывают частые случаи, но не все */}
-          <div className="btnrow" style={{ marginTop: 6, opacity: consentOk ? 1 : 0.5 }}>
-            <input className="input" type="date" style={{ flex: 1 }} value={inviteDate}
+          {/* Строка переносится: на 360px поле даты, время и кнопка в один ряд
+              не помещались, и «Записать» уходила за край экрана. */}
+          <div className="btnrow wrap" style={{ marginTop: 6, opacity: consentOk ? 1 : 0.5 }}>
+            <input className="input" type="date" style={{ flex: "1 1 150px", minWidth: 0 }}
+                   value={inviteDate}
                    disabled={!consentOk || inviting} title="Своя дата контроля"
                    onChange={(e) => setInviteDate(e.target.value)} />
-            <input className="input" type="time" style={{ width: 110 }} value={inviteTime}
+            <input className="input" type="time" style={{ flex: "0 1 104px", minWidth: 0 }}
+                   value={inviteTime}
                    disabled={!consentOk || inviting}
                    onChange={(e) => setInviteTime(e.target.value)} />
-            <button className="btn sm" disabled={!consentOk || inviting || !inviteDate}
+            <button className="btn sm" style={{ flex: "0 0 auto" }}
+                    disabled={!consentOk || inviting || !inviteDate}
                     onClick={() => inviteOn(inviteDate, inviteTime)}>Записать</button>
           </div>
-          {invited && (
-            <div className="sub succ" style={{ marginTop: 6 }}>
-              <i className="ti ti-check" /> Приём создан на {invited}
+          {invited.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div className="sub">
+                Назначено контролей: {invited.length}. Можно добавить ещё.
+              </div>
+              {invited.map((x, i) => (
+                <div key={i} className="row" style={{ padding: "6px 0" }}>
+                  <span className="sub succ">
+                    <i className="ti ti-check" /> {fmtDate(x.date)}
+                  </span>
+                  {/* Ошибся сроком — убрать здесь же, не идя в календарь */}
+                  {x.id && (
+                    <span className="dng" style={{ fontSize: 12, cursor: "pointer" }}
+                          onClick={() => cancelInvited(x.id, i)}>отменить</span>
+                  )}
+                </div>
+              ))}
             </div>
           )}
           <input type="file" ref={fileRef} accept="image/*,.pdf" style={{ display: "none" }} onChange={uploadDoc} />
@@ -981,20 +1299,85 @@ export default function PatientDetail() {
               </div>
               {noteEdit?.id === n.id ? (
                 <>
-                  <textarea className="input" value={noteEdit.text} onChange={(e) => setNoteEdit({ ...noteEdit, text: e.target.value })}
-                    style={{ minHeight: 60 }} />                  <div className="btnrow" style={{ marginTop: 8 }}>
+                  {/* Поле было в три строки с внутренней прокруткой: текст не
+                      помещался, и править длинную заметку было нельзя. */}
+                  <textarea className="input note-body" value={noteEdit.text}
+                            autoFocus
+                            onChange={(e) => setNoteEdit({ ...noteEdit, text: e.target.value })} />
+                  <div className="btnrow" style={{ marginTop: 8 }}>
                     <button className="btn sm" style={{ flex: 1 }} onClick={() => setNoteEdit(null)}>Отмена</button>
                     <Button className="btn pri sm" style={{ flex: 1 }} onClick={saveNoteEdit}>Сохранить</Button>
                   </div>
                 </>
               ) : (
-                <div style={{ fontSize: 13, lineHeight: 1.6 }}>{n.text}</div>
+                /* Строки вида «[ ] пункт» показываем галочками: именно так
+                   выглядят списки, перенесённые из «Блокнота», и читать их
+                   как текст неудобно. */
+                <NoteText text={n.text} onToggle={(next) => toggleNoteItem(n, next)}
+                          disabled={!consentOk} />
               )}
             </div>
           ))}
         </>
       )}
     </>
+  );
+}
+
+
+// Текст документа с подсветкой фразы-основания.
+//
+// Сравнение ведём по «скелету» строки — только буквы и цифры. Распознавание
+// по-разному расставляет пробелы и переносы, и точное совпадение почти
+// никогда не срабатывает.
+function DocText({ text, span }) {
+  const full = String(text || "");
+  const at = findSpan(full, span);
+  if (!at) return <>{full}</>;
+  return (
+    <>
+      {full.slice(0, at.from)}
+      <mark className="doc-mark">{full.slice(at.from, at.to)}</mark>
+      {full.slice(at.to)}
+    </>
+  );
+}
+
+
+// Текст заметки с живыми галочками.
+//
+// Списки, перенесённые из «Блокнота», приезжают строками «[x] сделано» и
+// «[ ] не сделано». Показывать их простым текстом — значит заставлять врача
+// править квадратные скобки руками.
+function NoteText({ text, onToggle, disabled }) {
+  const lines = String(text || "").split("\n");
+  const hasItems = lines.some((l) => /^\s*\[[ xX]\]/.test(l));
+  if (!hasItems) {
+    return <div style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{text}</div>;
+  }
+  return (
+    <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+      {lines.map((l, i) => {
+        const m = l.match(/^(\s*)\[([ xX])\]\s?(.*)$/);
+        if (!m) return <div key={i} style={{ whiteSpace: "pre-wrap" }}>{l}</div>;
+        const done = m[2].toLowerCase() === "x";
+        return (
+          <div key={i} className="check-row" style={{ padding: "3px 0" }}>
+            <i className={"ti " + (done ? "ti-checkbox" : "ti-square")}
+               style={{ cursor: disabled ? "default" : "pointer",
+                        color: done ? "var(--sc)" : "var(--tm)" }}
+               onClick={() => {
+                 if (disabled) return;
+                 const next = [...lines];
+                 next[i] = `${m[1]}[${done ? " " : "x"}] ${m[3]}`;
+                 onToggle(next.join("\n"));
+               }} />
+            <span style={{ textDecoration: done ? "line-through" : "none",
+                           opacity: done ? 0.65 : 1 }}>{m[3]}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1007,6 +1390,11 @@ function DiagnosesBlock({ id, onChange, disabled }) {
   const [showRemoved, setShowRemoved] = useState(false);
 
   function load() { api.diagnoses(id).then(setList).catch(() => setList([])); }
+
+  async function confirmDx(did) {
+    try { await api.confirmDiagnosis(id, did); load(); toast("Диагноз подтверждён", "success"); }
+    catch { toast("Не удалось подтвердить", "error"); }
+  }
   useEffect(() => { load(); }, [id]);
   useEffect(() => {
     if (!adding) return;
@@ -1061,9 +1449,16 @@ function DiagnosesBlock({ id, onChange, disabled }) {
               <span className="mono acc">{d.code}</span> {d.wording || d.title}
             </div>
             {d.is_primary && <div className="sub">основной</div>}
+            {/* Предложение ассистента видно отдельно: пока врач не подтвердил,
+                это не поставленный диагноз. */}
+            {d.confirmed === false && (
+              <div className="sub wn">предложено ассистентом — подтвердите</div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            {!d.is_primary && <i className="ti ti-star muted" title="Сделать основным" style={{ cursor: "pointer" }} onClick={() => makePrimary(d.id)} />}
+            {d.confirmed === false
+              ? <button className="btn pri sm" onClick={() => confirmDx(d.id)}>Подтвердить</button>
+              : !d.is_primary && <i className="ti ti-star muted" title="Сделать основным" style={{ cursor: "pointer" }} onClick={() => makePrimary(d.id)} />}
             <i className="ti ti-x muted" title="Снять диагноз" style={{ cursor: "pointer" }} onClick={() => remove(d.id)} />
           </div>
         </div>

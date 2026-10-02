@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api";
+import { dayKind, loadYear } from "../lib/holidays";
 import { confirmAction } from "../lib/confirm";
 import { WD, weekDays, todayISO, fmtDay, MONTHS_GEN } from "../lib/dates";
 import { toast } from "../lib/toast";
@@ -14,6 +15,13 @@ export default function Week() {
   const days = useMemo(() => weekDays(off), [off]);
   const TODAY = todayISO();
   const [sel, setSel] = useState(days.find((d) => d.iso === TODAY)?.iso || days[0].iso);
+
+  // Праздники приходят с сервера: вычислить их нельзя, переносы меняются.
+  const [holidays, setHolidays] = useState(null);
+  useEffect(() => {
+    const year = Number((days?.[0]?.iso || TODAY).slice(0, 4));
+    loadYear(year).then(setHolidays);
+  }, [days?.[0]?.iso]);
   const [appts, setAppts] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [taskDraft, setTaskDraft] = useState(null);   // null | {title, time}
@@ -80,15 +88,24 @@ export default function Week() {
         {days.map((d, i) => {
           const selected = d.iso === sel;
           const isToday = d.iso === TODAY;
+          // То же правило, что на Главной и в календаре: выходной — подложкой,
+          // праздник — красным числом.
+          const k = dayKind(d.iso, holidays);
           const has = appts.some((a) => a.day === d.iso);
           const hasTask = tasks.some((t) => t.day === d.iso);
           return (
-            <div key={d.iso} style={{ textAlign: "center", cursor: "pointer" }} onClick={() => setSel(d.iso)}>
+            <div key={d.iso} title={k.label || undefined}
+                 style={{ textAlign: "center", cursor: "pointer", borderRadius: 12,
+                          padding: "2px 6px",
+                          background: !selected && k.off ? "var(--s1)" : "transparent" }}
+                 onClick={() => setSel(d.iso)}>
               <div style={{ fontSize: 11, color: "var(--tm)", marginBottom: 5 }}>{WD[i]}</div>
               {selected ? (
                 <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--ac)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, margin: "0 auto" }}>{d.day}</div>
               ) : (
-                <div style={{ fontSize: 13, padding: "6px 0", color: isToday ? "var(--act)" : "var(--tp)", fontWeight: isToday ? 600 : 400 }}>{d.day}</div>
+                <div style={{ fontSize: 13, padding: "6px 0",
+                  color: isToday ? "var(--act)" : (k.holiday ? "var(--dn)" : "var(--tp)"),
+                  fontWeight: isToday || k.holiday ? 600 : 400 }}>{d.day}</div>
               )}
               <div style={{ display: "flex", gap: 2, justifyContent: "center", marginTop: 3, minHeight: 5 }}>
                 {has && <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--ac)" }} />}

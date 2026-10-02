@@ -16,6 +16,12 @@ import MyStats from "./pages/MyStats";
 import Lists from "./pages/Lists";
 import Help from "./pages/Help";
 import Notifications from "./pages/Notifications";
+import Digest from "./pages/Digest";
+import Capture from "./pages/Capture";
+import Discharge from "./pages/Discharge";
+import About from "./pages/About";
+import NoteEdit from "./pages/NoteEdit";
+import Blocknote from "./pages/Blocknote";
 import Patients from "./pages/Patients";
 import PatientDetail from "./pages/PatientDetail";
 import Reminders from "./pages/Reminders";
@@ -120,6 +126,12 @@ export default function App() {
           <Route path="/lists" element={<Lists />} />
           <Route path="/help" element={<Help />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/digest" element={<Digest />} />
+          <Route path="/capture" element={<Capture />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/notes/:id" element={<NoteEdit />} />
+          <Route path="/blocknote" element={<Blocknote />} />
+          <Route path="/encounters/:eid/discharge" element={<Discharge />} />
           <Route path="/billing" element={<Billing onSubChange={refreshSub} />} />
           <Route path="/dictation" element={<Dictation />} />
           <Route path="/notify-settings" element={<NotifySettings />} />

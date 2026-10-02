@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { notifyAssistantResult } from "../lib/bus";
+import { dayKind, loadYear } from "../lib/holidays";
+import { CHANGELOG, VERSION } from "../lib/version";
 import { WD, monthMatrix, monthRange, todayISO, weekOffsetOfISO, fmtDay, iso as isoOf } from "../lib/dates";
 import { plural } from "../lib/plural";
 import Tip from "../components/Tip";
@@ -55,6 +57,60 @@ export default function Home() {
   // и утапливала вниз то, ради чего врач открыл приложение. Месяц остался
   // отдельной страницей «Календарь».
   const week = weeks.find((row) => row.some((c) => c.iso === TODAY)) || weeks[0];
+
+  // Разворот недели в месяц. Врач не может планировать по семи дням: он не
+  // видит, что будет через две недели. Состояние запоминается — кому нужен
+  // месяц, тот видит его всегда.
+  const [monthOpen, setMonthOpen] = useState(
+    () => localStorage.getItem("sm_home_month") === "1");
+  // Праздники приходят с сервера: вычислить их нельзя, переносы меняются
+  // каждый год. Нет данных за год — показываем только субботы и воскресенья.
+  const [holidays, setHolidays] = useState(null);
+  useEffect(() => { loadYear(Y).then(setHolidays); }, [Y]);
+
+  // Что нового после обновления.
+  //
+  // Запись в «Ещё → о приложении» врач сам не откроет — он туда не ходит.
+  // Поэтому один раз на версию показываем короткую полоску на Главной. Один
+  // раз: повторное напоминание о том же — это уже реклама себя.
+  //
+  // При первом запуске ничего не показываем: человеку, который только завёл
+  // приложение, «что нового» бессмысленно.
+  const [showNew, setShowNew] = useState(() => {
+    const seen = localStorage.getItem("sm_seen_version");
+    if (!seen) { localStorage.setItem("sm_seen_version", VERSION); return false; }
+    return seen !== VERSION;
+  });
+  function dismissNew() {
+    localStorage.setItem("sm_seen_version", VERSION);
+    setShowNew(false);
+  }
+
+  const stripRef = useRef(null);
+  const [stripH, setStripH] = useState(null);
+
+  // Высоту меряем ДО анимации и анимируем от числа к числу: иначе содержимое
+  // ниже прыгает, пока блок разворачивается.
+  useLayoutEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    // Высоту надо снимать при height:auto. Иначе scrollHeight возвращает НЕ
+    // меньше текущей высоты блока: при сворачивании он оставался равным
+    // месяцу, и под одной неделей зияла пустота на четыре строки.
+    const prev = el.style.height;
+    el.style.height = "auto";
+    const h = el.scrollHeight;
+    el.style.height = prev;
+    // Заставляем браузер увидеть старое значение, иначе перехода не будет
+    void el.offsetHeight;
+    setStripH(h);
+  }, [monthOpen, weeks.length]);
+
+  function toggleMonth() {
+    const next = !monthOpen;
+    setMonthOpen(next);
+    localStorage.setItem("sm_home_month", next ? "1" : "0");
+  }
   const todayAppts = appts.filter((a) => a.day === TODAY);
   const todayRems = rems.filter((r) => r.due_at && new Date(r.due_at) <= new Date());
 
@@ -71,22 +127,68 @@ export default function Home() {
 
       {/* Неделя. Месяц — на отдельной странице «Календарь»: месячная сетка
           занимала полэкрана и утапливала вниз главное. */}
-      <div className="weekstrip">
-        {week.map((c) => {
-          const isToday = c.iso === TODAY;
-          return (
-            <button key={c.iso} className={"wday" + (isToday ? " today" : "")}
-                    onClick={() => nav(`/week/${weekOffsetOfISO(c.iso)}`)}>
-              <span className="wd-name">{WD[(new Date(c.iso).getDay() + 6) % 7]}</span>
-              <span className="wd-num">{c.day}</span>
-              <span className="wd-dots">
-                {dotDays.has(c.iso) && <i style={{ background: "var(--ac)" }} />}
-                {remDays.has(c.iso) && <i style={{ background: "var(--rm)" }} />}
-              </span>
-            </button>
-          );
-        })}
+      {/* Названия дней — отдельной строкой: в месяце повторять их в каждой
+          неделе незачем, а в неделе они и так на месте. */}
+      {monthOpen && (
+        <div className="weekstrip wd-head">
+          {WD.map((d, i) => (
+            <span key={d} className={"wd-name" + (i >= 5 ? " weekend" : "")}>{d}</span>
+          ))}
+        </div>
+      )}
+
+      <div className="monthwrap" ref={stripRef}
+           style={stripH != null ? { height: stripH } : undefined}>
+        {(monthOpen ? weeks : [week]).map((row, ri) => (
+          <div className="weekstrip" key={ri}>
+            {row.map((c) => {
+              const isToday = c.iso === TODAY;
+              const wd = (new Date(c.iso).getDay() + 6) % 7;
+              const k = dayKind(c.iso, holidays);
+              return (
+                <button key={c.iso}
+                        title={k.label || undefined}
+                        className={"wday" + (isToday ? " today" : "")
+                          + (k.off ? " weekend" : "")
+                          + (k.holiday ? " holiday" : "")
+                          + (k.work ? " workday" : "")
+                          + (monthOpen && !c.cur ? " other" : "")}
+                        onClick={() => nav(`/week/${weekOffsetOfISO(c.iso)}`)}>
+                  {!monthOpen && <span className="wd-name">{WD[wd]}</span>}
+                  <span className="wd-num">{c.day}</span>
+                  <span className="wd-dots">
+                    {dotDays.has(c.iso) && <i style={{ background: "var(--ac)" }} />}
+                    {remDays.has(c.iso) && <i style={{ background: "var(--rm)" }} />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
+
+      {showNew && (
+        <div className="whatsnew">
+          <div style={{ minWidth: 0 }}>
+            <b style={{ fontSize: 13 }}>{CHANGELOG[0]?.title || "Обновление"}</b>
+            <div className="sub" style={{ marginTop: 2 }}>
+              Версия {VERSION} · {CHANGELOG[0]?.items?.length || 0} изменений
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button className="btn sm" onClick={() => { dismissNew(); nav("/about"); }}>
+              Посмотреть
+            </button>
+            <i className="ti ti-x muted" title="Скрыть"
+               style={{ cursor: "pointer", padding: 6 }} onClick={dismissNew} />
+          </div>
+        </div>
+      )}
+
+      <button className="btn month-btn" onClick={toggleMonth}>
+        <i className={"ti " + (monthOpen ? "ti-chevron-up" : "ti-chevron-down")} />
+        {monthOpen ? "Свернуть" : "Весь месяц"}
+      </button>
 
       {/* Главное действие — сразу, без прокрутки. Врач жаловался, что кнопку
           приёма приходилось искать в самом низу. */}

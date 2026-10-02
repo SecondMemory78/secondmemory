@@ -162,7 +162,9 @@ export default function PrescriptionsTab({ id, disabled }) {
             <button className="btn sm" style={{ flex: 1 }}
                     disabled={disabled || busy || !dictText.trim()}
                     onClick={() => dictate({ text: dictText })}>
-              {busy ? "Разбираю…" : "Разобрать"}
+              {/* «Разобрать» непонятно, что делает: врач не знает, что сюда
+                  можно просто писать. «Внести» говорит о результате. */}
+              {busy ? "Вношу…" : "Внести"}
             </button>
             {!disabled && <VoiceButton label="Продиктовать" onResult={(blob) => dictate({ blob })} />}
           </div>

@@ -9,20 +9,38 @@ import { getDoctor } from "../lib/auth";
 
 const TABS = [
   { to: "/", end: true, icon: "ti-home", label: "Главная" },
-  { to: "/calendar", icon: "ti-calendar-month", label: "Календарь" },
+  // Календарь убран из вкладок: он открывается с Главной полоской недели в
+  // одно касание, а блокнот врач открывает чаще. Решено 01.10.2026.
+  { to: "/blocknote", icon: "ti-notebook", label: "Блокнот" },
   { to: "/patients", icon: "ti-users", label: "Пациенты" },
+  // Задачи остаются отдельной вкладкой: они срочные, и прятать их на касание
+  // глубже нельзя. Внутри «Блокнота» они тоже есть — это один и тот же список,
+  // просто рядом с заметками, из которых задачи и рождаются.
   { to: "/tasks", icon: "ti-checkbox", label: "Задачи" },
   { to: "/more", icon: "ti-dots", label: "Ещё" },
 ];
 
+// Раздел «Работа». На телефоне он живёт в «Ещё» — там нет места для восьми
+// пунктов внизу. На компьютере места полно, и прятать рабочие разделы в
+// «Ещё» незачем: врач за столом открывает заметки и списки постоянно.
+const WORK = [
+  { to: "/calendar", icon: "ti-calendar-month", label: "Календарь" },
+  { to: "/lists", icon: "ti-list-check", label: "Списки пациентов" },
+  { to: "/triggers", icon: "ti-filter", label: "Автослежение" },
+  { to: "/assistant-log", icon: "ti-history", label: "Что сделал ассистент" },
+];
+
 // глобальный поиск виден на основных вкладках, кроме «Ещё»
-const SEARCH_ON = ["/", "/calendar", "/patients", "/tasks"];
+const SEARCH_ON = ["/", "/calendar", "/patients", "/tasks", "/blocknote"];
 
 export default function Layout() {
   const nav = useNavigate();
   const loc = useLocation();
   const showSearch = SEARCH_ON.includes(loc.pathname);
   const [unread, setUnread] = useState(0);
+  // Просроченное на вкладке «Задачи»: видно, не заходя внутрь.
+  const [overdue, setOverdue] = useState(0);
+  useEffect(() => { api.dashboard().then((d) => setOverdue(d.overdue_reminders || 0)).catch(() => {}); }, [loc.pathname]);
   useEffect(() => { api.notifications().then((r) => setUnread(r.unread || 0)).catch(() => {}); }, [loc.pathname]);
 
   return (
@@ -34,6 +52,13 @@ export default function Layout() {
             <i className={"ti " + t.icon} /> {t.label}
           </NavLink>
         ))}
+
+        <div className="side-sec">Работа</div>
+        {WORK.map((t) => (
+          <NavLink key={t.to} to={t.to}>
+            <i className={"ti " + t.icon} /> {t.label}
+          </NavLink>
+        ))}
         <button className="btn pri block startbtn" onClick={() => nav("/start-visit")}>
           <i className="ti ti-player-play" /> Начать приём
         </button>
@@ -42,13 +67,16 @@ export default function Layout() {
       <div className="app">
         <header className="topbar-search" style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1 }}>{showSearch && <HeaderSearch />}</div>
-          <div style={{ position: "relative", cursor: "pointer", padding: 4 }} onClick={() => nav("/notifications")} title="Уведомления">
-            <i className="ti ti-bell" style={{ fontSize: 20, color: "var(--tp)" }} />
-            {unread > 0 && (
-              <span style={{ position: "absolute", top: -2, right: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 8, background: "var(--dn)", color: "#fff", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600 }}>
-                {unread > 9 ? "9+" : unread}
-              </span>
-            )}
+          <div className="hd-bell" onClick={() => nav("/notifications")} title="Уведомления">
+            {/* Счётчик крепится к самому значку, а не к зоне нажатия: зона
+                40×40, значок 20×20, и привязка к её углу отрывала кружок от
+                колокольчика. */}
+            <span className="bell-ico">
+              <i className="ti ti-bell" style={{ fontSize: 20, color: "var(--tp)" }} />
+              {unread > 0 && (
+                <span className="bell-badge">{unread > 9 ? "9+" : unread}</span>
+              )}
+            </span>
           </div>
         </header>
         <div className="scroll">
@@ -68,7 +96,12 @@ export default function Layout() {
         <nav className="tabbar">
           {TABS.map((t) => (
             <NavLink key={t.to} to={t.to} end={t.end}>
-              <i className={"ti " + t.icon} />
+              <span className="tab-ico">
+                <i className={"ti " + t.icon} />
+                {t.to === "/tasks" && overdue > 0 && (
+                  <span className="tab-dot">{overdue > 9 ? "9+" : overdue}</span>
+                )}
+              </span>
               <span>{t.label}</span>
             </NavLink>
           ))}

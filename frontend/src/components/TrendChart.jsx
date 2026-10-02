@@ -12,6 +12,33 @@ export default function TrendChart({ points, unit = "", threshold = "", label })
   const pts = (points || []).filter((p) => p.value_num != null);
   if (pts.length === 0) return null;
 
+  // По одному значению график НЕ рисуем. Линия из одной точки создаёт
+  // иллюзию динамики: врач видит привычную картинку и читает её как «было —
+  // стало», хотя сравнивать не с чем. Вместо графика — карточка значения.
+  if (pts.length === 1) {
+    const only = pts[0];
+    const thrOne = parseThreshold(threshold);
+    const above = thrOne != null && only.value_num > thrOne;
+    return (
+      <div className="card" style={{ marginBottom: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>{label}</div>
+          <div className="mono" style={{ fontSize: 15 }}>
+            <span className={above ? "dng" : ""}>{only.value_num}</span>{" "}
+            <span className="sub" style={{ fontSize: 11 }}>{unit}</span>
+          </div>
+        </div>
+        <div className="sub" style={{ marginTop: 3 }}>
+          {only.date ? `${only.date} · ` : ""}одно значение — динамики пока нет
+          {only.status === "pending" ? " · ждёт подтверждения" : ""}
+        </div>
+        {threshold && (
+          <div className="sub" style={{ marginTop: 4 }}>{threshold}</div>
+        )}
+      </div>
+    );
+  }
+
   const W = 300, H = 96, PAD = 26, TOP = 10;
   const vals = pts.map((p) => p.value_num);
   const thr = parseThreshold(threshold);

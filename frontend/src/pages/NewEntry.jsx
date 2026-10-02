@@ -23,6 +23,20 @@ export default function NewEntry() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { api.patients("").then(setList).catch(() => {}); }, []);
+
+  // Пересечения с другими приёмами. Проверка на сервере была давно, но
+  // интерфейс её не вызывал: врач ставил двоих на одно время молча.
+  // Это ПОДСКАЗКА, а не запрет — врач может так и хотеть.
+  const [clash, setClash] = useState([]);
+  useEffect(() => {
+    if (!dateISO || !time) { setClash([]); return; }
+    const t = setTimeout(() => {
+      api.appointmentConflicts(`${dateISO}T${time}:00`)
+         .then((r) => setClash(r.items || []))
+         .catch(() => setClash([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [dateISO, time]);
   const upd = (k, v) => setForm({ ...form, [k]: v });
 
   async function resolvePatient() {
@@ -50,6 +64,11 @@ export default function NewEntry() {
       nav("/calendar");
     }
   }
+
+  const clashText = clash.length
+    ? `На это время уже есть ${clash.length === 1 ? "приём" : "приёма"}: `
+      + clash.map((c) => `${c.time}–${c.ends_time}`).join(", ")
+    : "";
 
   const filtered = q ? list.filter((p) => `${p.last_name} ${p.first_name}`.toLowerCase().includes(q.toLowerCase())) : list;
 
@@ -105,6 +124,15 @@ export default function NewEntry() {
         <span className="sub" style={{ fontWeight: 500 }}>Время приёма</span>
         <TimeField value={time} onChange={setTime} />
       </div>
+
+      {clashText && (
+        <div className="banner b-wn" style={{ marginTop: 10, display: "block" }}>
+          <i className="ti ti-alert-triangle" /> {clashText}.
+          <div className="sub" style={{ marginTop: 2 }}>
+            Можно поставить всё равно — это подсказка, а не запрет.
+          </div>
+        </div>
+      )}
 
       <div className="btnrow">
         <button className="btn pri" style={{ flex: 1 }} disabled={busy} onClick={() => act(true)}>

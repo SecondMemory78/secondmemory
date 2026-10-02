@@ -3,7 +3,10 @@
   --tp:#16202C; --ts:#5A6675; --tm:#8B95A3;
   --bd:#E5E9EF; --bds:#CFD6E0;
   --ac:#2563EB; --act:#1D4ED8; --acbg:#EAF1FD; --acsub:#DEEAFB;
-  --dn:#C4322B; --dnbg:#FBEAE9; --dnbd:#E7A19C;
+  /* --dn — цвет ТЕКСТА предупреждений, --dns — заливка сплошной кнопки.
+     На светлой теме они совпадают, на тёмной нет: текст должен быть светлым,
+     а кнопка — насыщенной, иначе она выглядит выцветшей. */
+  --dn:#C4322B; --dns:#C4322B; --dnbg:#FBEAE9; --dnbd:#E7A19C;
   --wn:#9A6A00; --wnbg:#FBF2DC; --wnbd:#E7C77A;
   --sc:#1E7A52; --scbg:#E6F5EE;
   --rm:#7C3AED; --rmbg:#F1EAFE;
@@ -11,12 +14,17 @@
 }
 [data-theme="dark"]{
   --s2:#171D25; --s1:#10151B; --s0:#0C1116;
-  --tp:#E9EDF2; --ts:#AEB8C4; --tm:#95A0AE;
+  /* Подписи были заметно тусклее, чем на светлой теме: на белом вторичный
+     текст читается при контрасте около 6,5, а здесь выходило меньше пяти.
+     Подняли --ts и --tm, иначе на телефоне при свете их просто не видно. */
+  --tp:#F2F5F9; --ts:#C3CCD8; --tm:#A8B3C1;
   --bd:#28303A; --bds:#3A434E;
-  --ac:#4B8BF5; --act:#82AEF8; --acbg:#16283E; --acsub:#1B324D;
-  --dn:#EF9089; --dnbg:#301A18; --dnbd:#5A312D;
-  --wn:#E6B658; --wnbg:#2C2511; --wnbd:#544719;
-  --sc:#6FCB9B; --scbg:#132619;
+  --ac:#5C97F7; --act:#8FB8F9; --acbg:#16283E; --acsub:#1B324D;
+  /* Текст предупреждения светлый, а заливка кнопки — насыщенная: раньше
+     кнопка «Выйти» красилась тем же бледным цветом и выглядела выцветшей. */
+  --dn:#FF9E96; --dns:#D23B30; --dnbg:#301A18; --dnbd:#5A312D;
+  --wn:#F0C169; --wnbg:#2C2511; --wnbd:#544719;
+  --sc:#7FDCAA; --scbg:#132619;
   --rm:#A78BFA; --rmbg:#241A3A;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -31,7 +39,7 @@ body{font-family:'Golos Text',sans-serif;background:var(--s1);color:var(--tp)}
 .muted{color:var(--tm)} .warn{color:var(--wn)} .wn{color:var(--wn)} .dng{color:var(--dn)} .succ{color:var(--sc)} .acc{color:var(--act)}
 .rmc{color:var(--rm)}
 .mic{width:60px;height:60px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 10px;cursor:pointer;border:none}
-.mic.rec{background:var(--dn)}
+.mic.rec{background:var(--dns)}
 .legdot{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ts);margin-right:12px}
 .legdot span{width:8px;height:8px;border-radius:50%}
 .topbar-search{display:flex;justify-content:flex-end;padding:10px 18px 0}
@@ -144,7 +152,7 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
 /* ── Тосты (обработка ошибок сети и т.п.) ── */
 .toast-host{position:fixed;left:0;right:0;bottom:76px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:1000;pointer-events:none;padding:0 16px}
 .toast{display:flex;align-items:center;gap:8px;max-width:420px;width:fit-content;padding:10px 16px;border-radius:10px;font-size:13px;color:#fff;background:#333d4d;box-shadow:0 6px 24px rgba(0,0,0,.22);animation:toast-in .22s ease;pointer-events:auto}
-.toast.error{background:var(--dn)}
+.toast.error{background:var(--dns)}
 .toast.success{background:var(--ac)}
 .toast i{font-size:16px}
 @keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -171,7 +179,7 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
 .modal{background:var(--s2);border:.5px solid var(--bd);border-radius:16px;padding:20px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:pop .16s ease}
 .modal-title{font-size:15px;font-weight:600;margin-bottom:6px}
 .modal-msg{font-size:13px;color:var(--ts);line-height:1.5}
-.btn.dng-solid{background:var(--dn);color:#fff;border-color:var(--dn)}
+.btn.dng-solid{background:var(--dns);color:#fff;border-color:var(--dns)}
 .btn.dng-solid:hover{filter:brightness(1.05)}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
@@ -227,7 +235,7 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
   animation:tip-in .16s ease}
 @keyframes tip-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
 .tip-title{font-size:13.5px;font-weight:600;margin-bottom:4px}
-.tip-text{font-size:12.5px;line-height:1.5;opacity:.92}
+.tip-text{font-size:12.5px;line-height:1.5}
 .tip-ok{margin-top:10px}
 .tip-arrow{position:absolute;width:10px;height:10px;background:var(--tp);transform:rotate(45deg)}
 /* размещение относительно якоря */
@@ -275,7 +283,7 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
 .mic{width:66px;height:66px;box-shadow:0 6px 22px rgba(37,99,235,.35);
   background:var(--ac);transition:transform .12s ease}
 .mic:active{transform:scale(.94)}
-.mic.rec{background:var(--dn);animation:micPulse 1.2s ease-in-out infinite}
+.mic.rec{background:var(--dns);animation:micPulse 1.2s ease-in-out infinite}
 @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(196,50,43,.5)}50%{box-shadow:0 0 0 12px rgba(196,50,43,0)}}
 
 /* ── Движение интерфейса ─────────────────────────────────────────────────────
@@ -585,12 +593,210 @@ details > summary { transition: color .15s ease }
    Вкладки прокручиваются вбок, но об этом никак не сообщалось: в карте
    пациента «Визиты» и «Заметки» уходили за край, и врач не догадывался, что
    они есть. Мягкое затухание у правого края — подсказка, что там ещё есть. */
-.tabs{position:relative;
-  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px), transparent);
-          mask-image:linear-gradient(90deg,#000 calc(100% - 28px), transparent)}
-/* когда прокручено до конца, затухание не нужно */
-.tabs.at-end{-webkit-mask-image:none; mask-image:none}
+/* Затухание у правого края убрано совсем: оно размывало название вкладки, и
+   выглядело это как дефект, а не как подсказка. Что полоса продолжается,
+   видно и так — следующая вкладка обрезается ровным краем. Плюс выбранная
+   вкладка сама подъезжает в видимую часть (см. PatientDetail). */
+.tabs.tabs-scroll{position:relative;scroll-behavior:smooth}
 
 /* Плавающая кнопка перекрывала низ содержимого: даём прокрутке запас снизу,
    чтобы под ней ничего не пряталось. */
 .scroll{padding-bottom:84px}
+
+/* Правило: --dn — это ЦВЕТ ТЕКСТА предупреждения, --dns — ЗАЛИВКА под белым
+   текстом. На светлой теме они совпадают, на тёмной нет, и перепутать легко:
+   счётчик уведомлений, сообщение об ошибке и кнопка записи красились светлым
+   текстовым цветом и выглядели выцветшими. Если под цветом будет белый
+   текст — только --dns. */
+
+/* Цветовые классы должны работать и на .sub. Раньше .sub объявлен ниже и
+   перебивал цвет: «просрочено 5 дней назад» рисовалось серым вместо красного,
+   хотя класс стоял. Поднимаем вес, а не переставляем правила — переставлять
+   опаснее, зависимостей от порядка в файле больше. */
+.sub.dng{color:var(--dn)}
+.sub.wn{color:var(--wn)}
+.sub.succ{color:var(--sc)}
+.sub.acc{color:var(--act)}
+.sub.muted{color:var(--tm)}
+
+/* Скрепка в строке ассистента и карточка «куда положить снимок» */
+.asst-clip{width:34px;height:34px;border:0;background:transparent;cursor:pointer;
+  color:var(--ts);font-size:19px;flex-shrink:0;border-radius:10px;
+  display:flex;align-items:center;justify-content:center}
+.asst-clip:active{background:var(--s1);color:var(--act)}
+.asst-shot{flex-shrink:0;margin-bottom:10px}
+
+/* Раздел «Работа» в боковом меню компьютера; на телефоне он остаётся в «Ещё» */
+.side-sec{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--tm);margin:16px 0 6px;padding-left:12px}
+@media (min-width: 768px) { .only-mobile { display: none } }
+
+/* Версия внизу «Ещё»: мелко, справа, не отвлекает */
+.version-line{text-align:right;font-size:11px;color:var(--tm);cursor:pointer;
+  margin:22px 2px 6px;padding:6px 0}
+.version-line:active{color:var(--act)}
+
+/* ── Заметка: правка ───────────────────────────────────────────────────────
+   Заголовок крупнее текста, список с галочками в одну строку. */
+.note-title{font-size:16px;font-weight:500;margin-bottom:8px}
+.note-body{resize:vertical;min-height:140px;line-height:1.55;margin-bottom:6px}
+.check-row{display:flex;align-items:center;gap:10px;padding:6px 0}
+.check-row i{font-size:19px;flex-shrink:0}
+.check-input{flex:1;min-width:0;padding:7px 10px}
+
+/* Карточка заметки в списке: превью в две строки и мелкие метки */
+.note-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;white-space:pre-wrap}
+.chip-sm{font-size:11px;color:var(--ts);background:var(--s1);border-radius:8px;
+  padding:3px 8px;display:inline-flex;align-items:center;gap:4px}
+
+/* Счётчик просроченного на вкладке «Задачи» внутри «Блокнота» */
+.tab-badge{display:inline-flex;align-items:center;justify-content:center;
+  min-width:17px;height:17px;padding:0 5px;margin-left:6px;border-radius:9px;
+  background:var(--dns);color:#fff;font-size:10px;font-weight:600}
+
+/* Переход к месяцу из полоски недели. Кнопка, а не подпись: календарь больше
+   не вкладка, и вход в него не должен теряться. Но и спорить с «Начать приём»
+   она не должна — поэтому обычная, не акцентная, и уже по ширине. */
+.month-btn{display:flex;align-items:center;justify-content:center;gap:7px;
+  width:auto;margin:-4px auto 14px;padding:8px 18px;font-size:13px}
+.month-btn i{font-size:16px;color:var(--act)}
+
+/* Значок просроченного поверх иконки вкладки */
+.tab-ico{position:relative;display:inline-flex}
+.tab-dot{position:absolute;top:-5px;right:-9px;min-width:15px;height:15px;
+  padding:0 4px;border-radius:8px;background:var(--dns);color:#fff;
+  font-size:9.5px;font-weight:600;display:flex;align-items:center;justify-content:center}
+
+/* ── Рисование схемы ───────────────────────────────────────────────────────
+   Холст белый всегда, даже в тёмной теме: схему врач показывает пациенту и
+   может распечатать, а белый фон для этого единственный разумный. */
+.draw-wrap{margin-bottom:8px}
+.draw-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.draw-color{width:26px;height:26px;border-radius:13px;border:2px solid transparent;cursor:pointer}
+.draw-color.on{border-color:var(--act);box-shadow:0 0 0 2px var(--acbg)}
+.draw-size{width:30px;height:26px;border:1px solid var(--bd);background:var(--s0);
+  border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.draw-size span{background:var(--tp);border-radius:50%;display:block}
+.draw-size.on{border-color:var(--act)}
+.draw-btn{width:30px;height:26px;border:1px solid var(--bd);background:var(--s0);
+  border-radius:8px;cursor:pointer;color:var(--ts);display:flex;align-items:center;justify-content:center}
+.draw-btn.on{border-color:var(--act);color:var(--act)}
+.draw-sep{width:1px;height:18px;background:var(--bd);margin:0 2px}
+.draw-canvas{width:100%;height:320px;background:#fff;border:1px solid var(--bd);
+  border-radius:12px;touch-action:none;display:block}
+.draw-preview{border:1px solid var(--bd);border-radius:12px;overflow:hidden;cursor:pointer;
+  background:#fff;padding:6px}
+.draw-preview img{width:100%;display:block;border-radius:8px}
+.draw-preview .sub{text-align:center;padding:4px 0 2px}
+
+/* Выбор пациента: список с поиском вместо ввода фамилии вслепую */
+.picker{max-width:440px}
+.picker-list{max-height:48vh;overflow-y:auto;margin-top:8px}
+
+/* Действия у заметки — значками в правом верхнем углу карточки.
+   Текстовые ссылки внизу («закрепить / изменить / удалить») занимали строку и
+   путали: «изменить» вело в старую правку на месте, которая не знала ни про
+   заголовок, ни про список. */
+.note-card{position:relative}
+.note-acts{position:absolute;top:10px;right:10px;display:flex;gap:12px;z-index:1}
+.note-acts i{font-size:17px;cursor:pointer;padding:2px}
+.note-acts i:active{opacity:.6}
+
+/* ── Неделя, разворачивающаяся в месяц ─────────────────────────────────────
+   Главная — лицо продукта, поэтому разворот обязан идти без рывков. Высота
+   меряется заранее и анимируется от числа к числу: иначе содержимое ниже
+   прыгает, пока блок раскрывается. Стекла здесь нет намеренно — оно дало бы
+   мерцание на движущемся блоке. */
+.monthwrap{overflow:hidden;transition:height .22s ease}
+@media (prefers-reduced-motion: reduce){ .monthwrap{transition:none} }
+
+/* Шапка с названиями дней — только в раскрытом месяце */
+.weekstrip.wd-head{margin-bottom:2px}
+
+/* В раскрытом месяце строки идут плотнее: у недели высота рассчитана на
+   название дня сверху, а в месяце названия вынесены в шапку — без поджатия
+   месяц растягивался почти на весь экран. */
+.monthwrap .weekstrip{margin-bottom:2px}
+.monthwrap .wday{min-height:42px;padding:5px 0 4px}
+.monthwrap .wd-dots{height:6px}
+.weekstrip.wd-head .wd-name{flex:1;text-align:center}
+
+/* Выходные.
+   Раньше они были серыми — но серым помечены и дни чужого месяца, то есть два
+   разных смысла передавались одним цветом. Красить в красный тоже нельзя:
+   красный у нас значит «требует внимания» (просрочено, праздник, ошибка), и
+   суббота не должна выглядеть проблемой.
+   Поэтому признак другой: выходной — это ПОДЛОЖКА, а число остаётся обычным. */
+.wday.weekend{background:var(--s1)}
+.wday.weekend .wd-num{color:var(--tp)}
+.wd-name.weekend{color:var(--ts)}
+/* Сегодня важнее выходного: синий круг перекрывает подложку, а число внутри
+   круга остаётся белым. Правило для выходных стоит ниже и перебивало цвет —
+   суббота-сегодня рисовалась тёмной цифрой на синем. */
+.wday.today{background:transparent}
+.wday.weekend.today .wd-num,
+.wday.holiday.today .wd-num{color:#fff}
+
+/* Дни соседних месяцев в раскрытом виде — бледнее своих */
+.wday.other{opacity:.38}
+
+/* Точки занятости заметнее: раньше их было трудно разглядеть */
+.wd-dots i{width:5px;height:5px}
+
+/* Праздничный день отличается от обычного выходного: это не просто «не
+   рабочий», а дата, в которую врача может не быть на месте. Точка под числом,
+   а не только цвет — цветом одним смысл передавать нельзя. */
+/* Праздник: та же подложка плюс красное число и точка — он и правда требует
+   внимания, в отличие от обычной субботы. */
+.wday.holiday .wd-num{color:var(--dn);font-weight:600}
+.wday.holiday.today .wd-num{color:#fff}
+.wday.holiday::after{content:"";position:absolute;bottom:2px;left:50%;
+  transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--dn)}
+.wday{position:relative}
+/* Рабочая суббота по переносу — обычный день, приглушать её нельзя */
+.wday.workday .wd-num{color:var(--tp)}
+
+/* Ряд кнопок, которому разрешено переноситься: на узком телефоне три элемента
+   в строке не помещаются, и последний уходил за край. */
+.btnrow.wrap{flex-wrap:wrap}
+
+/* Зона нажатия у значков-кнопок.
+   Сам значок 19–20px — этого мало для пальца, особенно у «удалить» рядом с
+   «закрепить» и у действий в шапке карты. Увеличиваем область нажатия, не
+   трогая размер самого значка: padding плюс отрицательный margin, чтобы
+   раскладка осталась прежней.
+   Значки ВНУТРИ кликабельных строк не трогаем — там попадать есть куда. */
+.ti.act, .ti.back, .note-acts i, .check-row i{
+  min-width:34px;min-height:34px;
+  display:inline-flex;align-items:center;justify-content:center;
+  margin:-7px;padding:7px;
+}
+/* Колокольчик уведомлений: обёртка — зона нажатия 40×40, а счётчик крепится
+   к самому значку. Иначе кружок уезжал в угол зоны и выглядел оторванным. */
+.hd-bell{min-width:40px;min-height:40px;display:flex;align-items:center;
+  justify-content:center;cursor:pointer}
+.bell-ico{position:relative;display:inline-flex;line-height:0}
+.bell-badge{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;
+  padding:0 4px;border-radius:8px;background:var(--dns);color:#fff;
+  font-size:9.5px;font-weight:600;line-height:1;
+  display:flex;align-items:center;justify-content:center}
+
+/* ── Двусторонняя связь находки и исходника ────────────────────────────────
+   Врач нажимает на находку и видит фразу, из которой она сделана. Проверять
+   медицинский документ по памяти нельзя. */
+.doc-text{background:var(--s1);font-size:11.5px;white-space:pre-wrap;
+  max-height:300px;overflow-y:auto}
+.doc-mark{background:var(--acsub);color:var(--tp);border-radius:3px;
+  padding:1px 2px;box-shadow:0 0 0 2px var(--acsub)}
+.finding-row{cursor:pointer;display:block;border-radius:8px;padding:2px 4px;margin-left:-4px}
+.finding-row:active{background:var(--s1)}
+.finding-row .ti-quote{font-size:12px;margin-left:6px;opacity:.5}
+
+/* «Что нового» после обновления: один раз на версию, на Главной.
+   Запись в «Ещё → о приложении» врач сам не откроет — он туда не ходит.
+   Полоска сдержанная: это не новость, а справка, и спорить с «Начать приём»
+   она не должна. */
+.whatsnew{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--acbg);border:1px solid var(--acsub);border-radius:12px;
+  padding:10px 12px;margin:0 0 12px}

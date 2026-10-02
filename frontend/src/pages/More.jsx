@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
+import { VERSION } from "../lib/version";
 import Toggle from "../components/Toggle";
 import { confirmAction } from "../lib/confirm";
 import TotpSettings from "../components/TotpSettings";
@@ -169,29 +170,32 @@ export default function More({ onLogout }) {
         <i className="ti ti-chevron-right muted" />
       </div>
 
-      <div className="sec-label">Работа</div>
-      <div className="row" onClick={() => nav("/notes")} style={{ cursor: "pointer" }}>
+      {/* На компьютере эти разделы вынесены в боковое меню — дублировать их
+          здесь незачем. На телефоне бокового меню нет, поэтому остаются. */}
+      <div className="sec-label only-mobile">Работа</div>
+      {/* Календарь больше не вкладка: месяц открывается отсюда и с Главной. */}
+      <div className="row only-mobile" onClick={() => nav("/calendar")} style={{ cursor: "pointer" }}>
         <div>
-          <div style={{ fontSize: 13 }}>Заметки</div>
-          <div className="sub" style={{ marginTop: 2 }}>мои заметки и заметки по пациентам</div>
+          <div style={{ fontSize: 13 }}>Календарь</div>
+          <div className="sub" style={{ marginTop: 2 }}>месяц целиком</div>
         </div>
         <i className="ti ti-chevron-right muted" />
       </div>
-      <div className="row" onClick={() => nav("/lists")} style={{ cursor: "pointer" }}>
+      <div className="row only-mobile" onClick={() => nav("/lists")} style={{ cursor: "pointer" }}>
         <div>
           <div style={{ fontSize: 13 }}>Списки пациентов</div>
           <div className="sub" style={{ marginTop: 2 }}>готовые фильтры: повторы, результаты, выписки</div>
         </div>
         <i className="ti ti-chevron-right muted" />
       </div>
-      <div className="row" onClick={() => nav("/triggers")} style={{ cursor: "pointer" }}>
+      <div className="row only-mobile" onClick={() => nav("/triggers")} style={{ cursor: "pointer" }}>
         <div>
           <div style={{ fontSize: 13 }}>Автослежение (триггеры)</div>
           <div className="sub" style={{ marginTop: 2 }}>следить за порогами и заводить контроли</div>
         </div>
         <i className="ti ti-chevron-right muted" />
       </div>
-      <div className="row" onClick={() => nav("/assistant-log")} style={{ cursor: "pointer" }}>
+      <div className="row only-mobile" onClick={() => nav("/assistant-log")} style={{ cursor: "pointer" }}>
         <div>
           <div style={{ fontSize: 13 }}>Что сделал ассистент</div>
           <div className="sub" style={{ marginTop: 2 }}>история голосовых и текстовых команд</div>
@@ -207,6 +211,15 @@ export default function More({ onLogout }) {
             {sub == null ? "…" : sub.is_demo ? "демо-доступ" : sub.active
               ? `активна · осталось ${sub.days_left} дн.` : "не активна — оформить"}
           </div>
+        </div>
+        <i className="ti ti-chevron-right muted" />
+      </div>
+
+      <div className="sec-label">Быстрый ввод</div>
+      <div className="row" style={{ cursor: "pointer" }} onClick={() => nav("/capture")}>
+        <div>
+          <div style={{ fontSize: 13.5 }}>Снимок в дело</div>
+          <div className="sub">Сфотографировать направление — разберу и предложу задачу</div>
         </div>
         <i className="ti ti-chevron-right muted" />
       </div>
@@ -354,6 +367,12 @@ export default function More({ onLogout }) {
       </div>
 
       <button className="btn block dng" style={{ marginTop: 18 }} onClick={onLogout}>Выйти</button>
+
+      {/* Версия внизу справа, мелко: нужна при разборе обращения в поддержку,
+          но места на экране занимать не должна. */}
+      <div className="version-line" onClick={() => nav("/about")}>
+        о приложении · {VERSION}
+      </div>
     </>
   );
 }

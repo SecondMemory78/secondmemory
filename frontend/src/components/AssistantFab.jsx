@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import Tip from "./Tip";
@@ -19,6 +20,49 @@ export default function AssistantFab() {
   const chunksRef = useRef([]);
 
   function push(mine, r) { setLog((l) => [...l, { mine, r }]); }
+
+  // ── снимок из шторки ──────────────────────────────────────────────────────
+  const loc = useLocation();
+  const fileRef = useRef(null);
+  const [shot, setShot] = useState(null);     // предложение по снимку
+
+  // Чья карта открыта — подсказка разбору. Не решение: врачу приносят чужие
+  // бумаги прямо на приёме, поэтому выбор всё равно подтверждает он.
+  const openPatientId = (() => {
+    const m = loc.pathname.match(/^\/patients\/(\d+)/);
+    return m ? Number(m[1]) : null;
+  })();
+
+  async function pickPhoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true); setShot({ status: "wait" });
+    const r = await api.captureUpload(file, openPatientId);
+    setBusy(false);
+    if (r._error) { setShot(null); push("фото", { message: r.detail || "Не удалось отправить снимок", ok: false }); return; }
+    pollShot(r.capture_id, 0);
+  }
+
+  async function pollShot(cid, tries) {
+    if (tries > 40) { setShot({ status: "slow" }); return; }
+    try {
+      const got = await api.captureResult(cid);
+      if (got.ocr_status === "queued") { setTimeout(() => pollShot(cid, tries + 1), 3000); return; }
+      if (got.ocr_status === "failed") { setShot({ status: "failed" }); return; }
+      setShot({ status: "ready", ...got });
+    } catch { setTimeout(() => pollShot(cid, tries + 1), 3000); }
+  }
+
+  async function acceptShot(kind) {
+    const body = { kind };
+    if (kind === "document") body.patient_id = shot.proposal?.patient_id;
+    const r = await api.captureAccept(shot.capture_id, body);
+    setShot(null);
+    if (r._error) { push("фото", { message: r.detail || "Не удалось", ok: false }); return; }
+    push("фото", r);
+    notifyAssistantResult(r);
+  }
 
   async function send() {
     if (!text.trim() || busy) return;
@@ -126,15 +170,73 @@ export default function AssistantFab() {
               {busy && <div className="sub asst-wait">Выполняю…</div>}
             </div>
 
+            {/* Куда положить снимок. Спрашиваем ВСЕГДА, даже когда карта
+                открыта и фамилия совпала: врачу приносят чужие бумаги прямо
+                на приёме, а разделить смешанные истории потом нельзя. */}
+            {shot && (
+              <div className="card asst-shot">
+                {shot.status === "wait" && <div className="sub"><i className="ti ti-loader" /> Снимок принят, разбираю…</div>}
+                {shot.status === "slow" && <div className="sub wn">Распознавание затянулось — попробуйте ещё раз.</div>}
+                {shot.status === "failed" && (
+                  <div className="sub dng">Не удалось разобрать. Переснимите: текст должен быть
+                    в фокусе и целиком в кадре.</div>
+                )}
+                {shot.status === "ready" && (
+                  <>
+                    {shot.proposal?.mismatch && (
+                      <div className="sub dng" style={{ marginBottom: 6 }}>
+                        Открыта карта {shot.proposal.mismatch.context}, а в документе
+                        {" "}{shot.proposal.mismatch.in_text}. Проверьте, чей это документ.
+                      </div>
+                    )}
+                    <div style={{ fontSize: 13.5, marginBottom: 6 }}>
+                      {shot.proposal?.patient_name
+                        ? <>Похоже на документ: <b>{shot.proposal.patient_name}</b>
+                            <span className="sub"> · {shot.proposal.patient_from}</span></>
+                        : "Не понял, чей это документ."}
+                    </div>
+                    <div className="sub" style={{ marginBottom: 8, maxHeight: 60, overflow: "hidden" }}>
+                      {shot.text?.slice(0, 160) || "— текст не распознан —"}
+                    </div>
+                    <div className="btnrow">
+                      {shot.proposal?.patient_id && (
+                        <button className="btn pri sm" style={{ flex: 1 }}
+                                onClick={() => acceptShot("document")}>
+                          В карту
+                        </button>
+                      )}
+                      <button className="btn sm" style={{ flex: 1 }}
+                              onClick={() => acceptShot("task")}>Заметка себе</button>
+                      <button className="btn sm" onClick={() => setShot(null)}>Отмена</button>
+                    </div>
+                    {shot.proposal?.patient_id && (
+                      <div className="sub" style={{ marginTop: 6 }}>
+                        Другой пациент — откройте его карту и приложите снимок оттуда.
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Строка ввода прижата к низу шторки и поднимается с клавиатурой */}
             <div className="input asst-compose">
+              {/* Скрепка слева: врач хочет одно действие, а не переход на
+                  отдельный экран. Снимок разбирается тем же механизмом, что
+                  и «Снимок в дело» — второй копии распознавания нет. */}
+              <input ref={fileRef} type="file" accept="image/*" capture="environment"
+                     style={{ display: "none" }} onChange={pickPhoto} />
+              <button className="asst-clip" onClick={() => fileRef.current.click()}
+                      title="Приложить фото" aria-label="Приложить фото">
+                <i className="ti ti-paperclip" />
+              </button>
               <input value={text} onChange={(e) => setText(e.target.value)} autoFocus
                 onKeyDown={(e) => e.key === "Enter" && send()}
                 placeholder="Скажите или напишите…"
                 style={{ border: 0, background: "transparent", outline: "none", flex: 1, font: "inherit", color: "var(--tp)" }} />
               <button className="asst-mic-sm" onClick={toggleRec} title={rec ? "Остановить" : "Голосом"}
                       aria-label={rec ? "Остановить запись" : "Сказать голосом"}
-                      style={{ background: rec ? "var(--dn)" : "var(--ac)" }}>
+                      style={{ background: rec ? "var(--dns)" : "var(--ac)" }}>
                 <i className={"ti " + (rec ? "ti-player-stop" : "ti-microphone")} />
               </button>
               <button className="asst-send" disabled={busy || !text.trim()} onClick={send} aria-label="Выполнить">
