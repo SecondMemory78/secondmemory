@@ -12,6 +12,14 @@ def extract_values(image_bytes: bytes = b"") -> Dict[str, Any]:
         "extracted_name": res.get("extracted_name", ""),
         "extracted_dob": res.get("extracted_dob", ""),
         "values": res.get("values", []),
+        # Отклонённое не выбрасываем: молчаливый пропуск в медицинском
+        # документе хуже, чем пропуск с пометкой.
+        "rejected": res.get("rejected", []),
+        # Находки из повествовательного заключения: орган → находка → свойства.
+        # Это не показатели, их нельзя класть в динамику.
+        "findings": res.get("findings", []),
+        # Шкалы (Bosniak, PI-RADS, ISUP, Глисон) — классификации, не числа.
+        "scales": res.get("scales", []),
     }
 
 

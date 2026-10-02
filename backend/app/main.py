@@ -31,7 +31,7 @@ class SecurityHeadersMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_wrapper)
-from .routers import (patients, clinical, reminders, intake, appointments, protocol,
+from .routers import (capture, procedures, discharge, workcalendar, patients, clinical, reminders, intake, appointments, protocol,
                       dashboard, assistant, analytics, calendar, privacy, support, triggers,
                       admin_doctors, notes, announcements,
                       reference, auth, encounters, diagnoses, settings, usage, notifications,
@@ -190,6 +190,9 @@ app.add_middleware(SecurityHeadersMiddleware)    # самый внешний —
 app.include_router(auth.router)
 app.include_router(billing.router)
 app.include_router(multiphoto.router)
+app.include_router(capture.router)
+app.include_router(procedures.router)
+app.include_router(discharge.router)
 app.include_router(dictation.router)
 app.include_router(notify_prefs.router)
 app.include_router(notify_prefs.alerts_router)
@@ -206,6 +209,8 @@ app.include_router(dashboard.router)
 app.include_router(assistant.router)
 app.include_router(analytics.ingest)
 app.include_router(analytics.admin)
+app.include_router(workcalendar.router)
+app.include_router(workcalendar.admin)
 app.include_router(calendar.router)
 app.include_router(privacy.router)
 app.include_router(privacy.account_router)
@@ -231,6 +236,15 @@ app.include_router(devices.router)
 @app.on_event("startup")
 def _startup():
     init_db()
+    # Если база отстала от кода — говорим об этом при запуске, а не роняем
+    # случайный запрос через полчаса работы. Запуск не блокируем: на сервере
+    # это уронило бы работающее приложение из-за одной забытой миграции.
+    try:
+        from .services.schema_check import warn_if_outdated
+        from .db import engine as _eng
+        warn_if_outdated(_eng)
+    except Exception:
+        pass
     # Row-Level Security на уровне БД (только Postgres; на SQLite — no-op)
     try:
         from .services.rls import apply_rls

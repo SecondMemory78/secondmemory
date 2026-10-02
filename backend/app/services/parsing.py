@@ -36,6 +36,9 @@ def _doc_date(text: str):
     return None
 
 
+from .fact_validator import check as validate_fact
+
+
 def parse_lab_text(text: str) -> Dict[str, Any]:
     low = text.lower()
     eff = _doc_date(text)
@@ -43,6 +46,7 @@ def parse_lab_text(text: str) -> Dict[str, Any]:
     idx = synonyms_index()
     units = unit_map()
     values = []
+    rejected = []          # что отклонено и почему — врач должен это видеть
     seen = set()
     lines = low.splitlines()
 
@@ -72,14 +76,30 @@ def parse_lab_text(text: str) -> Dict[str, Any]:
 
             if nums:
                 # у каждого показателя своя дата выполнения; нет — берём общую
-                values.append({"parameter_code": code,
-                               "value_num": float(nums[0].replace(",", ".")),
-                               "unit": unit or units.get(code, ""),
-                               "effective_date": _date_after(lines, i) or eff})
+                candidate = {"parameter_code": code,
+                             "value_num": float(nums[0].replace(",", ".")),
+                             "unit": unit or units.get(code, ""),
+                             "effective_date": _date_after(lines, i) or eff,
+                             "source_span": line.strip()[:200]}
+
+                # Валидатор стоит между разбором и записью. Он не угадывает и
+                # ничего не исправляет — только отклоняет. Пропустить значение
+                # не страшно, врач внесёт руками; выдумать — страшно.
+                why = validate_fact(candidate, context_line=line, full_text=low)
+                if why:
+                    rejected.append({**candidate, "why": why})
+                else:
+                    values.append(candidate)
                 seen.add(code)
             break
 
-    return {"text": text, "extracted_name": "", "extracted_dob": "", "values": values}
+    # Повествовательное заключение разбираем иначе: там не показатели, а
+    # находки с органом и свойствами.
+    from .findings import extract as extract_findings, extract_scales
+    return {"text": text, "extracted_name": "", "extracted_dob": "",
+            "values": values, "rejected": rejected,
+            "findings": extract_findings(text),
+            "scales": extract_scales(text)}
 
 
 def _date_after(lines, i, look_ahead: int = 6):

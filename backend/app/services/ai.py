@@ -565,3 +565,67 @@ def _coerce_rx(raw: str) -> list | None:
             "confidence": conf,
         })
     return out or None
+
+
+# ── Вопрос к картотеке → условия поиска ─────────────────────────────────────
+# Модель НЕ отвечает на вопрос и не видит данных пациентов. Она получает только
+# текст вопроса и список разрешённых полей, а возвращает набор условий. Условия
+# затем проверяются в services/query.validate(): всё, чего нет в словаре,
+# отбрасывается. Поэтому ошибка модели может привести к неверной выборке, но не
+# к выдуманному ответу и не к утечке.
+
+_QUERY_SYSTEM = """Ты переводишь вопрос врача о его картотеке в набор условий поиска.
+Отвечай ТОЛЬКО одним объектом JSON, без пояснений и без markdown.
+
+Разрешённые поля (другие игнорируются):
+  device_kind: "stent" | "nephrostomy" | "catheter"
+  device_side: "left" | "right" | "both"
+  device_due_before: дата "ГГГГ-ММ-ДД"
+  device_due_after: дата "ГГГГ-ММ-ДД"
+  parameter_code: код показателя, напр. "psa_total", "creatinine"
+  value_op: ">" | "<" | ">=" | "<="
+  value: число
+  control_overdue: true
+  control_parameter: слово из названия контроля
+  order_contains: слово из назначения (основа слова, без окончания)
+  order_pending: true
+  diagnosis_code: код МКБ
+  age_min: число
+  age_max: число
+
+Если вопрос не о поиске пациентов — верни {}.
+Ничего не придумывай: поля, которых нет в вопросе, не добавляй."""
+
+
+def parse_query(text: str) -> dict | None:
+    """Вопрос → условия. None — модель недоступна или не поняла."""
+    if not (text or "").strip() or _provider() != "yandex":
+        return None
+    try:
+        import json
+        raw = _yandex_query(text)
+        start, end = raw.find("{"), raw.rfind("}")
+        if start < 0 or end < 0:
+            return None
+        out = json.loads(raw[start:end + 1])
+        return out if isinstance(out, dict) else None
+    except Exception:
+        return None                       # вызывающий останется на правилах
+
+
+def _yandex_query(text: str) -> str:
+    _require_yandex()
+    import httpx
+    model = os.getenv("YANDEX_GPT_MODEL", "yandexgpt-lite")
+    r = httpx.post(
+        "https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
+        headers={"Authorization": f"Api-Key {YANDEX_API_KEY}",
+                 "x-folder-id": YANDEX_FOLDER_ID,
+                 "x-data-logging-enabled": "false"},
+        json={"modelUri": f"gpt://{YANDEX_FOLDER_ID}/{model}",
+              "completionOptions": {"stream": False, "temperature": 0.0, "maxTokens": 400},
+              "messages": [{"role": "system", "text": _QUERY_SYSTEM},
+                           {"role": "user", "text": text.strip()[:1000]}]},
+        timeout=20)
+    r.raise_for_status()
+    return r.json()["result"]["alternatives"][0]["message"]["text"]

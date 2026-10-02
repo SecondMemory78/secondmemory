@@ -356,8 +356,12 @@ def handout_sections(data: dict, when: date | None = None) -> list[dict]:
     # Конфликтующие показатели исключаем: ТЗ прямо запрещает печатать данные,
     # по которым есть противоречие, до его разрешения врачом.
     conflicted = set(data.get("conflicts") or [])
+    # Сведения со слов пациента в памятку не идут: пациент получит бумагу, где
+    # его же слова напечатаны как результат обследования.
     obs = [o for o in (data.get("observations") or [])
-           if o.get("status") != "pending" and o.get("parameter_code") not in conflicted]
+           if o.get("status") != "pending"
+           and o.get("parameter_code") not in conflicted
+           and o.get("provenance") != "patient_words"]
     by_code: dict[str, list] = {}
     for o in obs:
         by_code.setdefault(o.get("parameter_code") or o.get("label") or "", []).append(o)
@@ -419,6 +423,18 @@ def handout_sections(data: dict, when: date | None = None) -> list[dict]:
                          + (f" — {r['indication']}" if r.get("indication") else ""))
                         for r in recs if (r.get("instruction") or r.get("drug_name"))
                     ]})
+
+    # ── что было сделано ────────────────────────────────────────────────────
+    # Только подтверждённые: предложенное ассистентом пациенту не отдаём.
+    procs = [x for x in (data.get("procedures") or [])
+             if x.get("status") != "cancelled" and x.get("confirmed", True)]
+    if procs:
+        rows = []
+        for x in sorted(procs, key=lambda v: iso(v.get("performed_at")), reverse=True):
+            rows.append([x.get("title") or x.get("name") or "\u2014",
+                         _ru_date(iso(x.get("performed_at"))) or "дата не указана"])
+        out.append({"key": "procedures", "title": "Что было сделано",
+                    "head": ["Операция или процедура", "Когда"], "rows": rows})
 
     # ── активные устройства ─────────────────────────────────────────────────
     # По ТЗ для уролога это обязательный блок: если устройство остаётся с
@@ -538,7 +554,8 @@ def build_patient_handout(data: dict, doctor: dict, patient_name: str = "",
     widths = {"changes": [70 * mm, 60 * mm, 40 * mm],
               "meds": [60 * mm, 70 * mm, 40 * mm],
               "todo": [80 * mm, 50 * mm, 40 * mm],
-              "devices": [78 * mm, 45 * mm, 47 * mm]}
+              "devices": [78 * mm, 45 * mm, 47 * mm],
+              "procedures": [110 * mm, 60 * mm]}
 
     sections = handout_sections(data, when=today)
     for sec in sections:
@@ -555,6 +572,15 @@ def build_patient_handout(data: dict, doctor: dict, patient_name: str = "",
     if not sections:
         story.append(Paragraph("На эту дату сведений для памятки нет.", lead))
 
+    # Схема, которую врач начертил и объяснил. Ради этого рисование и делалось:
+    # бумажка с объяснением теряется, а памятку пациент уносит целиком.
+    for png in (data.get("drawings") or [])[:2]:
+        try:
+            story.append(Paragraph("Схема", h2))
+            story.append(_image_from_data_url(png))
+        except Exception:
+            pass                      # битый рисунок не должен ронять памятку
+
     story.append(Spacer(1, 16))
     story.append(Paragraph("Врач ______________________ / подпись /", base))
     story.append(Spacer(1, 10))
@@ -565,6 +591,21 @@ def build_patient_handout(data: dict, doctor: dict, patient_name: str = "",
 
     doc.build(story)
     return buf.getvalue()
+
+
+def _image_from_data_url(data_url: str):
+    """PNG строкой data: → картинка для документа."""
+    import base64
+    from reportlab.platypus import Image as RLImage
+    raw = base64.b64decode(data_url.split(",", 1)[1])
+    buf = io.BytesIO(raw)
+    img = RLImage(buf)
+    # Вписываем по ширине полосы, высоту считаем по пропорции
+    max_w = 170 * mm
+    ratio = img.imageHeight / img.imageWidth if img.imageWidth else 0.6
+    img.drawWidth = max_w
+    img.drawHeight = max_w * ratio
+    return img
 
 
 def _num(v) -> str:

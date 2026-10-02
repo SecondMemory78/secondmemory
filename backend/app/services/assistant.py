@@ -18,6 +18,8 @@ from ..models import Patient, Appointment, Reminder, Note
 from .nlp import parse_reminder
 from .visits import active_encounter_id
 from .. import clock
+from . import actions as acts
+from . import assistant_actions as _skills   # noqa: F401 — регистрирует действия в каталоге
 
 # «сегодня» — из шва времени
 
@@ -103,53 +105,115 @@ _AREA_BY_INTENT = {"patient_note": "patient", "appointment": "calendar",
                    "task": "tasks", "trigger_denied": "denied"}
 
 
+# Версия правил разбора. Поднимать руками при заметных изменениях логики —
+# иначе в журнале не отличить случай, разобранный старой версией, от новой.
+RULES_VERSION = "rules-2026-10-01"
+
+
 def _log_assistant_action(s: Session, text: str, res: dict, channel: str):
     from ..models import AssistantAction
     intent = res.get("intent", "unknown")
     entity_type, entity_id = "", None
-    if res.get("appointment_id"):
+    if res.get("diagnosis_id"):
+        entity_type, entity_id = "diagnosis", res["diagnosis_id"]
+    elif res.get("observation_ids"):
+        entity_type, entity_id = "observation", res["observation_ids"][0]
+    elif res.get("prescription_ids"):
+        entity_type, entity_id = "prescription", res["prescription_ids"][0]
+    elif res.get("appointment_id"):
         entity_type, entity_id = "appointment", res["appointment_id"]
     elif res.get("reminder_id"):
         entity_type, entity_id = "reminder", res["reminder_id"]
     elif res.get("patient_id"):
         entity_type, entity_id = "patient", res["patient_id"]
-    s.add(AssistantAction(
+    # Чем разобрано: правила или модель. Разбирать случай «почему в карте это
+    # значение» без этого нельзя — правила и модель ошибаются по-разному.
+    engine = res.get("engine", "rules")
+    version = res.get("engine_version", "")
+    if engine == "model" and not version:
+        import os
+        version = os.getenv("YANDEX_GPT_MODEL", "yandexgpt-lite")
+    if engine == "rules" and not version:
+        version = RULES_VERSION
+
+    act = AssistantAction(
         doctor_id=current_doctor_id(), channel=channel,
         area=_AREA_BY_INTENT.get(intent, "unknown"), intent=intent,
         input_text=text, message=res.get("message", ""),
         entity_type=entity_type, entity_id=entity_id,
-        ok=res.get("ok", True)))
-    s.commit()
+        ok=res.get("ok", True), engine=engine, engine_version=version)
+    s.add(act); s.commit(); s.refresh(act)
+    res["action_id"] = act.id          # чтобы можно было связать с подтверждением
+    return act
 
 
 def _route_command(text: str, s: Session) -> dict:
+    s_ = s                      # сессия для вызовов каталога
     low = text.lower().strip()
 
     # 0) триггеры/автослежение — ИИ НЕ управляет ими. Только врач вручную.
     #    Явный отказ, никаких действий (по требованию: правила слежения — зона врача).
     TRIGGER_WORDS = ("триггер", "автослежен", "слежени", "правило слежения", "следи за", "отслеживай")
     if any(w in low for w in TRIGGER_WORDS):
-        return {"intent": "trigger_denied",
-                "ok": False,
-                "message": "Триггеры (автослежение) настраивает только врач вручную — "
-                           "я не могу их создавать или менять. Откройте «Ещё → Автослежение»."}
+        # Отказ приходит из каталога: правило живёт в одном месте, а не в этой строке.
+        try:
+            acts.run("trigger.manage", by="assistant")
+        except acts.ActionDenied as e:
+            return {"intent": "trigger_denied", "ok": False,
+                    "message": str(e) + " Откройте «Ещё → Автослежение»."}
+
+    # 0.5) вопрос к картотеке — проверяем до команд: «покажи, у кого ПСА выше 10»
+    #      это вопрос, а не просьба открыть чью-то карту.
+    from .query import looks_like_question, parse_question
+    if looks_like_question(text) and parse_question(text).filters:
+        return acts.run("patient.search", by="assistant", s=s_, text=text)
 
     # 1) открыть карту (проверяем РАНЬШЕ записи в карту: «открой карту Иванова»
     #    — это просьба показать, а не записать)
     if any(w in low for w in ("открой", "покажи", "найди", "открыть")):
         p = _find_patient(low, s)
         if p:
-            return {"intent": "open_patient", "patient_id": p.id,
-                    "message": f"Открываю карту: {p.short_name}"}
+            return acts.run("patient.open", by="assistant", s=s_, patient=p)
+
+    # 1.6a) диагноз: «поставил Иванову N40.0», «диагноз ДГПЖ у Петрова»
+    if "диагноз" in low or re.search(r"\b[a-zA-Zа-яёА-ЯЁ]\d{2}(\.\d)?\b", text):
+        p_ = _find_patient(low, s)
+        if p_:
+            m = re.search(r"\b([A-ZА-Я]\d{2}(?:\.\d)?)\b", text, re.I)
+            q = m.group(1) if m else re.sub(
+                r".*диагноз[а-я]*\s*[:\-]?\s*", "", text, count=1, flags=re.I).strip()
+            q = re.sub(rf"{re.escape(p_.last_name)}\w*\s*", "", q, flags=re.I).strip()
+            if q:
+                return acts.run("diagnosis.add", by="assistant", s=s_, patient=p_, query=q)
+
+    # 1.6b) начать приём: «начни приём Иванова»
+    if any(w in low for w in ("начни приём", "начни прием", "начать приём", "начать прием")):
+        p_ = _find_patient(low, s)
+        if not p_:
+            return _need_patient(text, "Приём начать не с кем.")
+        return acts.run("encounter.start", by="assistant", s=s_, patient=p_)
+
+    # 1.7) устройства: «поставил Иванову стент справа», «снял катетер у Петрова».
+    #      Частый урологический сценарий, который раньше требовал идти в карту.
+    _DEV_WORDS = {"стент": "stent", "нефростом": "nephrostomy", "катетер": "catheter"}
+    _dev_kind = next((v for k, v in _DEV_WORDS.items() if k in low), "")
+    if _dev_kind and any(w in low for w in ("постав", "установ", "завед", "снял", "снять", "удалил", "убрал")):
+        p_ = _find_patient(low, s)
+        if not p_:
+            return _need_patient(text, "Устройство записать некому.")
+        side = "left" if "слев" in low else "right" if "справ" in low else ""
+        if any(w in low for w in ("снял", "снять", "удалил", "убрал")):
+            return acts.run("device.close", by="assistant", s=s_, patient=p_,
+                            kind=_dev_kind, side=side)
+        return acts.run("device.add", by="assistant", s=s_, patient=p_,
+                        kind=_dev_kind, side=side)
 
     # 2) правки/запись в карту пациента
     if "карт" in low:
         p = _find_patient(low, s)
         body = re.sub(r".*карт[уые]?\s*(пациента)?\s*[а-яё]*\s*[:\-]?", "", text, count=1, flags=re.I).strip()
         if p:
-            n = Note(patient_id=p.id, text=body or text, source="voice")
-            s.add(n); s.commit()
-            return {"intent": "patient_note", "message": f"Заметка добавлена в карту: {p.short_name}", "patient_id": p.id}
+            return acts.run("patient.note", by="assistant", s=s_, patient=p, text=body or text)
         return _need_patient(text, "Заметку записать некуда.")
 
     # 1.4) пригласить на контроль: «пригласи Иванова на контроль через 6 месяцев».
@@ -167,12 +231,8 @@ def _route_command(text: str, s: Session) -> dict:
             # час не назван — ставим рабочее утро, а не «сейчас плюс полгода»
             when = when.replace(hour=10, minute=0, second=0, microsecond=0)
         if p and when:
-            a = Appointment(doctor_id=current_doctor_id(), patient_id=p.id, starts_at=when,
-                            kind="repeat", reason="контроль")
-            s.add(a); s.commit(); s.refresh(a)
-            return {"intent": "appointment", "appointment_id": a.id, "patient_id": p.id,
-                    "message": f"Контроль назначен: {p.short_name}, "
-                               f"{when.strftime('%d.%m.%Y %H:%M')}"}
+            return acts.run("appointment.create", by="assistant", s=s_, patient=p,
+                            when=when, reason="контроль")
         if p and not when:
             return {"intent": "appointment", "patient_id": p.id,
                     "message": f"Понял, кого пригласить ({p.short_name}) — уточните срок."}
@@ -193,18 +253,7 @@ def _route_command(text: str, s: Session) -> dict:
         if not items:
             return {"intent": "prescription", "ok": False, "patient_id": p.id,
                     "message": "Не понял, что назначить — повторите с названием и дозой."}
-        created = []
-        for it in items:
-            rx = Prescription(patient_id=p.id, encounter_id=active_encounter_id(s, p.id),
-                              drug_name=it["drug_name"], dose=it["dose"],
-                              category=it["category"], frequency=it["frequency"],
-                              duration=it["duration"], route=it["route"],
-                              source="ai_suggested", confirmed=False, status="planned")
-            s.add(rx); created.append(it["drug_name"])
-        s.commit()
-        return {"intent": "prescription", "patient_id": p.id,
-                "message": f"Предложено назначений для {p.short_name}: {len(created)} "
-                           f"({', '.join(created)[:90]}). Подтвердите во вкладке «Назначения»."}
+        return acts.run("prescription.suggest", by="assistant", s=s_, patient=p, items=items)
 
     # 1.6) показатель: «у Иванова ПСА 7,2» — заносим на подтверждение, как из документа
     if _looks_like_value(low):
@@ -213,30 +262,17 @@ def _route_command(text: str, s: Session) -> dict:
             from .parsing import parse_lab_text
             vals = parse_lab_text(text)["values"]
             if vals:
-                from ..models import Observation
-                for v in vals:
-                    s.add(Observation(patient_id=p.id,
-                                      encounter_id=active_encounter_id(s, p.id),
-                                      parameter_code=v["parameter_code"],
-                                      value_num=v.get("value_num"), unit=v.get("unit", ""),
-                                      status="pending",
-                                      provenance="ai_extracted", machine_extracted=True))
-                s.commit()
-                names = ", ".join(v["parameter_code"] for v in vals)
-                return {"intent": "observation", "patient_id": p.id,
-                        "message": f"Записано на подтверждение ({p.short_name}): {names}"}
+                # Передаём исходную фразу: по ней видно, измерение это или
+                # пересказ слов пациента.
+                return acts.run("observation.add", by="assistant", s=s_, patient=p,
+                                values=vals, said_text=text)
 
     # 2) запись на приём: есть слово «запиши/записать/приём» + пациент + дата
     if any(w in low for w in ["запиши", "записать", "на приём", "на прием", "приём", "прием"]):
         p = _find_patient(low, s)
         when = _resolve_datetime(low)
         if p and when:
-            a = Appointment(doctor_id=current_doctor_id(), patient_id=p.id, starts_at=when,
-                            kind="repeat", reason="запись голосом")
-            s.add(a); s.commit(); s.refresh(a)
-            return {"intent": "appointment",
-                    "message": f"Записан приём: {p.short_name}, {when.strftime('%d.%m %H:%M')}",
-                    "appointment_id": a.id}
+            return acts.run("appointment.create", by="assistant", s=s_, patient=p, when=when)
         # не хватило данных — но это явно про пациента: если пациент есть, дата не понята
         if p and not when:
             return {"intent": "appointment", "message": f"Кого записать понял ({p.short_name}), а вот когда — уточните дату/время"}
@@ -258,13 +294,7 @@ def _route_command(text: str, s: Session) -> dict:
     clean = re.sub(r"^\s*(в\s+заметки|заметка|напомни( мне)?)\s*[:\-]?\s*", "", text, flags=re.I)
     parsed = parse_reminder(clean)
     due = _override_due(low) or (datetime.fromisoformat(parsed["due_at"]) if parsed["due_at"] else None)
-    r = Reminder(doctor_id=current_doctor_id(), title=parsed["title"], due_at=due,
-                 kind=parsed["kind"], priority=parsed["priority"],
-                 repeat_days=parsed["repeat_days"], labels=parsed["labels"],
-                 project=parsed["project"], source="voice")
-    s.add(r); s.commit(); s.refresh(r)
-    when_txt = due.strftime("%d.%m %H:%M") if due else "без срока"
-    return {"intent": "task", "message": f"Задача создана: {r.title} ({when_txt})", "reminder_id": r.id}
+    return acts.run("task.create", by="assistant", s=s_, parsed=parsed, due=due)
 
 
 def _find_patient(low: str, s: Session):
@@ -384,12 +414,7 @@ def _ai_hint(text: str, s: Session):
         # время, посчитанное моделью, приоритетнее: она понимает «в 3 часа дня»
         when = res.get("datetime") or _resolve_datetime(low)
         if p and when:
-            a = Appointment(doctor_id=current_doctor_id(), patient_id=p.id, starts_at=when,
-                            kind="repeat", reason="запись голосом")
-            s.add(a); s.commit(); s.refresh(a)
-            return {"intent": "appointment",
-                    "message": f"Записан приём: {p.short_name}, {when.strftime('%d.%m %H:%M')}",
-                    "appointment_id": a.id}
+            return acts.run("appointment.create", by="assistant", s=s_, patient=p, when=when)
         if p and not when:
             return {"intent": "appointment",
                     "message": f"Кого записать понял ({p.short_name}), а когда — уточните дату и время"}

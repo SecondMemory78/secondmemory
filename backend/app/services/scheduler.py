@@ -124,11 +124,11 @@ def _digest_tick():
                     continue
                 from ..deps import set_current_doctor_id
                 set_current_doctor_id(p.doctor_id)
-                data = _attention_fn(s)
-                n = data.get("count", 0)
-                from .plural import count
-                text = (f"Доброе утро! Сегодня требуют внимания {count(n, 'пациент', 'пациента', 'пациентов')}."
-                       if n else "Доброе утро! Сегодня всё спокойно — ни одного срочного дела.")
+                # Раньше здесь была одна строка со счётчиком «требуют внимания».
+                # Врач читал её и всё равно шёл разбираться, кто именно, а про
+                # сам день сводка не говорила ничего.
+                from .digest import build as build_digest
+                text = "Доброе утро! " + build_digest(s, p.doctor_id)["text"]
                 s.add(Notification(doctor_id=p.doctor_id, kind="digest", level="info",
                                    text=text, dedup_key=key))
                 s.commit()

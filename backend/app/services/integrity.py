@@ -169,6 +169,37 @@ def find_conflicts(s: Session, pid: int) -> list[dict]:
                           {"parameter_code": code, "date": day.isoformat(),
                            "ids": [x.id for x in items]}))
 
+    # C04 — конфликт ИСТОЧНИКОВ: документ говорит одно, пациент другое.
+    #
+    # Отличается от C01 тем, что здесь понятно, какой источник надёжнее, —
+    # и всё равно выбирать за врача нельзя. Пациент может помнить верно, а
+    # документ оказаться чужим или устаревшим. Наше дело — показать оба и
+    # назвать источники, чтобы врач решил за минуту, а не искал расхождение
+    # сам.
+    src_groups: dict = {}
+    for o in rows:
+        if o.value_num is None or not o.effective_date:
+            continue
+        src_groups.setdefault((o.parameter_code, o.effective_date), []).append(o)
+    for (code, day), items in src_groups.items():
+        from_doc = [x for x in items if x.provenance in ("document", "ai_extracted")]
+        from_patient = [x for x in items if x.provenance == "patient_words"]
+        if not from_doc or not from_patient:
+            continue
+        doc_vals = {round(x.value_num, 6) for x in from_doc}
+        pat_vals = {round(x.value_num, 6) for x in from_patient}
+        if doc_vals == pat_vals:
+            continue                      # совпали — конфликта нет
+        out.append(_f("C04", "C",
+                      f"«{code}» на {day:%d.%m.%Y}: в документе "
+                      + ", ".join(str(v) for v in sorted(doc_vals))
+                      + "; со слов пациента "
+                      + ", ".join(str(v) for v in sorted(pat_vals))
+                      + ". Выберите, что оставить — автоматически мы не решаем.",
+                      {"parameter_code": code, "date": day.isoformat(),
+                       "document_ids": [x.id for x in from_doc],
+                       "patient_ids": [x.id for x in from_patient]}))
+
     # C02 — два активных одинаковых устройства с одной стороны: скорее всего
     # старое забыли закрыть при замене
     devs = s.exec(select(Device).where(Device.patient_id == pid, Device.active == True)).all()  # noqa: E712

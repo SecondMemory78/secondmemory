@@ -28,9 +28,36 @@ class AppSession(Session):
     Поэтому expire_on_commit выключен для всех сессий приложения разом.
     """
 
-    def __init__(self, bind=None, **kw):
+    def __init__(self, bind=None, scope_doctor_id="auto", **kw):
         kw.setdefault("expire_on_commit", False)
         super().__init__(bind if bind is not None else engine, **kw)
+        self._scope_doctor_id = scope_doctor_id
+
+    def __enter__(self):
+        """Выставляет контекст изоляции строк на подключении.
+
+        Зачем это здесь, а не в вызывающем коде. Подключения берутся из пула, и
+        параметр app.current_doctor_id остаётся на подключении от прошлого
+        запроса. Сессия, открытая без контекста, читала данные под ЧУЖИМ врачом —
+        отсюда ложный 402 у оплатившего врача: барьер подписки не видел его
+        подписку, потому что искал её под чужим контекстом. Непостоянно,
+        проходило после перезапуска (пул свежий) и только на PostgreSQL.
+
+        Делаем это в самой сессии, а не в каждом из двенадцати мест, где она
+        открывается: место, которое забыли, — это и есть такая ошибка.
+        """
+        out = super().__enter__()
+        try:
+            from .services.rls import set_session_scope
+            did = self._scope_doctor_id
+            if did == "auto":
+                from .deps import _doctor_id
+                did = _doctor_id.get()
+            # Нет врача в контексте — фоновая задача: ей нужны все врачи.
+            set_session_scope(out, did, bypass=(did is None))
+        except Exception:
+            pass
+        return out
 
 
 def init_db() -> None:

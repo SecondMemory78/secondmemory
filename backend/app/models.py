@@ -332,7 +332,14 @@ class SourceDocument(SQLModel, table=True):
     kind: str = "photo"                       # photo | pdf | voice
     storage_ref: str = ""                     # путь/ключ; очищается после распознавания
     extracted_text: str = ""                  # распознанный текст (храним ЕГО, не фото)
-    ocr_status: str = "queued"                # queued | done | failed
+    ocr_status: str = "queued"
+    # Что не прошло проверку и почему. JSON-список: [{parameter_code, value_num,
+    # why, source_span}]. Молчаливый пропуск в медицинском документе хуже, чем
+    # пропуск с пометкой.
+    rejected_json: str = "[]"
+    # Находки из заключения: орган, сторона, свойства. Не показатели —
+    # в динамику не идут.
+    findings_json: str = "[]"                # queued | done | failed
     match_status: str = "ok"                  # ok | name_mismatch | dob_mismatch (защита №1)
     extracted_name: str = ""
     extracted_dob: str = ""
@@ -614,6 +621,74 @@ class AnalyticsEvent(SQLModel, table=True):
     created_at: datetime = Field(default_factory=now)
 
 
+class Discharge(SQLModel, table=True):
+    """Выписка по эпизоду.
+
+    Это не документ, а рабочий процесс. Черновик собирается из данных карты,
+    врач правит текст, и только подписанная версия становится неизменяемой.
+
+    Три вещи, ради которых заведены отдельные поля:
+      • sections — правки врача. Документ принадлежит ему, а не сборщику;
+      • excluded — что НЕ вошло и почему. Врач должен видеть, чего в выписке
+        нет: неподтверждённое значение, конфликт, отсутствующая дата. Иначе
+        он подпишет документ, не зная о пропуске;
+      • source_snapshot — снимок исходных данных на момент сборки. Без него
+        через год нельзя объяснить, почему в выписке именно эти цифры.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    doctor_id: int = Field(foreign_key="doctor.id", index=True)
+    patient_id: int = Field(foreign_key="patient.id", index=True)
+    encounter_id: int = Field(foreign_key="encounter.id", index=True)
+
+    status: str = "draft"                     # draft | final
+    version: int = 1
+
+    sections: str = "{}"                      # JSON: разделы как их видит врач
+    excluded: str = "[]"                      # JSON: что не вошло и почему
+    source_snapshot: str = "{}"               # JSON: данные на момент сборки
+
+    finalized_by: Optional[int] = None
+    finalized_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=now)
+    updated_at: Optional[datetime] = None
+
+
+class Procedure(SQLModel, table=True):
+    """Операция или процедура.
+
+    Отдельной сущности не было вовсе: операции терялись в заметках, и на
+    вопрос «какая последняя операция» ответить было нечем. Для выписки это
+    самостоятельный раздел.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="patient.id", index=True)
+    encounter_id: Optional[int] = Field(default=None, foreign_key="encounter.id")
+
+    name: str = ""                            # что сделано
+    code: str = ""                            # код по номенклатуре, если есть
+    performed_at: Optional[date] = None
+    side: str = ""                            # left | right | both | "" — как у устройств
+    location: str = ""
+    anesthesia: str = ""
+    surgeon: str = ""
+    outcome: str = ""                         # исход, своими словами
+    complications: str = ""                   # осложнения; пусто ≠ «не было»
+    note: str = ""
+
+    # Устройство, установленное в ходе операции (стент, нефростома).
+    device_id: Optional[int] = Field(default=None, foreign_key="device.id")
+
+    # Как у диагноза: предложенное ассистентом ждёт подтверждения врача.
+    confirmed: bool = True
+    source: str = "doctor"                    # doctor | ai_suggested
+    confirmed_by: Optional[int] = None
+    confirmed_at: Optional[datetime] = None
+
+    status: str = "done"                      # done | planned | cancelled
+    version: int = 1
+    created_at: datetime = Field(default_factory=now)
+
+
 class PatientDiagnosis(SQLModel, table=True):
     """Диагноз пациента. У пациента их несколько; один — «основной» (в шапке).
     История не затирается: снятый диагноз получает status=removed, но остаётся."""
@@ -626,6 +701,14 @@ class PatientDiagnosis(SQLModel, table=True):
     is_primary: bool = False
     icd_version: str = "МКБ-10 (НСИ Минздрава M001)"
     encounter_id: Optional[int] = Field(default=None, foreign_key="encounter.id")
+
+    # Диагноз — клиническое суждение, и ошибка в нём весит не меньше, чем в
+    # назначении. Поэтому предложенный ассистентом диагноз ждёт врача так же,
+    # как назначение: confirmed=False до нажатия.
+    confirmed: bool = True                    # внесённое врачом — сразу подтверждено
+    source: str = "doctor"                    # doctor | ai_suggested
+    confirmed_by: Optional[int] = None
+    confirmed_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=now)
     removed_at: Optional[datetime] = None
 
@@ -714,6 +797,17 @@ class AssistantAction(SQLModel, table=True):
     entity_type: str = ""
     entity_id: Optional[int] = None
     ok: bool = True                             # False — отказ/не смог выполнить
+
+    # Чем разобрана команда и какой версией. Без этого на вопрос «почему в
+    # карте это значение» ответить нечем: правила и модель ошибаются по-разному,
+    # и разбирать случай надо, зная, кто именно сработал.
+    engine: str = "rules"                       # rules | model | mixed
+    engine_version: str = ""                    # версия правил или имя модели
+
+    # Что врач сделал потом с тем, что предложил ассистент.
+    outcome: str = ""                           # confirmed | edited | rejected | ""
+    outcome_at: Optional[datetime] = None
+
     created_at: datetime = Field(default_factory=now)
 
 
@@ -723,11 +817,51 @@ class DoctorNote(SQLModel, table=True):
     врач может записать сюда что угодно, в т.ч. рабочие детали."""
     id: Optional[int] = Field(default=None, primary_key=True)
     doctor_id: int = Field(foreign_key="doctor.id", index=True)
+
+    # Заголовок: без него список через месяц превращается в стену текста.
+    # Если врач не вписал — берём первую строку, но храним отдельно, чтобы
+    # правка текста не ломала название.
+    title: str = Field(default="", sa_column=Column(EncryptedStr))
     text: str = Field(default="", sa_column=Column(EncryptedStr))
+
+    folder: str = ""                          # папка или метка; пусто — без папки
+
+    # Чек-лист внутри заметки: [{text, done, reminder_id}]. Пункты НЕ являются
+    # задачами: задачей пункт становится отдельным действием, с датой. Иначе
+    # список просроченного забьётся пунктами без срока и врач перестанет ему
+    # доверять.
+    checklist: str = "[]"
+
+    # Рисунок: PNG строкой data:. Врачи чертят пациенту схемы на бумажках, и
+    # бумажка теряется. Текста в рисунке нет, искать по нему мы не будем.
+    drawing: str = ""
+
+    # Заметку можно перенести пациенту — тогда она становится частью его карты.
+    patient_id: Optional[int] = Field(default=None, foreign_key="patient.id", index=True)
+
     pinned: bool = False
     source: str = "typed"                     # typed | voice
     deleted_at: Optional[datetime] = None     # мягкое удаление — чтобы работало «Отменить»
     created_at: datetime = Field(default_factory=now)
+    updated_at: datetime = Field(default_factory=now)
+
+
+class WorkCalendarDay(SQLModel, table=True):
+    """День производственного календаря России.
+
+    Субботы и воскресенья вычисляются из даты и здесь НЕ хранятся. Здесь только
+    то, что нельзя вычислить: праздники, переносы и сокращённые дни — их каждый
+    год утверждает постановление правительства.
+
+    Если года в таблице нет, приложение показывает только выходные и не делает
+    вид, что знает про праздники: ошибиться молча хуже, чем не знать.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    year: int = Field(index=True)
+    day: date = Field(index=True, unique=True)
+    kind: str = "holiday"                     # holiday | short | working
+    label: str = ""                           # «Новый год», «перенос с 4 января»
+    updated_by: Optional[int] = None
     updated_at: datetime = Field(default_factory=now)
 
 
