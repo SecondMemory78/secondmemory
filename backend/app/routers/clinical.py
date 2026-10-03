@@ -1,4 +1,7 @@
-from typing import List
+from datetime import date
+from typing import List, Optional
+
+from pydantic import BaseModel
 from ..deps import current_doctor_id, get_owned_patient
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlmodel import Session, select
@@ -51,6 +54,38 @@ def _owned_observation(s: Session, oid: int) -> Observation:
     return o
 
 
+@router.get("/observations/{oid}/origin")
+def observation_origin(oid: int, s: Session = Depends(get_session)):
+    """Откуда взялось значение и что с ним было дальше.
+
+    Это ответ на вопрос «почему в карте оказалось именно это»: источник,
+    чем разобрано, кто и когда подтвердил. Нужен и врачу, и при разборе
+    спорного случая.
+    """
+    from ..models import Observation, Doctor
+    from ..services.ai_journal import chain
+    o = s.get(Observation, oid)
+    if not o:
+        raise HTTPException(404, "Значение не найдено")
+    get_owned_patient(s, o.patient_id)          # чужое не отдаём
+
+    who = s.get(Doctor, o.confirmed_by) if o.confirmed_by else None
+    return {
+        "id": o.id,
+        "parameter_code": o.parameter_code,
+        "value": o.value_num,
+        "unit": o.unit,
+        "status": o.status,
+        "provenance": o.provenance,
+        "machine_extracted": o.machine_extracted,
+        "confidence": o.confidence,
+        "source_document_id": o.source_document_id,
+        "confirmed_by": who.full_name if who else None,
+        "confirmed_at": o.confirmed_at.isoformat() if o.confirmed_at else None,
+        "assistant": chain(s, "observation", oid),
+    }
+
+
 @router.post("/observations/{oid}/confirm")
 def confirm_observation(oid: int, s: Session = Depends(get_session)):
     o = _owned_observation(s, oid)
@@ -61,6 +96,12 @@ def confirm_observation(oid: int, s: Session = Depends(get_session)):
     o.confirmed_by = current_doctor_id()
     o.confirmed_at = clock.now()
     s.add(o)
+
+    # Если значение предложил ассистент — дописываем в журнал, чем закончилось.
+    # Без этой половины по журналу видно только предложение, а на чём основано
+    # решение врача — нет.
+    from ..services.ai_journal import mark_outcome, CONFIRMED
+    mark_outcome(s, "observation", oid, CONFIRMED)
     s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="observation", entity_id=o.id,
                      action="confirm", detail="врач подтвердил извлечённое значение"))
     s.commit(); s.refresh(o)
@@ -75,6 +116,46 @@ def reject_observation(oid: int, s: Session = Depends(get_session)):
     o.status = "rejected"; s.add(o)
     s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="observation", entity_id=o.id,
                      action="reject", detail="врач отклонил извлечённое значение"))
+    from ..services.ai_journal import mark_outcome, REJECTED
+    mark_outcome(s, "observation", o.id, REJECTED)
+    s.commit(); s.refresh(o)
+    return o.model_dump()
+
+
+class ObservationEdit(BaseModel):
+    value_num: Optional[float] = None
+    value_text: Optional[str] = None
+    unit: Optional[str] = None
+    effective_date: Optional[date] = None
+
+
+@router.patch("/observations/{oid}")
+def edit_observation(oid: int, body: ObservationEdit, s: Session = Depends(get_session)):
+    """Исправить значение.
+
+    Раньше правка шла через удаление и добавление нового — история рвалась, а
+    отметка «врач исправил» в журнале ИИ не могла появиться вовсе. Теперь
+    прежнее значение уходит в аудит, запись остаётся той же, и в журнале
+    видно, что предложение ассистента было именно исправлено, а не принято.
+    """
+    o = _owned_observation(s, oid)
+    was = f"{o.value_num if o.value_num is not None else o.value_text} {o.unit}".strip()
+
+    data = body.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(o, field, value)
+    # Исправленное врачом считается проверенным: он только что на него смотрел.
+    o.status = "confirmed"
+    o.confirmed_by = current_doctor_id()
+    o.confirmed_at = clock.now()
+    s.add(o)
+
+    now_txt = f"{o.value_num if o.value_num is not None else o.value_text} {o.unit}".strip()
+    s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="observation",
+                     entity_id=o.id, action="edit",
+                     detail=f"{o.parameter_code}: было «{was}», стало «{now_txt}»"))
+    from ..services.ai_journal import mark_outcome, EDITED
+    mark_outcome(s, "observation", o.id, EDITED)
     s.commit(); s.refresh(o)
     return o.model_dump()
 
@@ -85,6 +166,8 @@ def delete_observation(oid: int, s: Session = Depends(get_session)):
     o = _owned_observation(s, oid)
     s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="observation", entity_id=oid,
                      action="delete", detail=f"{o.parameter_code}"))
+    from ..services.ai_journal import mark_outcome, REJECTED
+    mark_outcome(s, "observation", oid, REJECTED)
     s.delete(o); s.commit()
     return {"ok": True}
 
@@ -185,6 +268,10 @@ def cancel_prescription(rx_id: int, s: Session = Depends(get_session)):
         raise HTTPException(409, "Назначение уже отменено")
     r.status = "cancelled"
     r.cancelled_at = clock.now()
+    # Если назначение предлагал ассистент — в журнале должно быть видно, что
+    # врач его отклонил, а не просто «предложено» без продолжения.
+    from ..services.ai_journal import mark_outcome, REJECTED
+    mark_outcome(s, "prescription", r.id, REJECTED)
     s.add(r)
     s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="prescription",
                      entity_id=r.id, action="cancel", detail=r.drug_name))
@@ -250,6 +337,8 @@ def confirm_prescription(pid: int, rid: int, s: Session = Depends(get_session)):
     s.add(p)
     s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="prescription",
                      entity_id=p.id, action="confirm", detail=p.drug_name))
+    from ..services.ai_journal import mark_outcome, CONFIRMED
+    mark_outcome(s, "prescription", p.id, CONFIRMED)
     s.commit(); s.refresh(p)
     return _presc_view(p)
 

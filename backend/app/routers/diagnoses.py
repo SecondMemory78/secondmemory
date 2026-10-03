@@ -68,12 +68,35 @@ def add_diagnosis(pid: int, body: DiagnosisIn, s: Session = Depends(get_session)
     return dump(d)
 
 
+@router.post("/{pid}/diagnoses/{did}/confirm")
+def confirm_diagnosis(pid: int, did: int, s: Session = Depends(get_session)):
+    """Подтвердить предложенный ассистентом диагноз — только после этого он
+    считается поставленным и может стать основным."""
+    get_owned_patient(s, pid)
+    d = s.get(PatientDiagnosis, did)
+    if not d or d.patient_id != pid:
+        raise HTTPException(404, "Диагноз не найден")
+    d.confirmed = True
+    d.confirmed_by = current_doctor_id()
+    d.confirmed_at = clock.now()
+    s.add(d)
+    s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="diagnosis",
+                     entity_id=d.id, action="confirm", detail=d.code))
+    from ..services.ai_journal import mark_outcome, CONFIRMED
+    mark_outcome(s, "diagnosis", d.id, CONFIRMED)
+    s.commit(); s.refresh(d)
+    return dump(d)
+
+
 @router.post("/{pid}/diagnoses/{did}/primary")
 def set_primary(pid: int, did: int, s: Session = Depends(get_session)):
     get_owned_patient(s, pid)                    # чужой/несуществующий пациент → 404
     d = s.get(PatientDiagnosis, did)
     if not d or d.patient_id != pid or d.status != "active":
         raise HTTPException(404, "Диагноз не найден")
+    if not d.confirmed:
+        raise HTTPException(400, "Сначала подтвердите диагноз — предложение "
+                                 "ассистента не может быть основным")
     _clear_primary(s, pid)
     d.is_primary = True; s.add(d)
     s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="diagnosis",
@@ -89,6 +112,8 @@ def remove_diagnosis(pid: int, did: int, s: Session = Depends(get_session)):
     if not d or d.patient_id != pid:
         raise HTTPException(404, "Диагноз не найден")
     d.status = "removed"; d.removed_at = clock.now()
+    from ..services.ai_journal import mark_outcome, REJECTED
+    mark_outcome(s, "diagnosis", d.id, REJECTED)
     was_primary = d.is_primary; d.is_primary = False; s.add(d)
     s.add(AuditEvent(doctor_id=current_doctor_id(), entity_type="diagnosis",
                      entity_id=pid, action="remove", detail=d.code))

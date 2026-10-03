@@ -237,6 +237,18 @@ def patient_handout_pdf(pid: int, s: Session = Depends(get_session)):
     from ..services.integrity import conflicting_observations
     data["conflicts"] = sorted(conflicting_observations(s, pid))
 
+    from ..models import Procedure
+    from ..routers.procedures import _view as _proc_view
+    data["procedures"] = [_proc_view(x) for x in s.exec(
+        select(Procedure).where(Procedure.patient_id == pid)).all()]
+
+    # Схемы из заметок, перенесённых этому пациенту
+    from ..models import DoctorNote
+    data["drawings"] = [x.drawing for x in s.exec(
+        select(DoctorNote).where(DoctorNote.patient_id == pid,
+                                 DoctorNote.deleted_at == None)).all()      # noqa: E711
+        if x.drawing]
+
     labels = label_map()
     for o in data.get("observations") or []:   # человеческие названия показателей
         o["label"] = labels.get(o.get("parameter_code"), o.get("parameter_code"))

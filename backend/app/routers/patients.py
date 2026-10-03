@@ -117,6 +117,8 @@ def timeline(pid: int, s: Session = Depends(get_session)):
     for o in obs:
         series.setdefault(o.parameter_code, []).append({
             "value_num": o.value_num, "value_text": o.value_text, "unit": o.unit,
+            # Источник нужен карте: «со слов пациента» помечается отдельно
+            "provenance": o.provenance,
             "date": o.effective_date.isoformat() if o.effective_date else None,
             "status": o.status, "id": o.id,
         })

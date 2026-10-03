@@ -10,6 +10,15 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 # «сегодня» берём из шва времени (clock), без хардкода
 
 
+@router.get("/digest")
+def digest(s: Session = Depends(get_session)):
+    """Сводка на сегодня: расписание, просроченное, кто требует внимания и
+    почему. То же, что приходит утренним уведомлением, но подробнее и с
+    переходами в карты."""
+    from ..services.digest import build
+    return build(s)
+
+
 @router.get("/attention")
 def attention(s: Session = Depends(get_session)):
     """Кто из всех пациентов требует внимания: просроченные контроли, показатели выше

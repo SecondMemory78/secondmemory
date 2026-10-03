@@ -79,9 +79,18 @@ def timeseries(days: int = 30, _: None = Depends(_auth), s: Session = Depends(ge
     appt = by_day(Appointment.starts_at, Appointment.starts_at)
     ai = by_day(UsageRecord.created_at, UsageRecord.created_at, func.coalesce(func.sum(UsageRecord.units), 0))
     ev = by_day(AnalyticsEvent.created_at, AnalyticsEvent.created_at)
-    days_set = sorted(set(pat) | set(appt) | set(ai) | set(ev))
-    return [{"date": d, "patients": pat.get(d, 0), "appointments": appt.get(d, 0),
-             "ai": ai.get(d, 0), "events": ev.get(d, 0)} for d in days_set]
+    # Дни без событий раньше просто отсутствовали в ответе. На графике это
+    # выглядит как провал в линии — будто данных нет, хотя их ноль. Для
+    # «сколько пациентов завели вчера» разница принципиальная.
+    out = []
+    day = start.date()
+    today = clock.today()
+    while day <= today:
+        d = day.isoformat()
+        out.append({"date": d, "patients": pat.get(d, 0), "appointments": appt.get(d, 0),
+                    "ai": ai.get(d, 0), "events": ev.get(d, 0)})
+        day += timedelta(days=1)
+    return out
 
 
 @admin.get("/analytics/summary")
