@@ -47,6 +47,25 @@ async def voice(audio: UploadFile = File(None), audio_format: str = Form(""),
     return {"transcript": text, **res}
 
 
+@router.post("/dictate")
+async def dictate(audio: UploadFile = File(None), audio_format: str = Form(""),
+                  s: Session = Depends(get_session)):
+    """Только расшифровка, без выполнения команд.
+
+    Отличие от /voice принципиальное. Там всё сказанное — команда. Здесь всё
+    сказанное — ТЕКСТ: врач диктует заметку, и в ней может встретиться «надо
+    уточнить название препарата». Если разбирать такое как команду, заметка
+    внезапно переименуется. Отличить команду от текста внутри поля для текста
+    невозможно, поэтому здесь мы и не пытаемся.
+    """
+    _deny_in_demo(s)
+    meter(s, current_doctor_id(), "stt", detail="dictate")
+    data = await audio.read() if audio else b""
+    text = transcribe(data, audio_format)
+    log_event(s, "assistant.dictate", {"len": len(text or "")})
+    return {"text": text}
+
+
 @router.get("/actions")
 def actions(limit: int = 50, s: Session = Depends(get_session)):
     """Журнал действий ассистента для текущего врача — экран «Что сделал ассистент»."""

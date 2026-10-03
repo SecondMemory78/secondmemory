@@ -35,7 +35,7 @@ from .routers import (capture, procedures, discharge, workcalendar, patients, cl
                       dashboard, assistant, analytics, calendar, privacy, support, triggers,
                       admin_doctors, notes, announcements,
                       reference, auth, encounters, diagnoses, settings, usage, notifications,
-                      billing, multiphoto, dictation, notify_prefs, push, templates, onboarding, lists, devices)
+                      billing, multiphoto, notify_prefs, push, templates, onboarding, lists, devices)
 
 
 class DoctorContextMiddleware:
@@ -193,7 +193,6 @@ app.include_router(multiphoto.router)
 app.include_router(capture.router)
 app.include_router(procedures.router)
 app.include_router(discharge.router)
-app.include_router(dictation.router)
 app.include_router(notify_prefs.router)
 app.include_router(notify_prefs.alerts_router)
 app.include_router(push.router)
