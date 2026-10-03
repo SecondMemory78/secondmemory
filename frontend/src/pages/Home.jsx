@@ -8,6 +8,7 @@ import { WD, monthMatrix, monthRange, todayISO, weekOffsetOfISO, fmtDay, iso as 
 import { plural } from "../lib/plural";
 import Tip from "../components/Tip";
 import { useTips } from "../lib/tips";
+import PullToRefresh from "../components/PullToRefresh";
 
 export default function Home() {
   const nav = useNavigate();
@@ -117,6 +118,9 @@ export default function Home() {
 
   return (
     <>
+      {/* Потянуть вниз — обновить: врач возвращается в приложение через
+          час и видит вчерашние данные. */}
+      <PullToRefresh onRefresh={async () => { await load(); }}>
       <div className="hd"><div className="ttl">Сегодня</div></div>
 
       {sub && sub.active && !sub.is_demo && sub.days_left <= 5 && (
@@ -315,7 +319,8 @@ export default function Home() {
         </div>
       )}
 
-    </>
+          </PullToRefresh>
+</>
   );
 }
 

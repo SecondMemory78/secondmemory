@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import { dayKind, loadYear } from "../lib/holidays";
+import { useSwipe } from "../lib/useSwipe";
 import { confirmAction } from "../lib/confirm";
 import { WD, weekDays, todayISO, fmtDay, MONTHS_GEN } from "../lib/dates";
 import { toast } from "../lib/toast";
@@ -15,6 +16,12 @@ export default function Week() {
   const days = useMemo(() => weekDays(off), [off]);
   const TODAY = todayISO();
   const [sel, setSel] = useState(days.find((d) => d.iso === TODAY)?.iso || days[0].iso);
+
+  // Листание недели пальцем — тем же механизмом, что в календаре: иначе
+  // пороги разойдутся и жест будет ощущаться по-разному.
+  // Направление движения: неделя приезжает с той стороны, куда ушёл палец.
+  const [dir, setDir] = useState(1);
+  const swipe = useSwipe((d) => { setDir(d); nav(`/week/${off + d}`); });
 
   // Праздники приходят с сервера: вычислить их нельзя, переносы меняются.
   const [holidays, setHolidays] = useState(null);
@@ -79,12 +86,14 @@ export default function Week() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, margin: "2px 0 12px" }}>
-        <i className="ti ti-chevron-left muted" style={{ fontSize: 18, cursor: "pointer" }} onClick={() => nav(`/week/${off - 1}`)} />
+        <i className="ti ti-chevron-left muted period-arrow" onClick={() => nav(`/week/${off - 1}`)} />
         <span style={{ fontSize: 13.5, fontWeight: 500 }}>{label}</span>
-        <i className="ti ti-chevron-right muted" style={{ fontSize: 18, cursor: "pointer" }} onClick={() => nav(`/week/${off + 1}`)} />
+        <i className="ti ti-chevron-right muted period-arrow" onClick={() => nav(`/week/${off + 1}`)} />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+      <div className={"swipe-area " + (dir > 0 ? "slide-fwd" : "slide-back")} {...swipe}
+           key={off}
+           style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
         {days.map((d, i) => {
           const selected = d.iso === sel;
           const isToday = d.iso === TODAY;

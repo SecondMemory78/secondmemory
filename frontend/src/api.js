@@ -140,11 +140,6 @@ export const api = {
   updateNotifyPrefs: (body) => j("PATCH", "/notify-prefs", body),
   eventAlerts: (type, id) => j("GET", `/alerts/${type}/${id}`),
   setReminderAlerts: (id, offsets) => j("POST", `/alerts/reminder/${id}`, { offsets }),
-  createDictation: (text, idem) => j("POST", "/dictation", { text }, idem),
-  getDictation: (id) => j("GET", `/dictation/${id}`),
-  assignSegment: (did, sid, patient_id) => j("POST", `/dictation/${did}/segment/${sid}/assign`, { patient_id }),
-  confirmDictation: (did) => j("POST", `/dictation/${did}/confirm`),
-  discardDictation: (did) => j("POST", `/dictation/${did}/discard`),
   createPatient: (b) => j("POST", "/patients", b),
   uploadPhotoBatch: (file, idem) => { const fd = new FormData(); fd.append("file", file); return jForm("/intake/photo-batch", fd, idem); },
 
@@ -216,6 +211,14 @@ export const api = {
   sourceLookup: (q) => j("GET", `/reference/sources/lookup?q=${encodeURIComponent(q)}`),
   trustedSources: () => j("GET", "/reference/sources"),
   myNotes: (q = "") => j("GET", `/notes/my${q ? "?q=" + encodeURIComponent(q) : ""}`),
+  // Только расшифровка, без выполнения команд: внутри поля для текста всё
+  // сказанное — текст, а не приказ
+  async dictate(blob) {
+    const fd = new FormData();
+    fd.append("audio", blob, "note.webm");
+    fd.append("audio_format", "webm");
+    return jForm("/assistant/dictate", fd);
+  },
   noteItemToTask: (nid, index, due_at) =>
     j("POST", `/notes/my/${nid}/checklist/to-task`, { index, due_at }),
   noteToPatient: (nid, patient_id) => j("POST", `/notes/my/${nid}/to-patient`, { patient_id }),

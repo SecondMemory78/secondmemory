@@ -6,6 +6,8 @@ import { toast } from "../lib/toast";
 import { onDataChanged } from "../lib/bus";
 import VoiceButton from "../components/VoiceButton";
 import AddToHomeHint, { shouldShowAddToHome } from "../components/AddToHomeHint";
+import PullToRefresh from "../components/PullToRefresh";
+import SwipeRow from "../components/SwipeRow";
 
 const PRI = { 1: "var(--dn)", 2: "var(--wn)", 3: "var(--ac)", 4: "var(--tm)" };
 // цвет по типу: приём-контроль — синий, обычная задача/звонок — фиолетовый (как напоминание)
@@ -97,6 +99,9 @@ export default function Reminders() {
 
   return (
     <>
+      {/* Потянуть вниз — обновить: врач возвращается в приложение через
+          час и видит вчерашние данные. */}
+      <PullToRefresh onRefresh={async () => { await load(); }}>
       <div className="hd"><div className="ttl">Задачи</div></div>
 
       {a2hs && <AddToHomeHint onClose={() => setA2hs(false)} />}
@@ -136,6 +141,10 @@ export default function Reminders() {
           </div>
           {groups[g].map((r) => (
             <div key={r.id} style={{ transition: "opacity .3s, transform .3s", opacity: fading[r.id] ? 0 : 1, transform: fading[r.id] ? "translateX(8px)" : "none" }}>
+            {/* Смахнуть — выполнить. Жест вспомогательный: то же делает нажатие
+                на кружок, поэтому ошибиться им не страшно. */}
+            <SwipeRow onLeft={() => tab !== "done" && done(r.id)}
+                      onRight={() => removeReminder(r.id)}>
             <div className="row">
               <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <span className="pri-dot" style={{ background: kindColor(r.kind), marginTop: 5 }} title={r.kind} />
@@ -161,6 +170,7 @@ export default function Reminders() {
                 </>)}
               </div>
             </div>
+            </SwipeRow>
             {edit?.id === r.id && (
               <div className="card" style={{ margin: "4px 0 10px" }}>
                 <input className="input" value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} style={{ marginBottom: 8 }} />
@@ -236,7 +246,8 @@ export default function Reminders() {
           ))}
         </div>
       ))}
-    </>
+          </PullToRefresh>
+</>
   );
 }
 

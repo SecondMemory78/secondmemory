@@ -11,6 +11,7 @@ import "@fontsource/jetbrains-mono/500.css";
 import "./icons.css";
 import "./theme.css";
 import { startViewportWatch, keepFocusVisible } from "./lib/viewport";
+import { enableFocusScroll } from "./lib/focusscroll";
 
 // Следим за реальной видимой высотой экрана: без этого клавиатура на телефоне
 // заслоняет поля, а нижнее меню уезжает за край.

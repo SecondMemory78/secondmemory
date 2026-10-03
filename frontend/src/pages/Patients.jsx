@@ -5,6 +5,7 @@ import { SkeletonList, Empty } from "../components/Loading";
 import Button from "../components/Button";
 import Tip from "../components/Tip";
 import { useTips } from "../lib/tips";
+import PullToRefresh from "../components/PullToRefresh";
 
 const EMPTY_FORM = { last_name: "", first_name: "", middle_name: "", birth_date: "", phone: "" };
 const TODAY = new Date().toISOString().slice(0, 10);   // дата рождения не может быть в будущем
@@ -45,6 +46,9 @@ export default function Patients() {
 
   return (
     <>
+      {/* Потянуть вниз — обновить: врач возвращается в приложение через
+          час и видит вчерашние данные. */}
+      <PullToRefresh onRefresh={async () => { await load(q); }}>
       <div className="hd">
         <div className="ttl" style={{flex:1}}>Пациенты</div>
         <button className="btn pri sm add-patient" onClick={() => setForm(EMPTY_FORM)}>
@@ -141,7 +145,8 @@ export default function Patients() {
           <i className="ti ti-chevron-right muted" />
         </div>
       ))}
-    </>
+          </PullToRefresh>
+</>
   );
 }
 

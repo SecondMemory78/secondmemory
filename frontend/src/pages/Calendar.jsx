@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { dayKind, loadYear } from "../lib/holidays";
+import { useSwipe } from "../lib/useSwipe";
 import { WD, monthMatrix, monthRange, monthLabel, todayISO, weekOffsetOfISO, fmtDay } from "../lib/dates";
 import { toast } from "../lib/toast";
 import { onDataChanged } from "../lib/bus";
@@ -44,6 +45,13 @@ export default function Calendar() {
   const dayTasks = (taskByDay[sel] || []).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
   const weeks = monthMatrix(y, m);
 
+  // Листание пальцем: в календаре это самый ожидаемый жест, без него экран
+  // ощущается веб-страницей. Стрелки остаются — привычка у всех разная.
+  // Направление нужно, чтобы содержимое приезжало с той стороны, куда ушёл
+  // палец: иначе переключение читается как подмена, а не как переход.
+  const [dir, setDir] = useState(1);
+  const swipe = useSwipe((d) => { setDir(d); shift(d); });
+
   // Выходные и праздники: то же правило, что на Главной. Раньше оно жило
   // только там, и в календаре суббота ничем не отличалась от вторника.
   const [holidays, setHolidays] = useState(null);
@@ -60,13 +68,19 @@ export default function Calendar() {
     <>
       <div className="hd"><div className="ttl">Календарь</div></div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, margin: "4px 0 14px" }}>
-        <i className="ti ti-chevron-left muted" style={{ fontSize: 18, cursor: "pointer" }} onClick={() => shift(-1)} />
+        <i className="ti ti-chevron-left muted period-arrow" onClick={() => shift(-1)} />
         <span style={{ fontSize: 15, fontWeight: 500 }}>{monthLabel(y, m)}</span>
-        <i className="ti ti-chevron-right muted" style={{ fontSize: 18, cursor: "pointer" }} onClick={() => shift(1)} />
+        <i className="ti ti-chevron-right muted period-arrow" onClick={() => shift(1)} />
       </div>
 
+      {/* Жест на сетке месяца: листать естественно по числам */}
+      <div className="swipe-area" {...swipe}>
+      {/* key по месяцу перезапускает анимацию: без него браузер считает, что
+          элемент тот же, и движения не будет вовсе. */}
+      <div key={`${y}-${m}`} className={dir > 0 ? "slide-fwd" : "slide-back"}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 6 }}>
         {WD.map((d) => <div key={d} style={{ textAlign: "center", fontSize: 11, color: "var(--tm)" }}>{d}</div>)}
+      </div>
       </div>
 
       {weeks.map((row, wi) => (
@@ -107,6 +121,7 @@ export default function Calendar() {
           })}
         </div>
       ))}
+      </div>
 
       <div className="sec-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>{fmtDay(sel)} · {dayAppts.length ? dayAppts.length + " приёма" : "приёмов нет"}{dayTasks.length ? ` · ${dayTasks.length} задач` : ""}</span>

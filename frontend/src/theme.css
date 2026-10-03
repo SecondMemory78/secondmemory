@@ -268,8 +268,14 @@ textarea.input{resize:vertical;min-height:64px;line-height:1.5}
   box-shadow:0 6px 20px rgba(37,99,235,.4);transition:transform .12s ease}
 .asst-fab:active{transform:scale(.92)}
 @media(min-width:768px){.asst-fab{bottom:24px;right:24px}}
+/* Шторка прикреплена к низу ЭКРАНА (position:fixed), а он при появлении
+   клавиатуры не уменьшается — поэтому поправка нужна. Но даём её контейнеру
+   один раз: раньше её добавляло ещё и поле ввода внутри, и смещение
+   применялось дважды — поле улетало выше клавиатуры. */
 .asst-ov{position:fixed;inset:0;background:rgba(15,20,28,.5);z-index:1100;
-  display:flex;align-items:flex-end;justify-content:center;animation:fade .15s ease}
+  display:flex;align-items:flex-end;justify-content:center;animation:fade .15s ease;
+  padding-bottom:var(--kb,0px);
+  transition:padding-bottom .15s ease}
 @media(min-width:768px){.asst-ov{align-items:center}}
 .asst-sheet{background:var(--s2);width:100%;max-width:440px;border-radius:18px 18px 0 0;
   padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
@@ -383,7 +389,10 @@ details > summary { transition: color .15s ease }
    клавиатурой. Раньше поле стояло сразу после сообщений и висело посреди
    экрана, а под ним оставалась пустота. */
 .chat-msgs{display:flex;flex-direction:column;gap:8px;padding-bottom:14px}
-.chat-compose{position:sticky;bottom:calc(var(--kb,0px) + 8px);z-index:20;
+/* Поле в потоке экрана: .app уже имеет высоту видимой области, поэтому
+   вычитать клавиатуру второй раз не нужно. Один способ на оба случая:
+   поправку даёт тот, кто прикреплён к экрану, а не к видимой области. */
+.chat-compose{position:sticky;bottom:8px;z-index:20;
   display:flex;align-items:flex-end;gap:8px;
   background:var(--s2);backdrop-filter:saturate(180%) blur(12px);
   -webkit-backdrop-filter:saturate(180%) blur(12px)}
@@ -459,8 +468,8 @@ details > summary { transition: color .15s ease }
 .asst-reply.bad{border-left-color:var(--dn)}
 .asst-act{font-size:12.5px;margin-top:8px;cursor:pointer}
 .asst-wait{padding:2px}
-.asst-compose{display:flex;align-items:center;gap:8px;flex-shrink:0;
-  margin-bottom:calc(var(--kb,0px))}
+/* Своей поправки на клавиатуру тут быть не должно: её уже дал .asst-ov */
+.asst-compose{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .asst-send{width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:18px;
   background:var(--s1);color:var(--act)}
@@ -800,3 +809,75 @@ details > summary { transition: color .15s ease }
 .whatsnew{display:flex;align-items:center;justify-content:space-between;gap:10px;
   background:var(--acbg);border:1px solid var(--acsub);border-radius:12px;
   padding:10px 12px;margin:0 0 12px}
+
+/* Стрелки переключения месяца и недели.
+   Были 18px без отступов — попасть пальцем трудно, а промах тут обиден:
+   вместо соседнего месяца открывается день. Значок прежнего размера,
+   растёт только зона нажатия. */
+.period-arrow{font-size:18px;cursor:pointer;
+  min-width:40px;min-height:40px;margin:-11px;padding:11px;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:12px}
+.period-arrow:active{background:var(--s1)}
+
+/* Заметка в режиме чтения: тот же экран, но выглядит как текст, а не анкета */
+.note-title-read{font-size:17px;font-weight:600;line-height:1.3;margin-bottom:6px}
+.note-body-read{font-size:14px;line-height:1.6;white-space:pre-wrap;margin-bottom:10px}
+
+/* Область, которую листают пальцем (календарь, неделя).
+   pan-y оставляет вертикальную прокрутку браузеру, а горизонталь отдаёт нам:
+   иначе страница начинает ехать вбок вместе с жестом. */
+.swipe-area{touch-action:pan-y}
+
+/* Подсказка жеста «потянуть вниз» */
+.ptr-hint{display:flex;align-items:flex-end;justify-content:center;overflow:hidden;
+  font-size:12px;color:var(--ts);transition:height .12s ease, opacity .12s ease;
+  padding-bottom:4px}
+
+/* Строка списка со смахиванием.
+   Подложка появляется под строкой и открывается ровно настолько, насколько
+   строку увели: человек видит, что будет, ещё до того как отпустит палец. */
+.swipe-row{position:relative;overflow:hidden}
+/* Возврат на место — быстрый; уход за край — чуть медленнее, чтобы движение
+   читалось как завершённое действие, а не как рывок.
+
+   Фон НАСЛЕДУЕТСЯ от карточки. Раньше здесь стоял var(--s0) — серый, который
+   не совпадал с белой карточкой, и строки задач выглядели серыми плашками.
+   Непрозрачный фон всё равно нужен: под строкой лежит подложка с действием. */
+/* Фон строки — основная поверхность приложения (var(--s2)): белая на светлой
+   теме, тёмная на тёмной. Он обязан быть непрозрачным, иначе подложка с
+   действием просвечивает сквозь текст. Раньше здесь стоял var(--s0) — серый,
+   который не совпадал с фоном списка, и строки задач выглядели серыми
+   плашками. */
+.swipe-row-body{transition:transform .16s cubic-bezier(.22,.8,.3,1);
+  background:var(--s2);position:relative;z-index:1}
+@media (prefers-reduced-motion: reduce){ .swipe-row-body{transition:none} }
+.swipe-row-action{position:absolute;top:0;bottom:0;display:flex;align-items:center;
+  justify-content:center;gap:6px;font-size:12.5px;color:#fff;background:var(--sc);
+  border-radius:12px}
+.swipe-row-action.dng{background:var(--dns)}
+.swipe-row-action i{font-size:17px}
+
+/* ── Движение при листании ─────────────────────────────────────────────────
+   Месяц и неделя уезжают в сторону жеста: без этого переключение выглядит
+   подменой содержимого, и непонятно, вперёд ты ушёл или назад.
+
+   Анимация короткая и только на входе нового содержимого. Старое не уводим:
+   два движущихся слоя сразу дают мерцание на слабых телефонах, а выигрыш
+   неразличим. */
+@keyframes slide-from-right { from { opacity:0; transform:translateX(16px) } to { opacity:1; transform:none } }
+@keyframes slide-from-left  { from { opacity:0; transform:translateX(-16px) } to { opacity:1; transform:none } }
+
+.slide-fwd { animation: slide-from-right .18s cubic-bezier(.22,.8,.3,1) both }
+.slide-back{ animation: slide-from-left  .18s cubic-bezier(.22,.8,.3,1) both }
+
+/* Системная настройка «меньше движения» уважается везде, где мы двигаем */
+@media (prefers-reduced-motion: reduce) {
+  .slide-fwd, .slide-back { animation: none }
+}
+
+/* Значок обновления крутится, пока идёт запрос */
+@keyframes ptr-rotate { to { transform: rotate(360deg) } }
+.ptr-spin{animation:ptr-rotate .9s linear infinite}
+.ptr-hint{gap:6px}
+.ptr-hint i{font-size:15px}
+@media (prefers-reduced-motion: reduce){ .ptr-spin{animation:none} }

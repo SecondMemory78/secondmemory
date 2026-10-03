@@ -4,6 +4,7 @@ import { api } from "../api";
 import { toast } from "../lib/toast";
 import DrawCanvas from "../components/DrawCanvas";
 import PatientPicker from "../components/PatientPicker";
+import VoiceButton from "../components/VoiceButton";
 
 // Правка заметки.
 //
@@ -26,6 +27,29 @@ export default function NoteEdit() {
   const [saved, setSaved] = useState(isNew ? "" : "сохранено");
   const [folders, setFolders] = useState([]);
   const [drawOpen, setDrawOpen] = useState(false);
+
+  // Два состояния одного экрана, как в телефонных заметках: пока не коснулся —
+  // выглядит как чтение (без рамок, без пустых разделов, без кнопок). Коснулся
+  // — появились инструменты. Отдельный экран просмотра был бы лишним касанием
+  // на пути к правке, а заметки правят постоянно.
+  const [editing, setEditing] = useState(isNew);   // новая сразу в правке
+  const [dictating, setDictating] = useState(false);
+  const bodyRef = useRef(null);
+
+  async function dictateInto(blob) {
+    setDictating(true);
+    const r = await api.dictate(blob);
+    setDictating(false);
+    if (r._error || !r.text) { toast("Не удалось расшифровать", "error"); return; }
+    // Вставляем туда, где стоит курсор: врач диктует продолжение, а не
+    // переписывает заметку заново.
+    const el = bodyRef.current;
+    const at = el && document.activeElement === el ? el.selectionStart : (note.text || "").length;
+    const before = (note.text || "").slice(0, at);
+    const after = (note.text || "").slice(at);
+    const sep = before && !before.endsWith(" ") && !before.endsWith("\n") ? " " : "";
+    change({ text: before + sep + r.text + after });
+  }
   const [pickOpen, setPickOpen] = useState(false);
   const noteId = useRef(isNew ? null : Number(id));
   const timer = useRef(null);
@@ -134,18 +158,46 @@ export default function NoteEdit() {
         <i className="ti ti-arrow-left back" onClick={() => nav(-1)} />
         <div className="ttl" style={{ flex: 1 }}>Заметка</div>
         {/* Состояние сохранения вместо кнопки: врач видит, что всё цело */}
-        <span className="sub">{saved}</span>
+        {editing ? (
+          <>
+            <span className="sub" style={{ marginRight: 10 }}>{saved}</span>
+            <span className="acc" style={{ cursor: "pointer" }}
+                  onClick={() => { save(true); setEditing(false); }}>Готово</span>
+          </>
+        ) : (
+          <i className="ti ti-pencil acc" title="Править"
+             style={{ cursor: "pointer", fontSize: 19 }} onClick={() => setEditing(true)} />
+        )}
       </div>
 
-      <input className="input note-title" placeholder="Название"
-             value={note.title} onChange={(e) => change({ title: e.target.value })} />
+      {editing ? (
+        <>
+          <input className="input note-title" placeholder="Название" autoFocus={!isNew ? false : true}
+                 value={note.title} onChange={(e) => change({ title: e.target.value })} />
+          <textarea ref={bodyRef} className="input note-body" rows={8} placeholder="Текст заметки"
+                    value={note.text} onChange={(e) => change({ text: e.target.value })} />
+          <div className="btnrow" style={{ marginTop: -2, marginBottom: 8 }}>
+            <VoiceButton label={dictating ? "Расшифровываю…" : "Продиктовать"}
+                         onResult={dictateInto} />
+          </div>
+        </>
+      ) : (
+        /* Чтение: тот же экран без рамок и кнопок. Касание по тексту — правка. */
+        <div onClick={() => setEditing(true)} style={{ cursor: "text" }}>
+          <div className="note-title-read">{note.title || "Без названия"}</div>
+          {note.text
+            ? <div className="note-body-read">{note.text}</div>
+            : <div className="sub" style={{ marginBottom: 10 }}>Нажмите, чтобы написать</div>}
+        </div>
+      )}
 
-      <textarea className="input note-body" rows={8} placeholder="Текст заметки"
-                value={note.text} onChange={(e) => change({ text: e.target.value })} />
-
-      <div className="sec-label">
-        Список{(note.checklist || []).length ? ` · ${done} из ${note.checklist.length}` : ""}
-      </div>
+      {/* Пустые разделы в чтении не показываем: заметка должна читаться, а не
+          выглядеть анкетой с незаполненными полями. */}
+      {(editing || (note.checklist || []).length > 0) && (
+        <div className="sec-label">
+          Список{(note.checklist || []).length ? ` · ${done} из ${note.checklist.length}` : ""}
+        </div>
+      )}
       {(note.checklist || []).map((it, i) => (
         <div key={i} className="row check-row">
           <i className={"ti " + (it.done ? "ti-checkbox" : "ti-square")}
@@ -163,12 +215,14 @@ export default function NoteEdit() {
           <i className="ti ti-x muted" style={{ cursor: "pointer" }} onClick={() => removeItem(i)} />
         </div>
       ))}
-      <button className="btn sm block" onClick={addItem}>
-        <i className="ti ti-plus" /> Пункт списка
-      </button>
+      {editing && (
+        <button className="btn sm block" onClick={addItem}>
+          <i className="ti ti-plus" /> Пункт списка
+        </button>
+      )}
 
-      <div className="sec-label">Схема</div>
-      {drawOpen ? (
+      {(editing || note.drawing) && <div className="sec-label">Схема</div>}
+      {!editing && !note.drawing ? null : drawOpen ? (
         <DrawCanvas value={note.drawing || ""}
                     onChange={(png) => change({ drawing: png })}
                     onClose={() => setDrawOpen(false)} />
@@ -177,20 +231,27 @@ export default function NoteEdit() {
           <img src={note.drawing} alt="Схема" />
           <div className="sub">нажмите, чтобы дорисовать</div>
         </div>
-      ) : (
+      ) : editing ? (
         <button className="btn sm block" onClick={() => setDrawOpen(true)}>
           <i className="ti ti-pencil" /> Нарисовать схему
         </button>
-      )}
+      ) : null}
 
-      <div className="sec-label">Папка</div>
-      <input className="input" list="note-folders" placeholder="Без папки"
-             value={note.folder} onChange={(e) => change({ folder: e.target.value })} />
-      <datalist id="note-folders">
-        {folders.map((f) => <option key={f.name} value={f.name} />)}
-      </datalist>
+      {editing ? (
+        <>
+          <div className="sec-label">Папка</div>
+          <input className="input" list="note-folders" placeholder="Без папки"
+                 value={note.folder} onChange={(e) => change({ folder: e.target.value })} />
+          <datalist id="note-folders">
+            {folders.map((f) => <option key={f.name} value={f.name} />)}
+          </datalist>
+        </>
+      ) : note.folder ? (
+        <div className="sub" style={{ marginTop: 10 }}>Папка: {note.folder}</div>
+      ) : null}
 
-      <div className="sec-label">Что с этим сделать</div>
+      {editing && <div className="sec-label">Что с этим сделать</div>}
+      {editing && (
       <div className="btnrow" style={{ marginBottom: 8 }}>
         <button className="btn sm" style={{ flex: 1 }} onClick={openPicker}>
           <i className="ti ti-user-plus" /> {note.patient_id ? "Перенести ещё раз" : "В карту пациента"}
@@ -199,12 +260,14 @@ export default function NoteEdit() {
           <i className="ti ti-sparkles" /> Разобрать
         </button>
       </div>
+      )}
 
+      {/* Окно выбора пациента — поверх экрана, вне условия правки */}
       {pickOpen && (
         <PatientPicker title="В чью карту перенести заметку"
                        onPick={toPatient} onClose={() => setPickOpen(false)} />
       )}
-
+      {editing && (
       <div className="btnrow" style={{ marginTop: 8 }}>
         <button className="btn sm" style={{ flex: 1 }}
                 onClick={() => change({ pinned: !note.pinned })}>
@@ -212,6 +275,7 @@ export default function NoteEdit() {
           {note.pinned ? " Открепить" : " Закрепить"}
         </button>
       </div>
+      )}
     </>
   );
 }
