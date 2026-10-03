@@ -83,3 +83,29 @@ def test_папки_собираются_из_заметок():
 
 def test_чужая_заметка_не_правится():
     assert c.patch("/api/notes/my/999999", json={"text": "подмена"}).status_code == 404
+
+
+# ── диктовка текста ─────────────────────────────────────────────────────────
+# Внутри поля для текста всё сказанное — ТЕКСТ, а не команда. Врач диктует
+# «надо уточнить название препарата», и заметка не должна переименоваться.
+
+def test_диктовка_только_расшифровывает():
+    r = c.post("/api/assistant/dictate",
+               files={"audio": ("a.webm", b"\x00" * 64, "audio/webm")},
+               data={"audio_format": "webm"})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body.get("text"), "расшифровка пустая"
+    # команды не выполняются: ни намерения, ни созданных записей
+    assert "intent" not in body
+
+
+def test_диктовка_не_создаёт_записей():
+    from app.models import Reminder
+    with Session(engine) as s:
+        before = len(s.exec(select(Reminder)).all())
+    c.post("/api/assistant/dictate",
+           files={"audio": ("a.webm", b"\x00" * 64, "audio/webm")},
+           data={"audio_format": "webm"})
+    with Session(engine) as s:
+        assert len(s.exec(select(Reminder)).all()) == before
